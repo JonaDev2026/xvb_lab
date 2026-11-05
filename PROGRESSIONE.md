@@ -451,3 +451,12 @@ Commit: `8182298`, `c1420ed`, `4bd53e1`.
 - Aggiunti test per cache icone obsolete, rimozione dell'ultima guida e refresh silenzioso offline. GitHub Actions sul commit `1fb22e1` ha superato compilazione e suite di regressione/Qt.
 
 Commit: `cb7ca50`, `aee97e1`, `79c21d0`, `15a08b1`, `0f4f605`, `bd31ee5`, `1fb22e1`.
+
+
+## Registrazione DVD
+
+- Il pulsante REC ora segue la regola della Stable: registra gli stream HTTP(S) e i DVD non cifrati; rifiuta i DVD protetti e non avvia registrazioni da normali file locali.
+- Il controllo della protezione DVD usa `dvd_cifrato()` prima di impostare `stream-record` su libmpv.
+- Aggiunti test Qt per DVD non cifrati e protetti. GitHub Actions sul commit `ab1d743` ha superato compilazione e suite di regressione/Qt.
+
+Commit: `db89146`, `88fe27e`, `ab1d743`.
