@@ -20,7 +20,7 @@ Questo documento registra in ordine cronologico il lavoro effettivamente svolto 
 - **Branch di lavoro:** `main`
 - **Riferimento funzionale:** https://github.com/JonaDev2026/xvb/tree/v4.4.4
 - **Architettura:** Python, PySide6/Qt6, libmpv Render API; motore separato dalle funzioni.
-- **Ultimo commit noto:** `4d0d69b1341aec8b2648fccb168ff04b8c71d9c9`
+- **Ultimo commit noto:** `2747a8ba396f084188f185c1f165d24e3459aa03`
 - **Stato tecnico:** base Qt e primo collegamento Qt/libmpv presenti nel repository; esecuzione e rendering non ancora verificati sul computer di sviluppo.
 - **Funzioni della Stable trasferite:** nessuna funzione completa risulta ancora trasferita e collaudata.
 
@@ -253,3 +253,43 @@ Sostituire la finestra dimostrativa con la prima struttura grafica ricavata dire
 
 - Prima struttura grafica scritta, non ancora collaudata.
 - La finestra non è ancora equivalente alla Stable: i contenuti degli alberi, le interazioni, i menu e le funzioni applicative devono essere trasferiti e verificati.
+
+### 2026-11-05 — Primo trasferimento della libreria locale
+
+**Obiettivo**
+
+Trasferire in XVB Lab il primo flusso reale della sezione Local della Stable 4.4.4: aggiunta di cartelle, scansione dei contenuti, visualizzazione dei file e avvio della riproduzione.
+
+**File creati o modificati**
+
+- `core/config.py` — configurazione persistente isolata in `~/.config/xvb-lab/config.json`.
+- `features/local_media.py` — riconoscimento dei formati audio/video e scansione ricorsiva delle cartelle.
+- `ui/main_window.py` — collegamento di Open folder, albero Local, sorgenti importate, ricerca e doppio clic per riprodurre.
+
+**Modifiche**
+
+- Aggiunto un archivio di configurazione indipendente: non legge, modifica o sovrascrive la configurazione della Stable.
+- Aggiunta l'importazione di cartelle locali e il salvataggio persistente dei percorsi.
+- La scansione ricorsiva ignora le directory e i file nascosti e ordina i risultati senza distinzione tra maiuscole e minuscole.
+- La scansione viene eseguita in un thread Qt separato per non bloccare la finestra.
+- I risultati sono mostrati nell'elenco sinistro; il doppio clic invia il percorso al motore libmpv.
+- Open file registra il file nella sezione Imported e avvia la riproduzione.
+- Aggiunto il filtro testuale sulla lista caricata.
+
+**Verifica**
+
+- Modifiche pubblicate su GitHub.
+- Non ancora eseguite né collaudate sul computer di sviluppo dopo questo aggiornamento.
+- Da verificare: compilazione Python, apertura cartella, scansione di una libreria ampia, filtro, riproduzione e chiusura durante una scansione.
+- La struttura completa della libreria Stable (sottocategorie, conteggi, poster, metadati, cache e azioni contestuali) non è ancora trasferita.
+
+**Commit**
+
+- `ca551d9d5d0e65233ac1e9e749ca385df3b272b4` — configurazione isolata.
+- `6cd0dff27ab7712afb09a60b7b1e52ec2be1d446` — servizio scansione media.
+- `2747a8ba396f084188f185c1f165d24e3459aa03` — collegamento UI della libreria locale.
+
+**Stato e prossimo passaggio**
+
+- Primo flusso della libreria locale scritto, non ancora collaudato.
+- Proseguire trasferendo la gerarchia e le interazioni dell'albero laterale della Stable, poi completare la libreria e le sue funzioni.
