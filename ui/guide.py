@@ -8,6 +8,7 @@ from PySide6.QtGui import QFontMetrics, QPixmap, QImage, QIcon, QFont, QCursor, 
 import time
 from core.epg import nome_piatto
 from core.colors import colore_sfondo_guida
+from core.constants import FONDO, PANNELLO, TASTO, TESTO, GRIGIO, ACCENTO
 from i18n import _
 
 SCORRE = object()
@@ -36,6 +37,12 @@ class Guida(QDialog):
         self.nomi = QListWidget(self)
         self.nomi.setFixedWidth(self.NOMI)
         self.nomi.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self.nomi.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.nomi.setStyleSheet(
+            "QListWidget{background:%s;color:%s;border:0;outline:0}"
+            "QListWidget::item{border:0;padding:0 8px}"
+            "QListWidget::item:selected{background:%s;color:white}" %
+            (FONDO, TESTO, ACCENTO))
         self.tela = _TelaGuida(self)
         self.area_tela = QScrollArea(self)
         self.area_tela.setWidgetResizable(False)
@@ -81,6 +88,7 @@ class Guida(QDialog):
             if logo is not None:
                 voce.setIcon(QIcon(logo))
             voce.setSizeHint(QSize(self.NOMI, self.RIGA))
+            voce.setBackground(QColor(PANNELLO if self.nomi.count() % 2 else FONDO))
             self.nomi.addItem(voce)
         self.tela.setMinimumSize(6 * self.ORA, max(1, len(self.righe)) * self.RIGA + 20)
         self.testa.setMinimumSize(6 * self.ORA, self.TESTA)
@@ -123,33 +131,33 @@ class _TelaGuida(QWidget):
         from PySide6.QtGui import QPainter, QPen
         import time
         g, p = self.guida, QPainter(self)
-        p.fillRect(self.rect(), QColor("#1c1b22"))
+        p.fillRect(self.rect(), QColor(FONDO))
         altezza = max(1, len(g.righe)) * g.RIGA
         t = g.da
         while t <= g.fino:
             x = g.x_di(t)
             p.setPen(QPen(QColor("#2a2a2a"), 1))
             p.drawLine(round(x), 0, round(x), altezza)
-            p.setPen(QColor("#9e9e9e"))
+            p.setPen(QColor(GRIGIO))
             p.drawText(round(x + 6), 18, time.strftime("%H:%M", time.localtime(t)))
             t += 1800
         adesso = time.time()
         for i, (nome, url, ide, prog) in enumerate(g.righe):
             y0 = i * g.RIGA
-            p.fillRect(0, y0, self.width(), g.RIGA, QColor("#1c1b22"))
+            fondo = PANNELLO if i % 2 else FONDO
+            p.fillRect(0, y0, self.width(), g.RIGA, QColor(fondo))
             colore = QColor(g.app.colore_canale(nome, url))
             for a, b, titolo in prog:
                 xa, xb = max(g.x_di(a), 0), g.x_di(b)
                 in_onda = a <= adesso < b
-                fondo = "#1c1b22" if i % 2 else "#1c1b22"
-                sfondo = QColor(colore_sfondo_guida(colore.name(), fondo, 0.40)) if in_onda else QColor("#2c2c2c")
+                sfondo = QColor(colore_sfondo_guida(colore.name(), fondo, 0.40)) if in_onda else QColor(TASTO)
                 p.fillRect(QRect(round(xa + 1), y0 + 6, max(1, round(xb - xa - 2)), g.RIGA - 12), sfondo)
                 if xb - xa > 30:
-                    p.setPen(QColor("#ffffff" if in_onda else "#e0e0e0"))
+                    p.setPen(QColor("#ffffff" if in_onda else TESTO))
                     testo = QFontMetrics(p.font()).elidedText(titolo, Qt.ElideRight, max(0, round(xb - xa - 14)))
                     p.drawText(round(xa + 8), y0 + g.RIGA // 2 + 5, testo)
         x = g.x_di(adesso)
-        p.setPen(QPen(QColor("#bb86fc"), 2))
+        p.setPen(QPen(QColor(ACCENTO), 2))
         p.drawLine(round(x), 0, round(x), altezza)
         p.end()
 
@@ -180,7 +188,7 @@ class _TestaGuida(QWidget):
             t += 1800
         x = round(self.guida.x_di(time.time()))
         p.setPen(Qt.NoPen)
-        p.setBrush(QColor("#bb86fc"))
+        p.setBrush(QColor(ACCENTO))
         p.drawPolygon(QPolygon([
             QPoint(x - 6, self.guida.TESTA - 8),
             QPoint(x + 6, self.guida.TESTA - 8),
