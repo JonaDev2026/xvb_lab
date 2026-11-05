@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (
 from engine.mpv import MpvVideo
 from ui.widgets import Cursore, Elenco, Finestrella, Ricerca, Guida, Tendina
 from ui.sidebar import Sidebar
+from ui.hud import HudVideo
 from ui.backdrop import Sfondo
 from core.artist_artwork import ArtistArtwork
 from ui.handle import Maniglia
@@ -43,6 +44,7 @@ import random
 import json
 import shutil
 import hashlib
+import math
 from urllib.parse import urlparse, quote
 from urllib.request import Request, urlopen
 
@@ -542,6 +544,7 @@ class MainWindow(QMainWindow):
         self.player_layout.setContentsMargins(0, 0, 0, 0)
         self.player_layout.setSpacing(0)
         self.video_layout.addWidget(self.player_area)
+        self.hud_video = HudVideo(self.video)
         try:
             self.player = MpvVideo(self.player_area, options=self._mpv_buffer_options())
             self.player_layout.addWidget(self.player, 1)
@@ -585,6 +588,10 @@ class MainWindow(QMainWindow):
         self._timer_overlay = QTimer(self)
         self._timer_overlay.setSingleShot(True)
         self._timer_overlay.timeout.connect(self._nascondi_overlay)
+        self._timer_hud = QTimer(self)
+        self._timer_hud.setInterval(250)
+        self._timer_hud.timeout.connect(self._aggiorna_hud)
+        self._fase_hud = 0
         comandi = QVBoxLayout(self.barra)
         comandi.setContentsMargins(12, 38, 12, 0)
         comandi.setSpacing(0)
@@ -3312,25 +3319,58 @@ class MainWindow(QMainWindow):
         indice = valori.index(self.velocita) if self.velocita in valori else 0
         self.metti_velocita(valori[(indice + 1) % len(valori)])
 
+    def _aggiorna_hud(self):
+        hud = getattr(self, "hud_video", None)
+        if hud is None:
+            return
+        fine = getattr(self, "timer_fine", None)
+        timer_testo = ""
+        if fine:
+            resto = max(0, int(math.ceil(fine - time.time())))
+            ore, minuti_secondi = divmod(resto, 3600)
+            timer_testo = ("%d:%02d:%02d" % (ore, minuti_secondi // 60, minuti_secondi % 60)
+                           if ore else "%02d:%02d" % (minuti_secondi // 60, minuti_secondi % 60))
+        registrando = bool(getattr(self, "registrando", ""))
+        rec_testo = ""
+        if registrando:
+            durata = max(0, int(time.time() - getattr(self, "inizio_rec", time.time())))
+            ore, minuti_secondi = divmod(durata, 3600)
+            cronometro = ("%d:%02d:%02d" % (ore, minuti_secondi // 60, minuti_secondi % 60)
+                          if ore else "%02d:%02d" % (minuti_secondi // 60, minuti_secondi % 60))
+            rec_testo = "REC " + cronometro
+        if not timer_testo and not rec_testo:
+            hud.set_state()
+            self._timer_hud.stop()
+            return
+        self._fase_hud = (self._fase_hud + 1) % 12
+        hud.set_state(timer_testo, rec_testo, self._fase_hud)
+        hud.posiziona(self.split, self.schermo_attivo)
+        if not self._timer_hud.isActive():
+            self._timer_hud.start()
+
     def imposta_timer_spegnimento(self, minuti):
         self.annulla_timer_spegnimento(silenzioso=True)
         try:
             minuti = int(minuti)
             self._timer_spegnimento.start(minuti * 60000)
             self.timer_fine = time.time() + minuti * 60
+            self._aggiorna_hud()
             self._messaggio_temporaneo(_("sleep timer set: %d min") % minuti)
         except Exception:
             self.timer_fine = None
+            self._aggiorna_hud()
             self._messaggio_temporaneo(_("cannot set sleep timer"))
 
     def annulla_timer_spegnimento(self, silenzioso=False):
         self._timer_spegnimento.stop()
         self.timer_fine = None
+        self._aggiorna_hud()
         if not silenzioso:
             self._messaggio_temporaneo(_("sleep timer cancelled"))
 
     def scade_timer_spegnimento(self):
         self.timer_fine = None
+        self._aggiorna_hud()
         self.ferma()
         self._messaggio_temporaneo(_("sleep timer expired"))
 
@@ -3496,6 +3536,7 @@ class MainWindow(QMainWindow):
         self.fine_rec = fine
         self.inizio_rec = time.time()
         self._mostra_rec()
+        self._aggiorna_hud()
 
     def ferma_registrazione(self):
         player = self._player_rec or self._attivo()
@@ -3509,6 +3550,7 @@ class MainWindow(QMainWindow):
         self._player_rec = None
         self._imposta_pulsante_rec(False)
         self.fine_rec = 0.0
+        self._aggiorna_hud()
         if destinazione:
             self.riga_stato.setText("Saved " + os.path.basename(destinazione))
             self._riempi_liste()
@@ -4300,6 +4342,8 @@ class MainWindow(QMainWindow):
                     self.schermo_attivo = 0
                 elif oggetto is self.player2:
                     self.schermo_attivo = 1
+                if oggetto in (self.player, self.player2):
+                    self._posiziona_overlay()
         return super().eventFilter(oggetto, evento)
 
     def split_si_no(self):
@@ -4320,6 +4364,7 @@ class MainWindow(QMainWindow):
             self.player2.evento.connect(lambda evento, p=self.player2: self._evento_player(p, evento))
             self.split = True
             self.schermo_attivo = 0
+            self._posiziona_overlay()
         except Exception as errore:
             self.player2 = None
             self.riga_stato.setText("Split screen failed: " + str(errore))
@@ -4394,6 +4439,9 @@ class MainWindow(QMainWindow):
                 0, max(0, self.video.height() - self.barra.height()),
                 self.video.width(), self.barra.height())
             self.barra.raise_()
+        hud = getattr(self, "hud_video", None)
+        if hud is not None:
+            hud.posiziona(self.split, self.schermo_attivo)
 
     def _attiva_overlay(self):
         if not self._overlay_attivo:
@@ -4485,6 +4533,7 @@ class MainWindow(QMainWindow):
             except Exception:
                 pass
         self._timer_overlay.stop()
+        self._timer_hud.stop()
         self._timer_spegnimento.stop()
         self._timer_avviso.stop()
         if self._versione_worker and self._versione_worker.isRunning():
