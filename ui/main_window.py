@@ -738,11 +738,21 @@ class MainWindow(QMainWindow):
         if not self._mpris:
             return
         player = self.mpv
+        titolo, artista, album, arte = self.nome_in_onda, "", "", ""
+        durata = player.duration if player else 0
+        if self.file_in_onda and os.path.isabs(self.file_in_onda):
+            tag_titolo, artista, album, _anno = tag_di(self.file_in_onda, self.tag_cache)
+            titolo = tag_titolo or titolo
+            copertina = copertina_url(self.file_in_onda)
+            if os.path.isfile(copertina):
+                arte = copertina
         try:
             pausa = player.leggi("pause") == "yes" if player else True
-            durata = player.duration if player else 0
             self._mpris.aggiorna({
-                "titolo": self.nome_in_onda,
+                "titolo": titolo,
+                "artista": artista,
+                "album": album,
+                "arte": arte,
                 "stato": "Stopped" if not self.file_in_onda else ("Paused" if pausa else "Playing"),
                 "volume": self.volume.value() / 100.0,
                 "durata": durata,
