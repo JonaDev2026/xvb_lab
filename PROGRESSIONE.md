@@ -65,3 +65,8 @@ Nessuna funzione è ancora dichiarata migrata e l'applicazione non è pronta per
 
 - [x] Trasferita in `core/artwork.py` la premoltiplicazione alfa richiesta dalle sovrapposizioni libmpv, mantenendo la trasformazione RGBA della Stable.
 - [x] Aggiunto test numerico sui canali colore e alfa semitrasparenti.
+
+- [x] Integrate in `core/constants.py` le costanti originali della Stable 4.4.4 per velocità, proporzioni, buffer visivi, palette, stati e dimensioni dell'elenco.
+- [x] Trasferite in `core/metadata.py` le ricerche MusicBrainz/Cover Art Archive per copertine di album e brani, con priorità alle pubblicazioni ufficiali e agli album.
+- [x] Trasferita in `core/system.py` la rilevazione del font desktop originale per GNOME, Cinnamon, XFCE e KDE.
+- [x] Aggiunti test di regressione per selezione copertine MusicBrainz e rilevamento font desktop.
