@@ -514,6 +514,7 @@ class MainWindow(QMainWindow):
         QTimer.singleShot(8000, lambda: self.controlla_versione(zitto=True))
         self._indice_canale = -1
         self._giro_traccia = 0
+        self.fermato = None
         self._eof_gestito = False
         self.salti = 0
         self._ultima_posizione = None
@@ -3216,6 +3217,12 @@ class MainWindow(QMainWindow):
                 self._azione(testo, lambda _=False, n=i: self.scegli_qualita(n)))
 
     def pausa(self):
+        fermato = getattr(self, "fermato", None)
+        if fermato:
+            self.fermato = None
+            _tipo, nome, percorso, ide = fermato
+            self.apri(percorso, nome=nome, ide=ide)
+            return
         player = self._attivo()
         if player:
             player.pausa()
@@ -3231,6 +3238,8 @@ class MainWindow(QMainWindow):
             self.ferma_registrazione()
         player = self._attivo()
         if player:
+            if self.file_in_onda:
+                self.fermato = ("file", self.nome_in_onda, self.file_in_onda, self.ide_in_onda)
             player.ferma()
             self.file_in_onda = None
             self._segna_in_onda()
