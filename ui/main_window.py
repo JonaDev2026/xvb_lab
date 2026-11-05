@@ -8,7 +8,7 @@ from engine.mpv import MpvVideo
 from ui.widgets import Cursore, Elenco, Finestrella, Ricerca, Guida, Tendina
 from ui.sidebar import Sidebar
 from core.session import Sessione
-from core.media import media_in, AUDIO, e_media, tipo_preferiti, PREF_IPTV, PREF_MUSICA, PREF_VIDEO
+from core.media import media_in, AUDIO, e_media, tipo_preferiti, titolo_url, PREF_IPTV, PREF_MUSICA, PREF_VIDEO
 from core.tags import leggi_tag, tag_di, scrivi_tag
 from core.metadata import titolo_anno, dal_percorso, copertina_url, copertina_dentro, poster_film
 from integrations.mpris import avvia_mpris
@@ -1835,7 +1835,7 @@ class MainWindow(QMainWindow):
         return self.sessione.config.get("url_salvati", {}).get(categoria, [])
 
     def nome_di_url(self, url):
-        return self.sessione.config.get("nomi_url", {}).get(url) or os.path.basename(urlparse(url).path) or url
+        return self.sessione.config.get("nomi_url", {}).get(url) or titolo_url(url)
 
     def metti_url(self, categoria, url):
         salvati = self.sessione.config.setdefault("url_salvati", {})
