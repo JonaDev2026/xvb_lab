@@ -411,79 +411,29 @@ XVB Lab potrà essere considerata equivalente alla Stable solo quando:
 
 ## 8. Stato attuale
 
-**Stato reale verificato sul repository il 2026-11-05: sono presenti l'inventario della Stable, i moduli di logica condivisa e i test di regressione. Non è ancora presente una build Qt6 avviabile nel branch main.**
+**La base applicativa Qt6 è presente nel branch `main`, ma non è ancora dichiarata equivalente alla Stable 4.4.4 e non è ancora la build da collaudare.**
 
-- [x] Repository Stable individuato: JonaDev2026/xvb.
-- [x] Tag di riferimento confermato: v4.4.4.
-- [x] File principale analizzato: xvb.py (11.823 righe circa).
-- [x] Traduzioni originali trasferite.
-- [x] Inventario di classi, metodi e funzioni completato.
-- [x] Moduli condivisi trasferiti in core/: media, configurazione, playlist, EPG, preferiti, metadati, tag, colori, artwork, dischi, anteprime, registrazioni, stream e rilevamento font.
-- [x] Integrazione MPRIS separata in integrations/mpris.py.
-- [x] Test di regressione aggiunti in tests/.
-- [ ] Creare main.py, requirements.txt e avvio applicazione.
-- [ ] Creare il motore autonomo in engine/ con libmpv Render API Qt.
-- [ ] Creare la finestra e i widget Qt6 in ui/, riproducendo fedelmente la Stable.
-- [ ] Collegare tutte le funzioni originali ai componenti Qt.
-- [ ] Verificare il rendering e la riproduzione su X11 e Wayland.
-- [ ] Eseguire i test automatici dopo il pull nel sistema di sviluppo.
+### Componenti presenti
 
-La presenza di funzioni trasferite o di test scritti non equivale a una migrazione completa né a test eseguiti. Non chiedere il pull finché non esiste una versione Qt6 completa e avviabile, pronta per il collaudo complessivo.
+- [x] Repository Stable di riferimento: `JonaDev2026/xvb`, tag `v4.4.4`.
+- [x] Inventario della Stable: 8 classi, 400 metodi e 106 funzioni top-level.
+- [x] Traduzioni originali trasferite in `i18n/`.
+- [x] Servizi condivisi trasferiti in `core/`: configurazione, media, playlist, EPG, preferiti, metadati, tag, colori, artwork, dischi, anteprime, registrazioni, stream e rilevamento font.
+- [x] Motore libmpv con Qt Render API in `engine/mpv.py`, superficie OpenGL Qt, comandi, proprietà ed eventi.
+- [x] Integrazione MPRIS in `integrations/mpris.py`.
+- [x] Finestra applicativa in `ui/main_window.py`, avvio da `main.py`.
+- [x] Widget UI suddivisi in moduli: `ui/search.py`, `ui/dialogs.py`, `ui/list.py`, `ui/guide.py`.
+- [x] Albero laterale Qt6 in `ui/sidebar.py`, collegato alle playlist, categorie, libreria locale, dischi, registrazioni e preferiti.
+- [x] Controlli player, seek, volume, repeat, shuffle, preferiti, fullscreen, PiP e split screen collegati alle funzioni presenti nel controller.
+- [x] Test di regressione presenti in `tests/` e workflow CI configurato.
 
-## 9. Riferimenti
+### Lavoro ancora aperto
 
-- Stable 4.4.4: https://github.com/JonaDev2026/xvb/tree/v4.4.4
-- Sorgente principale: https://github.com/JonaDev2026/xvb/blob/v4.4.4/xvb.py
-- Traduzioni: https://github.com/JonaDev2026/xvb/blob/v4.4.4/traduzioni.py
-- Script pacchetto Debian: https://github.com/JonaDev2026/xvb/blob/v4.4.4/crea_deb.sh
-- Repository nuovo: https://github.com/JonaDev2026/xvb_lab
+- [ ] Confronto puntuale di ogni metodo trasferito con il corpo della Stable, non solo con l'inventario.
+- [ ] Migrazione completa dei metodi rimanenti della classe `TV`.
+- [ ] Parità completa di menu, menu contestuali, barra overlay, HUD, finestre e scorciatoie.
+- [ ] Verifica di tutti i flussi end-to-end: IPTV, EPG, registrazioni, musica, video, dischi, CD, telecamere e sottotitoli.
+- [ ] Verifica del rendering e della stabilità libmpv in sessioni X11 e Wayland reali.
+- [ ] Esecuzione dei test e collaudo completo.
 
----
-
-## Registro delle decisioni e dei progressi
-
-### 2026-11-05 — Primo collegamento Qt/libmpv
-
-- Aggiunto `engine/render.py` con un widget `QOpenGLWidget` che inizializza il backend OpenGL di libmpv tramite Render API.
-- Il widget passa a libmpv il framebuffer Qt corrente e richiede il ridisegno tramite callback di aggiornamento.
-- Aggiornato `engine/mpv.py`: il motore usa `vo=libmpv`, espone handle e libreria nativa e mantiene separati i comandi di riproduzione.
-- Aggiornato `main.py`: la finestra mostra il widget video e include i comandi minimi Apri file e Stop.
-- Il codice non usa embedding tramite `wid` né Xlib.
-- Implementazione iniziale non ancora testata su macchina reale: in particolare vanno verificati il recupero dei puntatori OpenGL tramite Qt, il rendering e il rilascio del contesto.
-- Prossimo passaggio: aggiornare il clone locale, installare le dipendenze di sistema e avviare il prototipo per raccogliere il primo risultato concreto.
-
-### 2026-11-05 — Avvio della base tecnica
-
-- Creati i primi package modulari nel repository Lab.
-- Aggiunto `main.py` con una finestra PySide6 minimale, solo per verificare l'avvio dell'interfaccia.
-- Aggiunto `requirements.txt` con PySide6.
-- Aggiunto `engine/mpv.py`: primo controller autonomo per creare, inizializzare, comandare e chiudere un'istanza libmpv tramite API C.
-- Il controller non usa `wid`, Xlib o Tkinter.
-- Non è ancora stato eseguito un test sul computer dell'utente; il codice è una prima base da verificare.
-- Il prossimo passaggio tecnico è realizzare il rendering con libmpv Render API dentro Qt, quindi provarlo realmente su X11 e Wayland.
-
-### 2026-11-05 — Separazione motore/funzioni
-
-- Deciso di organizzare il progetto con una separazione netta tra `engine/` e `features/`.
-- Il motore libmpv e il rendering Qt saranno autonomi e non conterranno logica specifica delle funzioni.
-- IPTV, EPG, registrazioni, musica, video, dischi, telecamere e sottotitoli saranno moduli separati sotto `features/`.
-- UI, servizi condivisi, integrazioni desktop e traduzioni avranno directory dedicate.
-- Le funzioni comunicheranno con il motore attraverso un'interfaccia interna definita, senza accedere direttamente ai dettagli di libmpv.
-- Questa struttura sostituisce la precedente proposta di collocare il playback dentro `app/playback/`.
-
-### 2026-11-05
-- Creato il progetto XVB Lab come riscrittura indipendente della Stable.
-- Confermato Python + PySide6/Qt6 + libmpv.
-- Obiettivo esplicito: stessa applicazione e stesse funzioni della Stable 4.4.4.
-- Obiettivo di compatibilità grafica: X11 e Wayland.
-- Stabilito che Stable non deve essere modificata.
-- Preparato questo diario sulla base dell'analisi del tag `v4.4.4`.
-- Prossimo punto di lavoro: verificare la cartella locale `xvb_lab` e realizzare il prototipo Qt6/libmpv prima di trasferire le altre funzioni.
-
-
-### 2026-11-05 — Prima struttura della finestra principale
-
-- Creato `ui/main_window.py` con i tre pannelli, i sette menu, la barra comandi, la barra notifiche e la barra di stato sulla base delle misure e dei colori rilevati in Stable 4.4.4.
-- Aggiornato `main.py` per avviare la nuova finestra e caricare le risorse di font e icona se presenti.
-- Le voci non ancora implementate sono disabilitate e non vengono conteggiate come funzioni trasferite.
-- Codice pubblicato ma non ancora collaudato dopo l'aggiornamento. Restano da verificare layout e interazioni; le funzioni applicative sono ancora da trasferire.
+Le modifiche di questa fase non sono state collaudate localmente. Il pull verrà richiesto quando la prima build completa sarà pronta per una prova complessiva.
