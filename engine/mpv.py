@@ -1,5 +1,6 @@
 import ctypes
 import ctypes.util
+from core.constants import UA
 from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtGui import QOpenGLContext
 from PySide6.QtOpenGLWidgets import QOpenGLWidget
@@ -103,6 +104,13 @@ class MpvVideo(QOpenGLWidget):
             "input-vo-keyboard": "no",
             "hwdec": "auto-safe",
             "keep-open": "yes",
+            "cache": "yes",
+            "network-timeout": "60",
+            "ytdl": "no",
+            "user-agent": UA,
+            "volume-max": "150",
+            "cursor-autohide": "3000",
+            "stream-lavf-o": "reconnect=1,reconnect_streamed=1,reconnect_on_network_error=1,reconnect_delay_max=10",
         }
         opzioni.update(self._opzioni)
         for nome, valore in opzioni.items():
@@ -115,6 +123,8 @@ class MpvVideo(QOpenGLWidget):
         if rc < 0:
             self.chiudi()
             raise MpvError("Inizializzazione libmpv fallita: %d" % rc)
+        self._lib.mpv_set_property_string(self._mpv, b"window-dragging", b"no")
+        self._lib.mpv_set_property_string(self._mpv, b"audio-display", b"embedded-first")
 
     def initializeGL(self):
         if self._inizializzato or not self._mpv:
