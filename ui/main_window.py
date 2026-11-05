@@ -784,6 +784,30 @@ class MainWindow(QMainWindow):
         m3u = self.el_liste.insert(iptv, "end", iid="m3u",
                                    text=" M3U (%d)" % len(self.sessione.liste),
                                    open=True)
+        raccolte = registrazioni()
+        if raccolte:
+            registrazioni_root = self.el_liste.insert(
+                "", "end", iid="registrazioni",
+                text=" " + _("Recordings"),
+                image=QPixmap(os.path.join(QUI, "icone", "vhs.png")),
+                open=False)
+            for indice, ((canale, giorno), file_registrati) in enumerate(raccolte):
+                try:
+                    data = time.strftime("%d/%m/%Y", time.strptime(giorno, "%Y-%m-%d"))
+                except ValueError:
+                    data = giorno
+                gruppo = self.el_liste.insert(
+                    registrazioni_root, "end", iid="registrazioni:%d" % indice,
+                    text=" %s · %s" % (canale, data))
+                for j, (ora, titolo, percorso) in enumerate(file_registrati):
+                    estensione = os.path.splitext(percorso)[1].lower()
+                    icona = "music" if estensione == ".mka" else "player"
+                    iid = "registrazione:%d:%d" % (indice, j)
+                    self.el_liste.insert(
+                        gruppo, "end", iid=iid,
+                        text=" %s  %s" % (ora, titolo),
+                        image=QPixmap(os.path.join(QUI, "icone", icona + ".png")))
+                    self.el_liste.item(iid, valore=("__recording__", percorso))
         locale = self.el_liste.insert("", "end", iid="locale",
                                       text=" Local", open=True)
         gruppi = {}
