@@ -536,6 +536,18 @@ class MainWindow(QMainWindow):
         self.riga_stato = QLabel("XVB", stato)
         self.riga_stato.setStyleSheet("color:#e0e0e0")
         stato_layout.addWidget(self.riga_stato, 1)
+        self.et_ora_programma = QLabel(stato)
+        self.et_ora_programma.setStyleSheet("color:#9e9e9e")
+        self.et_ora_programma.hide()
+        stato_layout.addWidget(self.et_ora_programma)
+        self.et_prossimo = QLabel(stato)
+        self.et_prossimo.setStyleSheet("color:#bdbdbd")
+        self.et_prossimo.hide()
+        stato_layout.addWidget(self.et_prossimo)
+        self.et_ora_prossimo = QLabel(stato)
+        self.et_ora_prossimo.setStyleSheet("color:#9e9e9e")
+        self.et_ora_prossimo.hide()
+        stato_layout.addWidget(self.et_ora_prossimo)
         self._timer_carico = QTimer(self)
         self._timer_carico.setInterval(50)
         self._timer_carico.timeout.connect(self._gira_carico)
@@ -2976,26 +2988,47 @@ class MainWindow(QMainWindow):
             self._mostra_rec()
             return
         if not self.file_in_onda:
+            self.et_ora_programma.hide()
+            self.et_prossimo.hide()
+            self.et_ora_prossimo.hide()
             return
         programma = self._programma_corrente()
+        prossimo = self._programma_successivo()
         if programma:
             self.riga_stato.setText("%s  ·  %s" % (self.nome_in_onda, programma[2]))
+            self.et_ora_programma.setText(
+                "%s–%s" % (time.strftime("%H:%M", time.localtime(programma[0])),
+                           time.strftime("%H:%M", time.localtime(programma[1]))))
+            self.et_ora_programma.show()
         else:
             self.riga_stato.setText(self.nome_in_onda)
+            self.et_ora_programma.hide()
+        if prossimo:
+            self.et_prossimo.setText(_("Next: %s") % prossimo[2])
+            self.et_ora_prossimo.setText(time.strftime("%H:%M", time.localtime(prossimo[0])))
+            self.et_prossimo.show()
+            self.et_ora_prossimo.show()
+        else:
+            self.et_prossimo.hide()
+            self.et_ora_prossimo.hide()
         self.elenco.viewport().update()
 
-    def _programma_corrente(self):
+    def _programmi_canale(self):
         if not self.ide_in_onda and not self.nome_in_onda:
-            return None
+            return []
         chiave = self.ide_in_onda if self.ide_in_onda in self.sessione.epg else self.sessione.epg_nomi.get(
             __import__("core.epg", fromlist=["nome_piatto"]).nome_piatto(self.nome_in_onda))
-        if not chiave:
-            return None
+        return self.sessione.epg.get(chiave, []) if chiave else []
+
+    def _programma_corrente(self):
         adesso = time.time()
-        for programma in self.sessione.epg.get(chiave, []):
-            if programma[0] <= adesso < programma[1]:
-                return programma
-        return None
+        return next((programma for programma in self._programmi_canale()
+                     if programma[0] <= adesso < programma[1]), None)
+
+    def _programma_successivo(self):
+        adesso = time.time()
+        return next((programma for programma in self._programmi_canale()
+                     if programma[0] > adesso), None)
 
     def registra(self):
         if self.registrando:
