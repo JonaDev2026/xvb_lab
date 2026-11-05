@@ -17,7 +17,9 @@ from i18n import _, imposta_lingua, LINGUE
 from core.playlists import liste_in_cartella, BUFFER, LOGHI, NOMI_URL, CACHE_LISTE, CHIAVI, copia_lista_url, e_una_lista, _CACHE_PARSED_LOCK, _CACHE_PARSED_MEMORIA
 from core.colors import CACHE_LOGHI, leggi_colori, scrivi_colori, colore_di, colore_dal_logo
 from core.stream import varianti, chiave_clearkey, server_mpd, CACHE_VARIANTE
-from core.constants import SCALA_FILE, CATEGORIE_URL, VERSIONE
+from core.constants import (SCALA_FILE, CATEGORIE_URL, VERSIONE, FONDO, PANNELLO,
+                            BARRA, STATO, TASTO, SCELTO, TESTO, GRIGIO, ACCENTO,
+                            CERCA, IN_ONDA, TESTO_ONDA)
 from core.discs import dischi, cd_audio, dvd_cifrato, e_dvd, titolo_da_etichetta
 from core.recordings import registrazioni
 from core.favorites import leggi_preferiti, leggi_preferiti_cat, scrivi_preferiti
@@ -134,16 +136,19 @@ class MainWindow(QMainWindow):
         self.resize(1280, 720)
         self.setMinimumSize(800, 480)
         self.setStyleSheet(
-            "QMainWindow,QWidget{background:#1c1b22;color:#e0e0e0}"
-            "QMenuBar{background:#1c1b22;color:white}"
-            "QMenuBar::item:selected,QMenu::item:selected{background:#42414d}"
-            "QMenu{background:#1c1b22;color:#e0e0e0;border:1px solid #42414d}"
-            "QMenu::item{padding:6px 22px}"
-            "QPushButton{background:#2c2c2c;color:#e0e0e0;border:0;padding:6px}"
-            "QPushButton:hover{background:#42414d}"
-            "QSlider::groove:horizontal{height:4px;background:#4a4a4a}"
-            "QSlider::sub-page:horizontal{background:white}"
-            "QSlider::handle:horizontal{width:0}"
+            (
+                "QMainWindow,QWidget{background:%s;color:%s}"
+                "QMenuBar{background:%s;color:white}"
+                "QMenuBar::item:selected,QMenu::item:selected{background:%s}"
+                "QMenu{background:%s;color:%s;border:1px solid %s}"
+                "QMenu::item{padding:6px 22px}"
+                "QPushButton{background:%s;color:%s;border:0;padding:6px}"
+                "QPushButton:hover{background:%s;color:white}"
+                "QSlider::groove:horizontal{height:4px;background:#4a4a4a}"
+                "QSlider::sub-page:horizontal{background:white}"
+                "QSlider::handle:horizontal{width:0}"
+            ) % (FONDO, TESTO, PANNELLO, SCELTO, PANNELLO, TESTO,
+                 SCELTO, TASTO, TESTO, SCELTO)
         )
         self._costruisci_menu()
         centrale = QWidget(self)
