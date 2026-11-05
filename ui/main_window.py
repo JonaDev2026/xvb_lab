@@ -236,6 +236,8 @@ class MainWindow(QMainWindow):
         self.et_liste.setStyleSheet("color:#9e9e9e")
         dx.addWidget(self.et_liste)
         self.el_liste = Sidebar(self.destra)
+        self.el_liste.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.el_liste.customContextMenuRequested.connect(self._menu_liste)
         self.el_liste.selected.connect(self._scegli_voce_liste)
         dx.addWidget(self.el_liste, 1)
         self._riempi_liste()
