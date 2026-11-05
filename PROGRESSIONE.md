@@ -202,3 +202,13 @@ Non eseguiti test o prove con libmpv; il comportamento resta da verificare al pu
 - Inseriti i comandi nel menu Playback e mantenuti i messaggi localizzati tramite il catalogo Stable.
 
 Non eseguiti test né verifiche di riproduzione.
+
+## Drag & drop e timer di spegnimento
+
+- Aggiunto il supporto Qt6 per trascinare file, cartelle e playlist sulla finestra.
+- Le cartelle multimediali vengono aggiunte alla libreria, i file multimediali all'elenco importati o alla cartella già registrata, le playlist M3U vengono aggiunte alla configurazione e ricaricate.
+- Ripristinato il timer di spegnimento con scelte da 15 a 120 minuti, annullamento e arresto della sola riproduzione alla scadenza.
+- Il timer viene fermato durante la chiusura dell'applicazione.
+- Ripristinata la scelta della velocità di riproduzione con salvataggio della preferenza.
+
+Non eseguiti test né prove d'uso. Il drag & drop misto (playlist insieme a cartelle e file nello stesso rilascio) resta da rifinire.
