@@ -26,6 +26,7 @@ from PySide6.QtWidgets import (
 )
 
 from engine.render import MPVRenderWidget
+from features.sleep_timer import SleepTimer
 from ui.metrics import (
     WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_MIN_WIDTH, WINDOW_MIN_HEIGHT,
     LEFT_PANEL_WIDTH, RIGHT_PANEL_WIDTH, MEDIA_ROW_HEIGHT,
@@ -135,6 +136,8 @@ class MainWindow(QMainWindow):
         self.previous_button = None
         self.next_button = None
         self._vinyl_icons = {}
+        self.sleep_timer = SleepTimer(self)
+        self.sleep_timer.expired.connect(self._sleep_timer_expired)
         self.resource_dir = Path(__file__).resolve().parents[1] / "resources"
         self.icons_dir = self.resource_dir / "icons"
         self.setWindowTitle("XVB v4.4.4")
@@ -297,8 +300,8 @@ class MainWindow(QMainWindow):
         playback.addSeparator()
         self._action(playback, "Sleep timer", enabled=False)
         for minutes in (15, 30, 45, 60, 90):
-            self._action(playback, f"{minutes} minutes", enabled=False)
-        self._action(playback, "Cancel sleep timer", enabled=False)
+            self._action(playback, f"{minutes} minutes", lambda checked=False, value=minutes: self.set_sleep_timer(value))
+        self._action(playback, "Cancel sleep timer", self.cancel_sleep_timer)
         playback.addSeparator()
         self._action(playback, "Back 10 s", lambda: self.seek(-10), shortcut="Alt+Left")
         self._action(playback, "Forward 10 s", lambda: self.seek(10), shortcut="Alt+Right")
@@ -1157,7 +1160,21 @@ class MainWindow(QMainWindow):
         save_config(self.config)
         self.recent_menu.clear()
 
+    def set_sleep_timer(self, minutes):
+        self.sleep_timer.start(minutes)
+        self.playback_status.setText(f"sleep timer: {minutes} min")
+
+    def cancel_sleep_timer(self):
+        self.sleep_timer.cancel()
+        self.playback_status.setText("sleep timer cancelled")
+
+    def _sleep_timer_expired(self):
+        self.sleep_timer.cancel()
+        self.stop_playback()
+        self.playback_status.setText("sleep timer expired")
+
     def stop_playback(self):
+        self.sleep_timer.cancel()
         self.engine.stop()
         self._end_handled = True
         self._current_media_path = None
@@ -1231,6 +1248,7 @@ class MainWindow(QMainWindow):
             event.ignore()
             QTimer.singleShot(100, self.close)
             return
+        self.sleep_timer.cancel()
         self.video.close_render_context()
         self.engine.close()
         event.accept()
