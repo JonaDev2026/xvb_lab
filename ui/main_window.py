@@ -346,7 +346,8 @@ class MainWindow(QMainWindow):
         self._timer_player.start(500)
         self._aggiorna_recenti()
         self.applica_filtri_audio()
-        self._volume(self.volume.get())
+        self._volume(self.volume.value())
+        self.aggiorna_periodico()
 
 
     def _aggiorna_player(self):
