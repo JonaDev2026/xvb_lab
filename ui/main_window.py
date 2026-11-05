@@ -2392,7 +2392,7 @@ class MainWindow(QMainWindow):
         finestra = Finestrella(
             self, _("Audio output device"),
             lambda dialogo: self._corpo_uscita_audio(dialogo, dispositivi),
-            domanda=True, larga=520)
+            ok=_("Apply"), annulla=_("Cancel"), domanda=True, larga=520)
         if finestra.exec() != QDialog.Accepted:
             return
         indice = self.lista_uscita_audio.currentRow()
