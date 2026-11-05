@@ -276,3 +276,14 @@ Non eseguiti test grafici o prove di rendering. La dissolvenza originale dello s
 - Stop annulla anche il timer di spegnimento e conclude un'eventuale registrazione attiva.
 
 - Il pulsante Shuffle ora riflette visivamente lo stato attivo e aggiorna tooltip e stato check anche quando il valore arriva da MPRIS.
+
+
+## Scansione cartelle locali Qt6
+
+- La scelta di una cartella da Media > Open folder non esegue più `media_in()` sul thread grafico: la scansione filesystem viene eseguita da `_ScansionaCartella(QThread)`.
+- Il risultato viene consegnato al thread Qt tramite segnale; la finestra aggiorna la libreria, la sidebar e l'elenco soltanto al termine della scansione.
+- La routine `_media_locale` accetta anche il risultato già raccolto dal worker, evitando una seconda scansione della stessa cartella.
+- I worker vengono attesi durante la chiusura della finestra per evitare thread Qt ancora attivi.
+- La lettura dei tag e la preparazione dei sottotitoli restano da ottimizzare in un worker dedicato; il percorso drag-and-drop delle cartelle deve ancora essere portato sullo stesso flusso asincrono.
+
+Commit: `aebfa92`. Nessun test runtime eseguito.
