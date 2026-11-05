@@ -14,7 +14,7 @@ from core.metadata import titolo_anno, dal_percorso, copertina_url, copertina_de
 from integrations.mpris import avvia_mpris
 from core.config import scrivi_config, CARTELLE_LISTE, REGISTRAZIONI, leggi_config, QUI
 from i18n import _, imposta_lingua, LINGUE
-from core.playlists import liste_in_cartella, BUFFER, LOGHI, NOMI_URL, CACHE_LISTE, CHIAVI, copia_lista_url
+from core.playlists import liste_in_cartella, BUFFER, LOGHI, NOMI_URL, CACHE_LISTE, CHIAVI, copia_lista_url, e_una_lista
 from core.colors import CACHE_LOGHI, leggi_colori, scrivi_colori, colore_di, colore_dal_logo
 from core.stream import varianti, chiave_clearkey, server_mpd, CACHE_VARIANTE
 from core.constants import SCALA_FILE, CATEGORIE_URL, VERSIONE
@@ -492,6 +492,7 @@ class MainWindow(QMainWindow):
         media.addAction(self._azione(_("Open file..."), self.apri_file, "Ctrl+O"))
         media.addAction(self._azione(_("Import files..."), self.importa_file))
         media.addAction(self._azione(_("Open folder..."), self.apri_cartella))
+        media.addAction(self._azione(_("Add playlist file..."), self.aggiungi_lista_file))
         media.addAction(self._azione(_("Open URL..."), self.apri_url, "Ctrl+L"))
         self.menu_recenti = media.addMenu(_("Recent"))
         media.addAction(self._azione(_("Clear recent"), self.pulisci_recenti))
@@ -706,6 +707,23 @@ class MainWindow(QMainWindow):
         scrivi_config(cfg)
         self._percorso_attivo = None
         self._categoria_attiva = None
+        self.ricarica_liste(forza=False)
+
+
+    def aggiungi_lista_file(self):
+        percorso, _ = QFileDialog.getOpenFileName(
+            self, _("Choose a playlist"), self.sessione.config.get("ultima_cartella", ""),
+            "Playlists (*.m3u *.m3u8 *.txt)")
+        if not percorso:
+            return
+        if not e_una_lista(percorso):
+            QMessageBox.warning(self, "XVB", _("%s does not look like an M3U playlist") % os.path.basename(percorso))
+            return
+        liste = self.sessione.config.setdefault("liste", [])
+        if percorso not in liste:
+            liste.append(percorso)
+        self.sessione.config["ultima_cartella"] = os.path.dirname(percorso)
+        scrivi_config(self.sessione.config)
         self.ricarica_liste(forza=False)
 
     def aggiungi_lista_url(self):
