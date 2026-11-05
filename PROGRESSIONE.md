@@ -442,3 +442,25 @@ Avvicinare l'albero Local alla struttura della Stable 4.4.4, mantenendo la confi
 
 - UI: `1904ede61b26421bed1286e48c42c06ea70be694`
 - Rifinitura geometria icone: `935732a7c9d1ac20c277fa94fde6056a913edc70`
+
+
+### 2026-11-05 — Stato espanso delle cartelle Local
+
+**Modifiche**
+
+- Lo stato aperto/chiuso del nodo Local viene salvato nella configurazione Lab.
+- Lo stesso comportamento è applicato alle cartelle importate, alle sottocartelle e al nodo Imported media.
+- Alla ricostruzione dell'albero vengono ripristinati gli stati memorizzati.
+- Le modifiche dello stato vengono salvate senza cancellare le altre impostazioni.
+- La ricostruzione dell'albero blocca temporaneamente i segnali per evitare salvataggi causati dal ripristino stesso.
+
+**Verifica**
+
+- Codice pubblicato su GitHub.
+- Compilazione e verifica funzionale locali ancora da eseguire.
+- Da verificare apertura/chiusura, riavvio e aggiornamento delle sottocartelle dopo una scansione.
+
+**Commit**
+
+- UI: `c0e69d0a73c31f9d3743bf6241c078b7b5640e61`
+- Correzione ripristino Imported media: `36e37ff671fef9aeaa823795f6257a433f05d984`
