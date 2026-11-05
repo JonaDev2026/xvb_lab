@@ -168,7 +168,225 @@ class QtWidgetTests(unittest.TestCase):
             window.close()
             self.app.processEvents()
 
+    def test_bulk_artwork_worker_downloads_movie_poster_and_persists_metadata(self):
+        with tempfile.TemporaryDirectory() as root:
+            film = os.path.join(root, "Film (2020).mkv")
+            with open(film, "wb") as stream:
+                stream.write(b"video")
+            info_file = os.path.join(root, "info.json")
+            tried_file = os.path.join(root, "tried.json")
+            scaricati = []
+
+            def scarica(_url, destinazione):
+                with open(destinazione, "wb") as stream:
+                    stream.write(b"image")
+                scaricati.append(destinazione)
+
+            with patch("ui.main_window.FILE_INFO", info_file), \\
+                 patch("ui.main_window.FILE_PROVATI", tried_file), \\
+                 patch("ui.main_window.TMDB_CHIAVE", "test-key"), \\
+                 patch("ui.main_window.info_tmdb", return_value={
+                     "poster": "https://example.test/poster.jpg", "generi": ["18"]}), \\
+                 patch("ui.main_window.generi_tmdb", return_value={"18": "Drama"}), \\
+                 patch("ui.main_window.scarica_in", side_effect=scarica):
+                worker = _ScaricaCopertine([film], root, False, {}, {}, [])
+                risultati = []
+                worker.completato.connect(
+                    lambda fatti, nuove, info, chiave:
+                    risultati.append((fatti, nuove, info, chiave)))
+                worker.run()
+
+            poster = os.path.join(root, "Film (2020).jpg")
+            self.assertTrue(os.path.isfile(poster))
+            self.assertEqual(scaricati, [poster])
+            self.assertEqual(risultati[0][0:2], (1, 1))
+            self.assertEqual(risultati[0][2][film]["generi"], ["Drama"])
+            with open(info_file, encoding="utf-8") as stream:
+                self.assertEqual(json.load(stream)[film]["generi"], ["Drama"])
+            with open(tried_file, encoding="utf-8") as stream:
+                self.assertIn(film, json.load(stream))
+
     def test_status_bar_shows_active_iptv_category_only(self):
+        with patch("ui.main_window.MpvVideo", side_effect=RuntimeError("libmpv unavailable")):
+            window = MainWindow()
+            url = "https://example.test/news"
+            window.sessione.canali = [("News", url, "news", "World", "playlist.m3u")]
+            window._imposta_categoria_attiva(url)
+            self.assertEqual(window.et_categoria.text(), "World")
+            self.assertFalse(window.et_categoria.isHidden())
+            window._imposta_categoria_attiva("/media/song.flac")
+            self.assertTrue(window.et_categoria.isHidden())
+            self.assertIsNone(window._categoria_attiva)
+            window.close()
+            self.app.processEvents()
+
+    def test_status_bar_shows_current_and_next_epg_program(self):
+        with patch("ui.main_window.MpvVideo", side_effect=RuntimeError("libmpv unavailable")), \
+             patch("ui.main_window.time.time", return_value=150):
+            window = MainWindow()
+            window.nome_in_onda = "News"
+            window.ide_in_onda = "news"
+            window.file_in_onda = "https://example.test/news"
+            window.sessione.epg = {"news": [
+                (100, 200, "Current bulletin"),
+                (200, 300, "Evening report"),
+            ]}
+            window.sessione.epg_nomi = {}
+            window.aggiorna_info_canale()
+            self.assertEqual(window.riga_stato.text(), "News  ·  Current bulletin")
+            self.assertEqual(window.et_ora_programma.text(),
+                             "%s–%s" % (time.strftime("%H:%M", time.localtime(100)),
+                                        time.strftime("%H:%M", time.localtime(200))))
+            self.assertEqual(window.et_prossimo.text(), "Next: Evening report")
+            self.assertFalse(window.et_prossimo.isHidden())
+            window.close()
+            self.app.processEvents()
+
+    def test_mpris_metadata_timer_runs_only_when_service_is_available(self):
+        class Servizio:
+            def __init__(self):
+                self.stato = None
+            def aggiorna(self, stato):
+                self.stato = stato
+        servizio = Servizio()
+        with patch("ui.main_window.MpvVideo", side_effect=RuntimeError("libmpv unavailable")), \
+             patch("ui.main_window.avvia_mpris", return_value=servizio):
+            window = MainWindow()
+            self.assertTrue(window._timer_mpris.isActive())
+            self.assertEqual(window._timer_mpris.interval(), 1000)
+            window._aggiorna_mpris()
+            self.assertEqual(servizio.stato["stato"], "Stopped")
+            window.close()
+            self.assertFalse(window._timer_mpris.isActive())
+            self.app.processEvents()
+    def test_temporary_urls_are_removed_from_config_on_exit(self):
+        with patch("ui.main_window.MpvVideo", side_effect=RuntimeError("libmpv unavailable")):
+            window = MainWindow()
+            temporaneo = "https://example.test/live.m3u8"
+            salvato = "https://example.test/saved.m3u8"
+            window.sessione.config["url_aperti"] = [temporaneo]
+            window.sessione.config["nomi_url"] = {temporaneo: "Temporary", salvato: "Saved"}
+            with patch("ui.main_window.copertina_url", return_value="/tmp/temp-cover.jpg"), \
+                 patch("ui.main_window.os.remove") as rimuovi:
+                window._via_url_temporanei()
+                rimuovi.assert_called_once_with("/tmp/temp-cover.jpg")
+            self.assertEqual(window.sessione.config["url_aperti"], [])
+            self.assertEqual(window.sessione.config["nomi_url"], {salvato: "Saved"})
+            window.close()
+            self.app.processEvents()
+    def test_external_playlist_is_selected_after_reload(self):
+        with patch("ui.main_window.MpvVideo", side_effect=RuntimeError("libmpv unavailable")):
+            window = MainWindow()
+            with tempfile.NamedTemporaryFile(suffix=".m3u") as stream:
+                with patch("ui.main_window.e_una_lista", return_value=True), \
+                     patch("ui.main_window.scrivi_config"), \
+                     patch.object(window, "ricarica_liste") as ricarica, \
+                     patch.object(window, "_completa_apri_da_fuori"):
+                    window.apri_da_fuori([stream.name])
+                ricarica.assert_called_once_with(scegli=os.path.abspath(stream.name), forza=False)
+            window.close()
+            self.app.processEvents()
+    def test_tv_guide_window_is_single_instance(self):
+        with patch("ui.main_window.MpvVideo", side_effect=RuntimeError("libmpv unavailable")):
+            window = MainWindow()
+            window.epg = {"news": []}
+            window.sessione.epg = window.epg
+            window.apri_guida()
+            prima = window._finestra_guida
+            window.apri_guida()
+            self.assertIs(window._finestra_guida, prima)
+            prima.close()
+            self.app.processEvents()
+            self.assertIsNone(window._finestra_guida)
+            window.apri_guida()
+            self.assertIsNotNone(window._finestra_guida)
+            window.close()
+            self.app.processEvents()
+    def test_removed_epg_reports_its_saved_name(self):
+        with patch("ui.main_window.MpvVideo", side_effect=RuntimeError("libmpv unavailable")):
+            window = MainWindow()
+            url = "https://example.test/guide.xml.gz"
+            window.sessione.config["epg"] = [url]
+            window.sessione.config["epg_nomi"] = {url: "xmltv-original.xml"}
+            with patch("ui.main_window.scrivi_config"), \
+                 patch.object(window, "ricarica_guida"), \
+                 patch.object(window, "_riempi_liste"):
+                window.togli_epg(url)
+            self.assertIn("xmltv-original.xml", window.riga_stato.text())
+            window.close()
+            self.app.processEvents()
+    def test_playlist_refresh_does_not_reload_unchanged_content(self):
+        with tempfile.TemporaryDirectory() as root:
+            url = "https://example.test/list.m3u"
+            cache = os.path.join(root, hashlib.md5(url.encode()).hexdigest() + ".m3u")
+            with open(cache, "wb") as stream:
+                stream.write(b"#EXTM3U\n#EXTINF:-1,News\\nhttps://stream.test/news")
+            risultati = []
+            def aggiorna(_url):
+                os.utime(cache, (2000, 2000))
+                return cache
+            with patch("ui.main_window.CACHE_LISTE", root), \
+                 patch("ui.main_window.copia_lista_url", side_effect=aggiorna):
+                worker = _AggiornaListe([url])
+                worker.completato.connect(risultati.append)
+                worker.run()
+            self.assertEqual(risultati, [False])
+
+    def test_playlist_refresh_reloads_changed_content(self):
+        with tempfile.TemporaryDirectory() as root:
+            url = "https://example.test/list.m3u"
+            cache = os.path.join(root, hashlib.md5(url.encode()).hexdigest() + ".m3u")
+            with open(cache, "wb") as stream:
+                stream.write(b"#EXTM3U\\n#EXTINF:-1,News\\nhttps://stream.test/news")
+            risultati = []
+            def aggiorna(_url):
+                with open(cache, "wb") as stream:
+                    stream.write(b"#EXTM3U\\n#EXTINF:-1,Sports\\nhttps://stream.test/sports")
+                return cache
+            with patch("ui.main_window.CACHE_LISTE", root), \
+                 patch("ui.main_window.copia_lista_url", side_effect=aggiorna):
+                worker = _AggiornaListe([url])
+                worker.completato.connect(risultati.append)
+                worker.run()
+            self.assertEqual(risultati, [True])
+    def test_record_button_allows_unencrypted_dvd(self):
+        with patch("ui.main_window.MpvVideo", side_effect=RuntimeError("libmpv unavailable")):
+            window = MainWindow()
+            window.file_in_onda = "dvd:///media/dvd"
+            window.nome_in_onda = "DVD Movie"
+            with patch("ui.main_window.dvd_cifrato", return_value=False), \
+                 patch.object(window, "avvia_registrazione") as avvia:
+                window.registra()
+            avvia.assert_called_once_with("DVD Movie", 0.0)
+            window.close()
+            self.app.processEvents()
+
+    def test_record_button_rejects_encrypted_dvd(self):
+        with patch("ui.main_window.MpvVideo", side_effect=RuntimeError("libmpv unavailable")):
+            window = MainWindow()
+            window.file_in_onda = "dvd:///media/dvd"
+            window.nome_in_onda = "Protected DVD"
+            with patch("ui.main_window.dvd_cifrato", return_value=True), \
+                 patch.object(window, "avvia_registrazione") as avvia:
+                window.registra()
+            avvia.assert_not_called()
+            window.close()
+            self.app.processEvents()
+    def test_record_button_switches_to_stop_while_recording(self):
+        with patch("ui.main_window.MpvVideo", side_effect=RuntimeError("libmpv unavailable")):
+            window = MainWindow()
+            pulsante = window._pulsanti["rec"]
+            originale = pulsante.toolTip()
+            window._imposta_pulsante_rec(True)
+            attiva = pulsante.toolTip()
+            self.assertNotEqual(attiva, originale)
+            window._imposta_pulsante_rec(False)
+            self.assertEqual(pulsante.toolTip(), originale)
+            window.close()
+            self.app.processEvents()
+
+if __name__ == "__main__":
+    unittest.main()
         with patch("ui.main_window.MpvVideo", side_effect=RuntimeError("libmpv unavailable")):
             window = MainWindow()
             url = "https://example.test/news"
