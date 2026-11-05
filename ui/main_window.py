@@ -114,6 +114,9 @@ class MainWindow(QMainWindow):
         self._scan_threads = []
         self._metadata_threads = []
         self._media_tree_items = {}
+        self._current_media_path = None
+        self.previous_button = None
+        self.next_button = None
         self._vinyl_icons = {}
         self.resource_dir = Path(__file__).resolve().parents[1] / "resources"
         self.icons_dir = self.resource_dir / "icons"
@@ -427,13 +430,15 @@ class MainWindow(QMainWindow):
         controls.setSpacing(2)
 
         controls.addSpacing(12)
-        controls.addWidget(self._tool_button("prima", "Previous", enabled=False))
+        self.previous_button = self._tool_button("prima", "Previous", self.play_previous, enabled=False)
+        controls.addWidget(self.previous_button)
         controls.addWidget(self._text_button("-10", "Back 10 seconds", lambda: self.seek(-10)))
         self.play_button = self._tool_button("play", "Play", self.toggle_pause)
         controls.addWidget(self.play_button)
         controls.addWidget(self._tool_button("stop", "Stop", self.engine.stop))
         controls.addWidget(self._text_button("+10", "Forward 10 seconds", lambda: self.seek(10)))
-        controls.addWidget(self._tool_button("dopo", "Next", enabled=False))
+        self.next_button = self._tool_button("dopo", "Next", self.play_next, enabled=False)
+        controls.addWidget(self.next_button)
         controls.addSpacing(14)
         controls.addWidget(self._tool_button("rec", "Record", enabled=False))
         controls.addWidget(self._tool_button("repeat", "No repeat", enabled=False))
@@ -673,6 +678,8 @@ class MainWindow(QMainWindow):
         self._scan_token = getattr(self, "_scan_token", 0) + 1
         token = self._scan_token
         self._active_source = (source, value)
+        self._current_media_path = None
+        self._update_playback_navigation()
         self._update_local_selection((source, value))
         self.media_tree.clear()
         self._media_tree_items = {}
@@ -706,6 +713,7 @@ class MainWindow(QMainWindow):
             item.setHidden(bool(query) and query not in media["name"].casefold())
             self.media_tree.addTopLevelItem(item)
             self._media_tree_items[media["path"]] = item
+        self._update_playback_navigation()
 
     def _show_media_items(self, items, error, source, value, token):
         if getattr(self, "_closing", False):
@@ -807,6 +815,7 @@ class MainWindow(QMainWindow):
             query = self.search.text().casefold().strip()
             item.setHidden(bool(query) and query not in item.text(0).casefold())
         self.media_tree.sortItems(0, Qt.SortOrder.AscendingOrder)
+        self._update_playback_navigation()
 
     def media_context_menu(self, position):
         item = self.media_tree.itemAt(position)
@@ -868,9 +877,54 @@ class MainWindow(QMainWindow):
     def play_selected_media(self, item, _column):
         path = item.data(0, Qt.ItemDataRole.UserRole)
         if path:
-            self.engine.load(path)
-            self.title_status.setText(Path(path).name)
-            self.playback_status.setText("playing")
+            self._play_media_path(path)
+
+    def _play_media_path(self, path):
+        if not path or not Path(path).is_file():
+            return
+        self.engine.load(path)
+        self._current_media_path = str(path)
+        self.title_status.setText(Path(path).name)
+        self.playback_status.setText("playing")
+        self._update_playback_navigation()
+
+    def _visible_media_paths(self):
+        paths = []
+        for index in range(self.media_tree.topLevelItemCount()):
+            item = self.media_tree.topLevelItem(index)
+            if item.isHidden():
+                continue
+            path = item.data(0, Qt.ItemDataRole.UserRole)
+            if path:
+                paths.append(str(path))
+        return paths
+
+    def _update_playback_navigation(self):
+        paths = self._visible_media_paths()
+        try:
+            index = paths.index(self._current_media_path)
+        except ValueError:
+            index = -1
+        if self.previous_button is not None:
+            self.previous_button.setEnabled(index > 0)
+        if self.next_button is not None:
+            self.next_button.setEnabled(0 <= index < len(paths) - 1)
+
+    def _play_adjacent_media(self, offset):
+        paths = self._visible_media_paths()
+        try:
+            index = paths.index(self._current_media_path)
+        except ValueError:
+            return
+        target = index + offset
+        if 0 <= target < len(paths):
+            self._play_media_path(paths[target])
+
+    def play_previous(self):
+        self._play_adjacent_media(-1)
+
+    def play_next(self):
+        self._play_adjacent_media(1)
 
     def open_file(self):
         path, _ = QFileDialog.getOpenFileName(self, "Open file")
