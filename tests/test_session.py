@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 from core.session import Sessione
 from core.playlists import NOMI_URL
+from core.epg import EPG_ICONE, EPG_ICONE_NOME
 
 
 class SessionTests(unittest.TestCase):
@@ -41,6 +42,8 @@ class SessionTests(unittest.TestCase):
         sessione.config = {"epg": ["https://example.test/guide.xml.gz"]}
         sessione.epg = {}
         sessione.epg_nomi = {}
+        EPG_ICONE[('old', 1)] = 'old'
+        EPG_ICONE_NOME[('old', 1, 'old')] = 'old'
         with patch("core.session.prendi_epg", return_value="/tmp/guide-cache"), \
              patch("core.session.nome_dentro", return_value="xmltv-original.xml"), \
              patch("core.session.leggi_epg", return_value=({"news": "news.id"}, {"news.id": [(1, 2, "News")]})), \
@@ -48,6 +51,8 @@ class SessionTests(unittest.TestCase):
             sessione.carica_guide()
         self.assertEqual(sessione.config["epg_nomi"]["https://example.test/guide.xml.gz"], "xmltv-original.xml")
         self.assertEqual(sessione.epg_nomi, {"news": "news.id"})
+        self.assertEqual(EPG_ICONE, {})
+        self.assertEqual(EPG_ICONE_NOME, {})
         scrivi.assert_called_once_with(sessione.config)
 
 if __name__ == "__main__":
