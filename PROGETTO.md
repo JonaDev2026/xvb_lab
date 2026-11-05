@@ -224,63 +224,83 @@ Percorsi e formati esistenti sotto `~/.config/xvb`, `~/.cache/xvb` e `~/.local/s
 
 ## 4. Architettura proposta per XVB Lab
 
-Non creare un nuovo file monolitico da migliaia di righe. Separare interfaccia, logica e servizi.
+Decisione architetturale aggiornata il 2026-11-05: **il motore deve essere separato dalle funzioni dell'applicazione**, con una divisione netta e riconoscibile, analoga alla separazione già adottata per le traduzioni.
 
-Struttura iniziale proposta:
+Il motore è un componente autonomo: gestisce libmpv, rendering, audio/video, comandi, eventi e stato della riproduzione. Le funzioni dell'applicazione non devono contenere codice interno del motore né dipendere direttamente dai dettagli di libmpv. Devono comunicare con il motore attraverso un'interfaccia/API interna ben definita.
+
+Le traduzioni restano un'area autonoma, separata sia dal motore sia dalle funzioni.
+
+### 4.1 Struttura principale
+
+La struttura di riferimento diventa:
 
 ```
 xvb_lab/
 ├── main.py
-├── app/
-│   ├── application.py
-│   ├── config/
-│   │   ├── settings.py
-│   │   └── paths.py
-│   ├── core/
-│   │   ├── events.py
-│   │   ├── models.py
-│   │   └── tasks.py
-│   ├── playback/
-│   │   ├── mpv_controller.py
-│   │   ├── mpv_render.py
-│   │   ├── video_surface.py
-│   │   └── playback_state.py
-│   ├── playlists/
-│   │   ├── m3u_parser.py
-│   │   ├── playlist_manager.py
-│   │   └── playlist_cache.py
+├── engine/
+│   ├── __init__.py
+│   ├── mpv.py
+│   ├── render.py
+│   ├── audio.py
+│   ├── video.py
+│   └── events.py
+├── core/
+│   ├── __init__.py
+│   ├── config.py
+│   ├── cache.py
+│   ├── database.py
+│   └── workers.py
+├── ui/
+│   ├── __init__.py
+│   ├── window.py
+│   ├── player.py
+│   ├── panels.py
+│   └── dialogs.py
+├── features/
+│   ├── iptv/
 │   ├── epg/
-│   │   ├── xmltv_parser.py
-│   │   ├── guide_manager.py
-│   │   └── guide_window.py
-│   ├── library/
-│   │   ├── scanner.py
-│   │   ├── music.py
-│   │   ├── video.py
-│   │   └── metadata.py
-│   ├── recording/
-│   │   └── recorder.py
-│   ├── integrations/
-│   │   ├── mpris.py
-│   │   └── onvif.py
-│   └── ui/
-│       ├── main_window.py
-│       ├── player_controls.py
-│       ├── playlist_view.py
-│       ├── sidebar.py
-│       ├── menus.py
-│       ├── dialogs.py
-│       └── style.py
+│   ├── recordings/
+│   ├── music/
+│   ├── videos/
+│   ├── discs/
+│   ├── cameras/
+│   └── subtitles/
+├── integrations/
+│   ├── mpris.py
+│   ├── dbus.py
+│   └── desktop.py
+├── translations/
+│   ├── __init__.py
+│   ├── it.py
+│   └── en.py
 ├── resources/
 │   ├── icons/
+│   ├── images/
 │   └── fonts/
-├── translations/
 ├── tests/
-├── docs/
 └── PROGETTO.md
 ```
 
-La struttura è una proposta iniziale, non un vincolo rigido. I moduli si aggiungono quando servono. Evitare di introdurre dipendenze o livelli astratti inutili.
+### 4.2 Responsabilità dei componenti
+
+- **engine/** — solo motore di riproduzione: inizializzazione e controllo di libmpv, Render API, superficie video, audio, video, eventi e stato del playback. Deve essere indipendente dalle singole funzioni IPTV, musica, video, dischi e telecamere.
+- **core/** — servizi condivisi: configurazione, percorsi, cache, database e gestione dei lavori in background.
+- **ui/** — componenti grafici Qt: finestra principale, player visuale, pannelli, finestre e dialoghi. Non deve contenere la logica specifica delle funzioni.
+- **features/** — funzioni dell'applicazione, organizzate in moduli indipendenti. Ogni modulo usa l'interfaccia del motore quando deve riprodurre un contenuto.
+- **integrations/** — collegamenti con il desktop Linux, D-Bus, MPRIS e servizi esterni al programma.
+- **translations/** — traduzioni separate dal resto del codice, senza stringhe dell'interfaccia sparse nei moduli.
+- **resources/** — icone, immagini, font e altre risorse.
+- **tests/** — test dei componenti e delle funzioni.
+
+### 4.3 Regole di separazione
+
+1. Il motore non deve conoscere IPTV, EPG, musica, video, registrazioni o telecamere.
+2. Le funzioni non devono pilotare direttamente oggetti o API interne di libmpv: usano l'interfaccia esposta da `engine/`.
+3. L'interfaccia grafica non deve incorporare la logica delle singole funzioni.
+4. Le traduzioni devono rimanere in moduli dedicati e centralizzati.
+5. I componenti comunicano tramite interfacce e segnali/eventi definiti, evitando dipendenze circolari.
+6. Un cambiamento al motore non deve obbligare a riscrivere le funzioni, se l'interfaccia pubblica resta invariata.
+7. La struttura può essere ampliata quando necessario, ma senza accorpare nuovamente tutto in un unico file.
 
 ## 5. Regole di sviluppo
 
@@ -414,6 +434,15 @@ XVB Lab potrà essere considerata equivalente alla Stable solo quando:
 ---
 
 ## Registro delle decisioni e dei progressi
+
+### 2026-11-05 — Separazione motore/funzioni
+
+- Deciso di organizzare il progetto con una separazione netta tra `engine/` e `features/`.
+- Il motore libmpv e il rendering Qt saranno autonomi e non conterranno logica specifica delle funzioni.
+- IPTV, EPG, registrazioni, musica, video, dischi, telecamere e sottotitoli saranno moduli separati sotto `features/`.
+- UI, servizi condivisi, integrazioni desktop e traduzioni avranno directory dedicate.
+- Le funzioni comunicheranno con il motore attraverso un'interfaccia interna definita, senza accedere direttamente ai dettagli di libmpv.
+- Questa struttura sostituisce la precedente proposta di collocare il playback dentro `app/playback/`.
 
 ### 2026-11-05
 - Creato il progetto XVB Lab come riscrittura indipendente della Stable.
