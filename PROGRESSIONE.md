@@ -194,3 +194,11 @@ Non eseguiti test né prove grafiche: restano per il pull concordato.
 - La sequenza usa l'ordine effettivo di `_canali_visibili`, quindi rispetta playlist, categoria e filtro attivi.
 
 Non eseguiti test o prove con libmpv; il comportamento resta da verificare al pull.
+
+## Loop A-B del player
+
+- Ripristinati i tre comandi originali: imposta punto A, imposta punto B e azzera.
+- Il loop è associato al contenuto corrente; B deve essere successivo ad A. Il timer di sincronizzazione libmpv riporta la posizione ad A quando raggiunge B.
+- Inseriti i comandi nel menu Playback e mantenuti i messaggi localizzati tramite il catalogo Stable.
+
+Non eseguiti test né verifiche di riproduzione.
