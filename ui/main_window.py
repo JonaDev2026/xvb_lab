@@ -236,11 +236,23 @@ class MainWindow(QMainWindow):
         comandi.addLayout(controlli)
 
 
-        self.riga_stato = QLabel("XVB", centrale)
-        self.riga_stato.setFixedHeight(28)
-        self.riga_stato.setContentsMargins(8, 0, 8, 0)
-        self.riga_stato.setStyleSheet("background:#121217;color:#9e9e9e")
-        root.addWidget(self.riga_stato)
+        stato = QWidget(centrale)
+        stato.setFixedHeight(28)
+        stato.setStyleSheet("background:#121217")
+        stato_layout = QHBoxLayout(stato)
+        stato_layout.setContentsMargins(8, 0, 10, 0)
+        stato_layout.setSpacing(8)
+        self.riga_stato = QLabel("XVB", stato)
+        self.riga_stato.setStyleSheet("color:#e0e0e0")
+        stato_layout.addWidget(self.riga_stato, 1)
+        self.orologio = QLabel(time.strftime("%a %d %b  %H:%M"), stato)
+        self.orologio.setStyleSheet("color:#e0e0e0")
+        stato_layout.addWidget(self.orologio)
+        root.addWidget(stato)
+        self._timer_orologio = QTimer(self)
+        self._timer_orologio.timeout.connect(
+            lambda: self.orologio.setText(time.strftime("%a %d %b  %H:%M")))
+        self._timer_orologio.start(30000)
 
         self.volume.valueChanged.connect(self._volume)
         self._pieno = False
