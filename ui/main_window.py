@@ -1834,10 +1834,7 @@ class MainWindow(QMainWindow):
         self._aggiorna_recenti()
 
 
-    def importa_file(self):
-        percorsi, _ = QFileDialog.getOpenFileNames(self, _("Import media files"))
-        if not percorsi:
-            return
+    def _importa_percorsi(self, percorsi):
         importati = self.sessione.config.setdefault("importati", [])
         aggiunti = 0
         for percorso in percorsi:
@@ -1860,15 +1857,28 @@ class MainWindow(QMainWindow):
         scrivi_config(self.sessione.config)
         self.canali = [(n, u, ide) for n, u, ide, _cat, _lista in self.sessione.canali]
         self._riempi_liste()
+        return aggiunti
+
+    def importa_file(self):
+        percorsi, _ = QFileDialog.getOpenFileNames(
+            self, _("Import media files"), self.sessione.config.get("ultima_cartella", ""))
+        if not percorsi:
+            return
+        self._importa_percorsi(percorsi)
         self._percorso_attivo, self._categoria_attiva = "__importati__", None
         self._riempi_elenco()
-        self.riga_stato.setText(_("%d media files imported") % aggiunti)
+        self.riga_stato.setText(_("%d media files imported") % len(percorsi))
 
     def apri_file(self):
-        percorso, _ = QFileDialog.getOpenFileName(self, _("Open file"))
+        percorso, _ = QFileDialog.getOpenFileName(
+            self, _("Open file"), self.sessione.config.get("ultima_cartella", ""))
         if percorso:
-            self.apri(percorso)
-
+            self.sessione.config["ultima_cartella"] = os.path.dirname(percorso)
+            self._importa_percorsi([percorso])
+            self._percorso_attivo, self._categoria_attiva = "__importati__", None
+            self._riempi_elenco()
+            voce = next((v for v in self.sessione.canali if v[1] == percorso), None)
+            self.apri(percorso, nome=voce[0] if voce else os.path.basename(percorso))
 
     def url_di(self, categoria=None):
         if categoria is None:
