@@ -173,7 +173,8 @@ class MainWindow(QMainWindow):
         self._timer_rec = QTimer(self)
         self._timer_rec.timeout.connect(self.controlla_registrazione)
         self._timer_rec.start(1000)
-        self._thread_epg = _CaricaGuide(self.sessione)
+        self._epg_sessione = self.sessione
+        self._thread_epg = _CaricaGuide(self._epg_sessione)
         self._thread_epg.completato.connect(self._epg_pronto)
         self._thread_epg.errore.connect(self._epg_errore)
         self._thread_epg.start()
@@ -352,6 +353,8 @@ class MainWindow(QMainWindow):
         self.ricarica_guida()
 
     def _epg_pronto(self):
+        self.sessione.epg = self._epg_sessione.epg
+        self.sessione.epg_nomi = self._epg_sessione.epg_nomi
         self.epg = self.sessione.epg
         self.epg_nomi = self.sessione.epg_nomi
         self.riga_stato.setText("EPG ready")
@@ -364,7 +367,8 @@ class MainWindow(QMainWindow):
             return
         self.sessione.epg = {}
         self.sessione.epg_nomi = {}
-        self._thread_epg = _CaricaGuide(self.sessione)
+        self._epg_sessione = self.sessione
+        self._thread_epg = _CaricaGuide(self._epg_sessione)
         self._thread_epg.completato.connect(self._epg_pronto)
         self._thread_epg.errore.connect(self._epg_errore)
         self._thread_epg.start()
