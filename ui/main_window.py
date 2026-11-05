@@ -2647,15 +2647,15 @@ class MainWindow(QMainWindow):
                     tag_titolo, artista, album, _anno = dal_percorso(
                         self.file_in_onda, self.sessione.config.get("cartelle", []))
                 titolo = tag_titolo or titolo
-                if artista:
-                    foto = self.artwork_artista.percorso_foto(artista)
-                    if os.path.isfile(foto):
-                        arte = foto
             else:
                 titolo = titolo_anno(self.file_in_onda)[0] or titolo
             copertina = copertina_url(self.file_in_onda)
-            if not arte and os.path.isfile(copertina):
+            if os.path.isfile(copertina):
                 arte = copertina
+            if not arte and artista:
+                foto = self.artwork_artista.percorso_foto(artista)
+                if os.path.isfile(foto):
+                    arte = foto
             if not arte:
                 poster = poster_film(self.file_in_onda)
                 if poster and os.path.isfile(poster):
