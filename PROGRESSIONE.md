@@ -507,7 +507,7 @@ Commit: `c868b66`, `9fe7995`, `7493e57`, `94586e1`, `b55c041`.
 - Per i file locali sono disponibili assegnazione/rimozione copertina; le azioni Preferiti già presenti restano disponibili.
 - Il nome personalizzato viene applicato alla lista e alla barra di stato senza sostituire il nome originale usato per identificare il canale e associare l'EPG.
 - Ripristinata anche la rinomina delle guide EPG dal menu contestuale della sidebar; il nome utente viene mostrato nell'albero e resta separato dal nome sorgente.
-- Aggiunti dodici test Qt per menu IPTV, menu file locali, persistenza/ripristino dei nomi, colore manuale, rinomina delle guide, gestione delle copertine locali e navigazione URL.
+- Aggiunti quattordici test Qt per menu IPTV, menu file locali, persistenza/ripristino dei nomi, colore manuale, rinomina delle guide, gestione delle copertine locali e navigazione URL.
 - Commit implementazione: `ef77c63`, `8819662`. Commit test: `1e1ee10`, `6db5b0f`.
 - Ripristinato il percorso copertina della Stable per i media locali: immagine accanto al file con nome base `.jpg`, conversione JPEG e priorità della copertina locale nella lista; le URL continuano a usare la cache dedicata.
 - Aggiunti due test per il percorso locale/remoto e il salvataggio/lettura effettiva della copertina. Commit implementazione: `75fe379`, `8758cfa`. Commit test: `ff42e48`.
@@ -516,3 +516,13 @@ Commit: `c868b66`, `9fe7995`, `7493e57`, `94586e1`, `b55c041`.
 - Corretto il ripristino del nome URL personalizzato: svuotando il campo viene eliminato l'alias e torna il titolo derivato dall'indirizzo. Test aggiunto. Commit implementazione: `f5c011c`. Commit test: `3316df3`.
 - La selezione diretta di un indirizzo dalla sidebar conserva ora la categoria di provenienza (incluse le URL temporanee), così la lista centrale resta nel contesto corretto. Test di navigazione esteso. Commit implementazione: `732710b`. Commit test: `380e273`.
 - Verifica CI dei nuovi commit: in attesa; nessuna prova runtime su X11/Wayland è stata eseguita.
+
+
+## HUD video Qt6
+
+- Ripristinato l'HUD della Stable sul video: timer di spegnimento in arancione e registrazione in rosso con indicatore pulsante.
+- Il widget è indipendente dalla barra comandi, non intercetta i clic e si posiziona sul lato attivo quando è abilitato lo split screen.
+- Aggiornamento ogni 250 ms soltanto quando timer o registrazione sono attivi; il timer si arresta quando non resta nulla da mostrare e alla chiusura della finestra.
+- Aggiunti due test Qt per disegno/posizione, visibilità e aggiornamento dello stato timer/REC.
+- Commit widget e integrazione: `2532e0a`, `137fa33`, `bd4cf71`, `5a1e1f2`. Commit test: `cdba9e0`, `20c64bd`. Rifinitura pulsazione REC: `dcc4d55`.
+- Verifica CI e prova visiva reale ancora da eseguire.
