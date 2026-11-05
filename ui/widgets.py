@@ -129,7 +129,7 @@ SCORRE = object()
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QFrame,
     QScrollArea, QToolButton, QLineEdit, QListWidget, QListWidgetItem,
-    QAbstractItemView, QMenu
+    QAbstractItemView, QMenu, QStyledItemDelegate
 )
 
 
