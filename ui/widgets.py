@@ -96,6 +96,12 @@ class Cursore(QWidget):
     def get(self):
         return self.valore
 
+    def value(self):
+        return self.valore
+
+    def setValue(self, valore):
+        self.set(valore)
+
     def sfondo(self, tinta):
         self.tinta = tinta
         self.update()
