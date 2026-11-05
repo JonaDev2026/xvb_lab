@@ -5,11 +5,11 @@ import os
 import subprocess
 from urllib.request import Request, urlopen
 
-from .config import CASA, QUI
+from .config import CASA, CACHE_DIR, QUI
 from .constants import UA, GRIGIO
 
-CACHE_LOGHI = os.path.join(CASA, ".cache", "xvb", "loghi")
-FILE_COLORI = os.path.join(CASA, ".cache", "xvb", "colori.json")
+CACHE_LOGHI = os.path.join(CACHE_DIR, "loghi")
+FILE_COLORI = os.path.join(CACHE_DIR, "colori.json")
 COLORI_VERSIONE = 4
 
 try:
