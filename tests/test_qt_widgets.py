@@ -198,6 +198,19 @@ class QtWidgetTests(unittest.TestCase):
             self.assertIsNotNone(window._finestra_guida)
             window.close()
             self.app.processEvents()
+    def test_removed_epg_reports_its_saved_name(self):
+        with patch("ui.main_window.MpvVideo", side_effect=RuntimeError("libmpv unavailable")):
+            window = MainWindow()
+            url = "https://example.test/guide.xml.gz"
+            window.sessione.config["epg"] = [url]
+            window.sessione.config["epg_nomi"] = {url: "xmltv-original.xml"}
+            with patch("ui.main_window.scrivi_config"), \\
+                 patch.object(window, "ricarica_guida"), \\
+                 patch.object(window, "_riempi_liste"):
+                window.togli_epg(url)
+            self.assertEqual(window.riga_stato.text(), "removed xmltv-original.xml")
+            window.close()
+            self.app.processEvents()
 
 if __name__ == "__main__":
     unittest.main()
