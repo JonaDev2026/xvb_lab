@@ -271,3 +271,6 @@ Non eseguiti test grafici o prove di rendering. La dissolvenza originale dello s
 - Il precaricamento delle foto artista ora interrompe anche le pause fra richieste quando si chiude il player; l'attesa di chiusura resta limitata al timeout massimo della richiesta in corso.
 
 - Ripristinate le icone contestuali di volume (muto, zero, basso, medio, alto) e repeat (file/playlist), con tooltip aggiornato allo stato attivo.
+
+- Ripristinato il comportamento Stop/Resume: Stop conserva tipo, nome, percorso e ID del contenuto corrente; Play dopo Stop riapre lo stesso contenuto dall'inizio, con tooltip Resume.
+- Stop annulla anche il timer di spegnimento e conclude un'eventuale registrazione attiva.
