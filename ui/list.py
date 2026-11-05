@@ -147,8 +147,10 @@ class Elenco(QListWidget):
     def selection_set(self, iid, vedi=False):
         iid = str(iid) if iid is not None else None
         self.scelta = iid if iid in self.dati else None
-        if self.scelta is None:
+        if self.scelta is None or "onda" in self.dati[self.scelta].get("tags", ()):
+            self.scelta = None
             self.clearSelection()
+            self.setCurrentItem(None)
         else:
             item = self.item_for(self.scelta)
             self.setCurrentItem(item)
@@ -230,12 +232,21 @@ class Elenco(QListWidget):
 
     def _selezionato(self, item):
         iid = item.data(Qt.UserRole)
-        self.scelta = iid
+        if "onda" in self.dati.get(iid, {}).get("tags", ()):
+            self.scelta = None
+            self.clearSelection()
+            self.setCurrentItem(None)
+        else:
+            self.scelta = iid
         if self.singolo:
             self.singolo()
 
     def _corrente_cambiato(self, corrente, precedente):
         iid = corrente.data(Qt.UserRole) if corrente is not None else None
+        if iid is not None and "onda" in self.dati.get(iid, {}).get("tags", ()):
+            self.scelta = None
+            self.clearSelection()
+            return
         if iid != self.scelta:
             self.scelta = iid
             self.treeviewSelect.emit()
@@ -291,7 +302,7 @@ class _ElencoDelegate(QStyledItemDelegate):
         tags = d.get("tags", ())
         colore = QColor(d.get("colore") or "#9e9e9e")
         rett = option.rect
-        selezionato = iid == e.scelta and e.hasFocus()
+        selezionato = iid == e.scelta and e.hasFocus() and "onda" not in tags
         sfondo = QColor(SCELTO) if selezionato else (
             QColor(IN_ONDA) if "onda" in tags else
             QColor(ZEBRA) if index.row() % 2 else QColor(FONDO))
