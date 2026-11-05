@@ -5,7 +5,7 @@ from core.playlists import (
     categorie, categorie_m3u, leggi_lista, liste_in_cartella, nome_di, NOMI_URL
 )
 from core.epg import leggi_epg, prendi_epg, unisci_guide
-from core.favorites import leggi_preferiti_cat
+from core.favorites import leggi_preferiti_cat, PREF_MUSICA, PREF_VIDEO
 
 
 class Sessione:
@@ -16,6 +16,8 @@ class Sessione:
         self.epg_nomi = {}
         self.epg = {}
         self.preferiti = []
+        self.preferiti_musica = []
+        self.preferiti_video = []
         self.carica_liste()
         self.carica_preferiti()
 
@@ -81,6 +83,15 @@ class Sessione:
             self.preferiti = []
         for nome, url, ide, categoria in self.preferiti:
             self.canali.append((nome, url, ide, categoria or "MyPlaylist", "__favorite__"))
+        try:
+            self.preferiti_musica = leggi_preferiti_cat(PREF_MUSICA)
+            self.preferiti_video = leggi_preferiti_cat(PREF_VIDEO)
+        except Exception:
+            self.preferiti_musica, self.preferiti_video = [], []
+        for nome, url, ide, categoria in self.preferiti_musica:
+            self.canali.append((nome, url, ide, categoria or "Music", "__favorite_music__"))
+        for nome, url, ide, categoria in self.preferiti_video:
+            self.canali.append((nome, url, ide, categoria or "Video", "__favorite_video__"))
 
     def carica_guide(self):
         guide = []
