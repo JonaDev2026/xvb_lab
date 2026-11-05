@@ -24,6 +24,16 @@ class QtWidgetTests(unittest.TestCase):
             window.close()
             self.app.processEvents()
 
+    def test_fullscreen_overlay_reparents_and_restores_controls(self):
+        with patch("ui.main_window.MpvVideo", side_effect=RuntimeError("libmpv unavailable")):
+            window = MainWindow()
+            window._attiva_overlay()
+            self.assertIs(window.barra.parentWidget(), window.video)
+            window._disattiva_overlay()
+            self.assertIs(window.barra.parentWidget(), window._centrale)
+            window.close()
+            self.app.processEvents()
+
     def test_search_callback_and_value(self):
         calls = []
         widget = Ricerca(None, lambda: calls.append(True))
