@@ -1,6 +1,7 @@
 from pathlib import Path
+import time
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, Signal, QTimer
 from PySide6.QtGui import QAction, QIcon
 from PySide6.QtCore import QSize
 from PySide6.QtWidgets import (
@@ -190,12 +191,37 @@ class FinestraXVB(QMainWindow):
         principale.addWidget(self.destra)
 
         self.stato = QLabel("ready", self)
-        self.stato.setFixedHeight(28)
-        self.stato.setContentsMargins(10, 0, 10, 0)
-        self.stato.setStyleSheet("background:%s;color:%s" % (STATO, GRIGIO))
-        self.statusBar().addWidget(self.stato, 1)
-        self.statusBar().setFixedHeight(28)
-        self.statusBar().setStyleSheet("QStatusBar{background:%s;border:0}" % STATO)
+        self.stato.setContentsMargins(8, 0, 0, 0)
+        self.stato.setStyleSheet("color:%s" % TESTO)
+        self.et_categoria = QLabel("", self)
+        self.et_categoria.setStyleSheet("color:%s" % TESTO)
+        self.et_titolo = QLabel("", self)
+        self.et_titolo.setStyleSheet("color:%s" % TESTO)
+        self.et_ora = QLabel("", self)
+        self.et_ora.setStyleSheet("color:%s" % GRIGIO)
+        self.et_seguente = QLabel("", self)
+        self.et_seguente.setStyleSheet("color:%s" % GRIGIO)
+        self.et_titolo_seguente = QLabel("", self)
+        self.et_titolo_seguente.setStyleSheet("color:%s" % GRIGIO)
+        self.et_formato = QLabel("", self)
+        self.et_formato.setStyleSheet("color:%s" % GRIGIO)
+        self.clock = QLabel(time.strftime("%a %d %b  %H:%M"), self)
+        self.clock.setStyleSheet("color:%s;padding-right:10px" % TESTO)
+        barra_stato = self.statusBar()
+        barra_stato.setFixedHeight(28)
+        barra_stato.setStyleSheet("QStatusBar{background:%s;border:0}" % STATO)
+        barra_stato.addWidget(self.et_categoria)
+        barra_stato.addWidget(self.stato, 1)
+        barra_stato.addWidget(self.et_titolo)
+        barra_stato.addWidget(self.et_ora)
+        barra_stato.addWidget(self.et_seguente)
+        barra_stato.addWidget(self.et_titolo_seguente)
+        barra_stato.addWidget(self.et_formato)
+        barra_stato.addPermanentWidget(self.clock)
+        self._timer_clock = QTimer(self)
+        self._timer_clock.timeout.connect(
+            lambda: self.clock.setText(time.strftime("%a %d %b  %H:%M")))
+        self._timer_clock.start(30000)
 
     def _azione(self, chiave):
         if self.controller:
