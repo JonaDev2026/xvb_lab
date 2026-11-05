@@ -1,7 +1,8 @@
 import os
+import socket
+import threading
 
 from PySide6.QtCore import QObject, Signal
-from PySide6.QtNetwork import QLocalServer, QLocalSocket
 
 from core.config import CASA
 
@@ -18,57 +19,63 @@ class ServerUnico(QObject):
         super().__init__()
         self.percorso = percorso
         os.makedirs(os.path.dirname(percorso), exist_ok=True)
-        QLocalServer.removeServer(percorso)
-        self.server = QLocalServer(self)
-        self.server.newConnection.connect(self._nuova_connessione)
-        if not self.server.listen(percorso):
-            raise OSError(self.server.errorString())
-        self._buffer = {}
+        try:
+            os.remove(percorso)
+        except OSError:
+            pass
+        self.server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        self.server.bind(percorso)
+        self.server.listen(4)
+        self._attivo = True
+        self._thread = threading.Thread(target=self._ascolta, daemon=True)
+        self._thread.start()
 
-    def _nuova_connessione(self):
-        while self.server.hasPendingConnections():
-            socket = self.server.nextPendingConnection()
-            self._buffer[socket] = bytearray()
-            socket.readyRead.connect(lambda s=socket: self._leggi(s))
-            socket.disconnected.connect(lambda s=socket: self._disconnesso(s))
-            if socket.bytesAvailable():
-                self._leggi(socket)
-
-    def _leggi(self, socket):
-        if socket in self._buffer:
-            self._buffer[socket].extend(bytes(socket.readAll()))
-
-    def _disconnesso(self, socket):
-        dati = bytes(self._buffer.pop(socket, b""))
-        percorsi = [voce for voce in dati.decode("utf-8", "replace").split("\n") if voce]
-        if percorsi:
-            self.files.emit(percorsi)
-        else:
-            self.raise_window.emit()
-        socket.deleteLater()
+    def _ascolta(self):
+        while self._attivo:
+            try:
+                connessione, _indirizzo = self.server.accept()
+            except OSError:
+                return
+            with connessione:
+                parti = []
+                while True:
+                    try:
+                        blocco = connessione.recv(65536)
+                    except OSError:
+                        break
+                    if not blocco:
+                        break
+                    parti.append(blocco)
+            dati = b"".join(parti)
+            percorsi = [voce for voce in dati.decode("utf-8", "replace").split("\n") if voce]
+            if percorsi:
+                self.files.emit(percorsi)
+            else:
+                self.raise_window.emit()
 
     def close(self):
+        self._attivo = False
         self.server.close()
-        QLocalServer.removeServer(self.percorso)
+        try:
+            os.remove(self.percorso)
+        except OSError:
+            pass
 
 
 def porta_unica(argomenti, percorso=PORTA):
     def inoltra():
-        socket = QLocalSocket()
-        socket.connectToServer(percorso)
-        if not socket.waitForConnected(2000):
+        connessione = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        connessione.settimeout(2)
+        try:
+            connessione.connect(percorso)
+            dati = "\n".join(os.path.abspath(voce) for voce in argomenti if voce)
+            if dati:
+                connessione.sendall(dati.encode("utf-8"))
+            return True
+        except OSError:
             return False
-        dati = "\n".join(os.path.abspath(voce) for voce in argomenti if voce)
-        if dati:
-            socket.write(dati.encode("utf-8"))
-            socket.flush()
-            if not socket.waitForBytesWritten(2000):
-                socket.abort()
-                return False
-        socket.disconnectFromServer()
-        if socket.state() != QLocalSocket.LocalSocketState.UnconnectedState:
-            socket.waitForDisconnected(2000)
-        return True
+        finally:
+            connessione.close()
 
     if inoltra():
         return None
