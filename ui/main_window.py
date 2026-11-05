@@ -423,6 +423,10 @@ class MainWindow(QMainWindow):
         self._indice_canale = -1
         self._giro_traccia = 0
         self._eof_gestito = False
+        self.loop_ab_a = None
+        self.loop_ab_b = None
+        self.loop_ab_file = None
+        self.loop_ab_in_corso = False
         self.varianti = []
         self.quale = -1
         self._stream_player = None
@@ -506,6 +510,12 @@ class MainWindow(QMainWindow):
                 totale = float(durata)
                 if totale > 0:
                     self.posizione.setValue(int(float(posizione) * 1000 / totale))
+            if posizione and self.loop_ab_file == self.file_in_onda and self.loop_ab_a is not None and self.loop_ab_b is not None:
+                if float(posizione) >= self.loop_ab_b and self.loop_ab_in_corso:
+                    self.loop_ab_in_corso = False
+                    player.seek(self.loop_ab_a)
+                elif float(posizione) < self.loop_ab_b:
+                    self.loop_ab_in_corso = True
             if player.leggi("eof-reached") == "yes" and not self._eof_gestito:
                 self._eof_gestito = True
                 if self.file_in_onda and os.path.isabs(self.file_in_onda):
@@ -713,6 +723,10 @@ class MainWindow(QMainWindow):
         playback.addAction(self._azione(_("Stop"), self.ferma, "S"))
         playback.addAction(self._azione(_("Back 10 s"), lambda: self._comando("seek", "-10", "relative")))
         playback.addAction(self._azione(_("Forward 10 s"), lambda: self._comando("seek", "10", "relative")))
+        playback.addSeparator()
+        playback.addAction(self._azione(_("Set A-B loop point A"), self.loop_ab_imposta_a))
+        playback.addAction(self._azione(_("Set A-B loop point B"), self.loop_ab_imposta_b))
+        playback.addAction(self._azione(_("Clear A-B loop"), self.loop_ab_azzera))
         playback.addSeparator()
         for velocita in (0.5, 0.75, 1, 1.25, 1.5, 2):
             playback.addAction(self._azione("Speed x%g" % velocita,
@@ -2185,6 +2199,52 @@ class MainWindow(QMainWindow):
             voce = self._canali_visibili[0]
             self._indice_canale = 0
             self.apri(voce[1], nome=voce[0], ide=voce[2])
+
+    @staticmethod
+    def _tempo_testo(secondi):
+        secondi = max(0, int(secondi))
+        ore, resto = divmod(secondi, 3600)
+        minuti, secondi = divmod(resto, 60)
+        return "%02d:%02d:%02d" % (ore, minuti, secondi) if ore else "%02d:%02d" % (minuti, secondi)
+
+    def loop_ab_imposta_a(self):
+        player = self._attivo()
+        if not self.file_in_onda or player is None:
+            self._messaggio_temporaneo(_("A-B loop works with media files"))
+            return
+        try:
+            posizione = float(player.leggi("time-pos"))
+            self.loop_ab_a = posizione
+            self.loop_ab_b = None
+            self.loop_ab_file = self.file_in_onda
+            self.loop_ab_in_corso = False
+            self._messaggio_temporaneo(_("A point set: %s") % self._tempo_testo(posizione))
+        except (TypeError, ValueError):
+            self._messaggio_temporaneo(_("cannot set A-B loop point"))
+
+    def loop_ab_imposta_b(self):
+        player = self._attivo()
+        if not self.file_in_onda or self.loop_ab_file != self.file_in_onda or self.loop_ab_a is None or player is None:
+            self._messaggio_temporaneo(_("Set A before setting B"))
+            return
+        try:
+            posizione = float(player.leggi("time-pos"))
+            if posizione <= self.loop_ab_a:
+                self._messaggio_temporaneo(_("B point must be after A"))
+                return
+            self.loop_ab_b = posizione
+            self.loop_ab_in_corso = True
+            self._messaggio_temporaneo(_("A-B loop active: %s - %s") % (
+                self._tempo_testo(self.loop_ab_a), self._tempo_testo(self.loop_ab_b)))
+        except (TypeError, ValueError):
+            self._messaggio_temporaneo(_("cannot set A-B loop point"))
+
+    def loop_ab_azzera(self):
+        self.loop_ab_a = None
+        self.loop_ab_b = None
+        self.loop_ab_file = None
+        self.loop_ab_in_corso = False
+        self._messaggio_temporaneo(_("A-B loop cleared"))
 
     def salta(self, direzione):
         if not self._canali_visibili:
