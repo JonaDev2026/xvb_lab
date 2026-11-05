@@ -6,7 +6,7 @@ import subprocess
 from urllib.request import Request, urlopen
 
 from .config import CASA, QUI
-from .constants import UA
+from .constants import UA, GRIGIO
 
 CACHE_LOGHI = os.path.join(CASA, ".cache", "xvb", "loghi")
 FILE_COLORI = os.path.join(CASA, ".cache", "xvb", "colori.json")
