@@ -2733,6 +2733,8 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, evento):
         self._timer_overlay.stop()
+        if self._versione_worker and self._versione_worker.isRunning():
+            self._versione_worker.wait(12000)
         self.tendina.chiudi()
         self._timer_player.stop()
         self._timer_rec.stop()
