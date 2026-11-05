@@ -2,33 +2,27 @@
 
 ## Stato
 
-**Reset eseguito il 2026-11-05.**
+Audit strutturale della Stable 4.4.4 completato: sorgente `xvb.py` del tag `v4.4.4`, 11.823 righe, 8 classi top-level e 400 metodi diretti nelle classi. L'elenco metodo-per-metodo è in [`analisi/METODI_STABLE_4.4.4.md`](analisi/METODI_STABLE_4.4.4.md); il riepilogo è in [`analisi/ANALISI_STABLE_4.4.4.md`](analisi/ANALISI_STABLE_4.4.4.md).
 
-La precedente implementazione di XVB Lab è stata azzerata. Il codice precedente non costituisce più la base del progetto e non va ripreso come architettura o come riferimento funzionale.
+## Regole
 
-## Regola di sviluppo
+- Stable 4.4.4 è il sorgente vincolante di codice, funzioni, logica e interfaccia.
+- La UI Qt6 deve conservare struttura, proporzioni, controlli, menu, icone, colori e flussi della Stable.
+- Le funzioni originali vanno trasferite senza omissioni, semplificazioni o placeholder.
+- Il codice va organizzato in moduli separati mantenendo tracciabilità metodo originale/modulo Qt6.
+- Rendering video con libmpv Render API e compatibilità X11/Wayland.
 
-La base funzionale è esclusivamente **XVB Stable 4.4.4**, tag `v4.4.4`, repository https://github.com/JonaDev2026/xvb.
+## Avanzamento verificato
 
-XVB Lab deve essere una migrazione fedele dell'applicazione originale:
-- tutte le funzioni e i comportamenti della Stable;
-- stessa interfaccia, disposizione, menu, icone, controlli e flussi d'uso;
-- nessuna funzione inventata, eliminata, semplificata o sostituita da placeholder;
-- moduli separati per responsabilità;
-- PySide6 / Qt6 al posto di Tkinter;
-- libmpv Render API;
-- compatibilità X11 e Wayland.
+- [x] Recuperato il sorgente ufficiale Stable 4.4.4.
+- [x] Inventariate le 8 classi top-level.
+- [x] Elencati i 400 metodi diretti con riga sorgente.
+- [x] Rilevato `traduzioni.py` e le sette lingue.
+- [x] Rilevati i punti originali di costruzione menu, pannelli, fullscreen e overlay.
+- [ ] Mappatura completa di ogni metodo e delle funzioni top-level.
+- [ ] Migrazione dei moduli applicativi in Qt6.
+- [ ] Ricostruzione della UI originale in Qt6.
+- [ ] Integrazione e verifica libmpv Render API su X11 e Wayland.
+- [ ] Test di parità funzionale con Stable.
 
-Non si parte da un player dimostrativo per aggiungere gradualmente funzioni. Si parte dall'inventario completo del codice Stable e si trasferiscono le sue funzioni, mantenendo la corrispondenza tra originale e modulo Qt.
-
-## Sequenza obbligatoria
-
-1. Analizzare integralmente Stable 4.4.4 e inventariare classi, funzioni, callback, menu, risorse, configurazione e dipendenze.
-2. Definire la mappa di migrazione: funzione originale, modulo di destinazione, adattamento Qt/libmpv e verifica prevista.
-3. Progettare e verificare il rendering Qt/libmpv su X11 e Wayland prima di ricostruire la finestra completa.
-4. Ricostruire l'interfaccia originale e collegare le funzioni migrate.
-5. Verificare ogni funzione rispetto alla Stable e registrare test e differenze reali.
-
-## Registro lavori
-
-Nessuna funzione è dichiarata migrata o verificata in questa nuova ripartenza. Le attività iniziano da zero dopo l'inventario completo della Stable.
+Nessuna funzione è ancora dichiarata migrata e l'applicazione non è pronta per il test. La vecchia implementazione Lab non è la base funzionale.
