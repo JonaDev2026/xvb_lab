@@ -4,11 +4,7 @@ import threading
 
 from PySide6.QtCore import QObject, Signal
 
-from core.config import CASA
-
-PORTA = os.path.join(
-    os.environ.get("XDG_RUNTIME_DIR") or os.path.join(CASA, ".cache", "xvb"),
-    "xvb.sock")
+from core.config import PORTA
 
 
 class ServerUnico(QObject):
