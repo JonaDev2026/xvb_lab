@@ -261,3 +261,5 @@ Non eseguiti test grafici o prove di rendering. La dissolvenza originale dello s
 - Aggiornato il test Qt della finestra principale per verificare la nuova collocazione della barra in overlay nel layout normale, invece della vecchia barra esterna.
 
 - Allineata la barra overlay alle coordinate originali: altezza 96 px, progress a y=30 e riga comandi da y=38.
+
+- Riordinati i comandi della barra secondo la Stable: preferito, fullscreen, PiP, velocità, qualità (solo quando ci sono varianti), playlist, volume e muto. Rimosso il pulsante Split aggiuntivo: la funzione resta nel menu View e nella scorciatoia F2.
