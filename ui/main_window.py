@@ -2245,7 +2245,11 @@ class MainWindow(QMainWindow):
             self._riempi_elenco()
             return
         if self._percorso_attivo == "__url__":
-            self.apri_url_da(self._categoria_attiva)
+            url = self._categoria_attiva
+            self._categoria_attiva = next(
+                (categoria for categoria, _nome in CATEGORIE_URL
+                 if url in self.url_di(categoria)), None)
+            self.apri_url_da(url)
             return
         if self._percorso_attivo == "__url_root__":
             self._percorso_attivo = "__url__"
