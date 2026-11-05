@@ -9,13 +9,13 @@ import xml.etree.ElementTree as ET
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
-from .config import CASA, REGISTRAZIONI
+from .config import CASA, CACHE_DIR, REGISTRAZIONI
 from .playlists import UA
 
 EPG_VECCHIA = 6 * 3600
-CACHE_EPG = os.path.join(CASA, ".cache", "xvb", "epg")
+CACHE_EPG = os.path.join(CACHE_DIR, "epg")
 POSTER_H = 192
-CACHE_POSTER = os.path.join(CASA, ".cache", "xvb", "poster")
+CACHE_POSTER = os.path.join(CACHE_DIR, "poster")
 EPG_ICONE = {}
 EPG_ICONE_NOME = {}
 
@@ -151,7 +151,7 @@ def registrazioni():
         if os.path.isdir(p):
             canale, file_ = n, [os.path.join(p, f) for f in os.listdir(p)]
         else:
-            canale, file_ = "xvb", [p]
+            canale, file_ = "xvb5", [p]
         for f in file_:
             if not f.lower().endswith((".mkv", ".mka", ".mp4", ".ts")):
                 continue
