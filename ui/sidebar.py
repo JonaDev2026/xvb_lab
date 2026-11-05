@@ -17,6 +17,7 @@ class Sidebar(QTreeWidget):
         super().__init__(parent)
         c = colori or {}
         self._progressivo = 0
+        self.tag_configurazioni = {}
         self.pannello = c.get("pannello", "#1c1b22")
         self.testo = c.get("testo", "#e0e0e0")
         self.grigio = c.get("grigio", "#9e9e9e")
@@ -70,13 +71,33 @@ class Sidebar(QTreeWidget):
                 raise KeyError(parent)
             padre.addChild(item)
         item.setExpanded(bool(open))
-        if "usata" in tags:
+        for tag in tags:
+            opzioni = self.tag_configurazioni.get(tag, {})
+            if "foreground" in opzioni:
+                item.setForeground(0, QBrush(QColor(opzioni["foreground"])))
+            if "background" in opzioni:
+                item.setBackground(0, QBrush(QColor(opzioni["background"])))
+        if "usata" in tags and "foreground" not in self.tag_configurazioni.get("usata", {}):
             item.setForeground(0, QBrush(QColor(self.testo)))
-        if "sotto" in tags:
+        if "sotto" in tags and "background" not in self.tag_configurazioni.get("sotto", {}):
             item.setBackground(0, QBrush(QColor(self.zebra)))
         if iid is not None:
             item.setData(0, Qt.UserRole, iid)
         return iid
+
+    def column(self, colonna, **opzioni):
+        indice = 0 if colonna in ("#0", 0) else 1
+        if "width" in opzioni:
+            self.setColumnWidth(indice, int(opzioni["width"]))
+        if "stretch" in opzioni:
+            from PySide6.QtWidgets import QHeaderView
+            self.header().setSectionResizeMode(
+                indice, QHeaderView.Stretch if opzioni["stretch"] else QHeaderView.Fixed)
+        if "anchor" in opzioni:
+            self.headerItem().setTextAlignment(indice, Qt.AlignCenter if opzioni["anchor"] == "center" else Qt.AlignLeft)
+
+    def tag_configure(self, tag, **opzioni):
+        self.tag_configurazioni.setdefault(tag, {}).update(opzioni)
 
     def item_by_id(self, iid):
         for item in self._tutti():
