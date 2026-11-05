@@ -411,3 +411,14 @@ Commit: `60f8e2a`, `b35ab4c`, `9c133bc`, `757de30`, `aeb2978`.
 - Aggiunti test per inoltro file e riattivazione della finestra. GitHub Actions sul commit `2786e12` ha superato compilazione e suite di regressione/Qt (87 test).
 
 Commit: `8a13358`, `ba3fb7f`, `c785c2a`, `f79da58`, `e076863`, `8f4a0ff`, `2786e12`.
+
+
+## Completamento del flusso di avvio esterno
+
+- La seconda istanza porta ora la finestra esistente in primo piano anche quando inoltra file o cartelle.
+- Una playlist ricevuta da una seconda istanza viene selezionata dopo il ricaricamento, non soltanto aggiunta all'archivio.
+- Il socket Unix viene chiuso con risveglio e join del listener; il ricevitore viene avviato solo dopo il collegamento dei segnali alla finestra, evitando la perdita di richieste durante la costruzione della UI.
+- Al termine della sessione vengono rimossi i nomi e le copertine delle URL temporanee, svuotato `url_aperti` e salvata la configurazione, come nella Stable.
+- Aggiunti test per selezione playlist esterna e pulizia delle URL temporanee. GitHub Actions sul commit `2c55359` ha superato compilazione e suite di regressione/Qt.
+
+Commit: `5258042`, `dd25959`, `427a80c`, `6f12365`, `fc7e772`, `5d0eb61`, `603ce4a`, `2c55359`.
