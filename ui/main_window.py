@@ -156,18 +156,17 @@ class MainWindow(QMainWindow):
         media.addSeparator()
         self._action(media, "Download posters and covers", enabled=False)
         media.addSeparator()
-        recent = media.addMenu("Recent")
-        self._action(recent, "No recent files", enabled=False)
+        self._action(media, "Recent", enabled=False)
         self._action(media, "Clear recent", enabled=False)
 
         playback = bar.addMenu("Playback")
         self._action(playback, "Play / Pause", self.toggle_pause, shortcut="Space")
         self._action(playback, "Stop", self.engine.stop)
         playback.addSeparator()
-        timer = playback.addMenu("Sleep timer")
+        self._action(playback, "Sleep timer", enabled=False)
         for minutes in (15, 30, 45, 60, 90):
-            self._action(timer, f"{minutes} minutes", enabled=False)
-        self._action(timer, "Cancel sleep timer", enabled=False)
+            self._action(playback, f"{minutes} minutes", enabled=False)
+        self._action(playback, "Cancel sleep timer", enabled=False)
         playback.addSeparator()
         self._action(playback, "Back 10 s", lambda: self.seek(-10))
         self._action(playback, "Forward 10 s", lambda: self.seek(10))
@@ -180,9 +179,9 @@ class MainWindow(QMainWindow):
         self._action(playback, "Next", enabled=False)
         playback.addSeparator()
         self._action(playback, "Shuffle", enabled=False)
-        repeat = playback.addMenu("Repeat")
-        for label in ("No repeat", "Repeat one", "Repeat all"):
-            self._action(repeat, label, enabled=False)
+        self._action(playback, "No repeat", enabled=False)
+        self._action(playback, "Repeat one", enabled=False)
+        self._action(playback, "Repeat all", enabled=False)
         self._action(playback, "Chapters", enabled=False)
         for speed in ("0.5", "0.75", "1", "1.25", "1.5", "2"):
             self._action(playback, f"Speed x{speed}", enabled=False)
@@ -231,14 +230,14 @@ class MainWindow(QMainWindow):
         self.left_toggle_action = self._action(view, "Hide list", self.toggle_left_panel)
         self.right_toggle_action = self._action(view, "Hide sidebar", self.toggle_right_panel)
         view.addSeparator()
-        language = view.addMenu("Language")
+        self._action(view, "Language", enabled=False)
         for label in ("English", "Italiano", "Español", "Français", "Deutsch",
                       "Português", "Русский"):
-            self._action(language, label, enabled=False)
+            self._action(view, label, enabled=False)
         view.addSeparator()
-        buffer_menu = view.addMenu("Buffer")
+        self._action(view, "Buffer", enabled=False)
         for label in ("Minimal", "Low", "Standard", "High"):
-            self._action(buffer_menu, label, enabled=False)
+            self._action(view, label, enabled=False)
 
         help_menu = bar.addMenu("Help")
         self._action(help_menu, "About XVB...", enabled=False)
