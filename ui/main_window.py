@@ -1,5 +1,5 @@
 from PySide6.QtCore import Qt, QUrl, QThread, Signal, QTimer
-from PySide6.QtGui import QAction, QKeySequence, QIcon
+from PySide6.QtGui import QAction, QKeySequence, QIcon, QDesktopServices
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QFrame, QVBoxLayout, QHBoxLayout, QLabel,
     QPushButton, QFileDialog, QInputDialog, QMessageBox, QSlider, QTreeWidget, QTreeWidgetItem
@@ -8,6 +8,8 @@ from engine.mpv import MpvVideo
 from ui.widgets import Elenco, Ricerca, Guida
 from core.session import Sessione
 from core.media import media_in
+from core.config import scrivi_config, CARTELLE_LISTE
+from core.playlists import liste_in_cartella
 import os
 
 
@@ -221,7 +223,12 @@ class MainWindow(QMainWindow):
         audio.addAction(self._azione("Audio delay +100 ms", lambda: self._regola("audio-delay", 0.1)))
         audio.addAction(self._azione("Audio delay -100 ms", lambda: self._regola("audio-delay", -0.1)))
         iptv = self.menuBar().addMenu("IPTV")
+        iptv.addAction(self._azione("Add playlist URL", self.aggiungi_lista_url))
+        iptv.addAction(self._azione("Open playlists folder", self.apri_cartella_liste))
+        iptv.addAction(self._azione("Reload playlists", self.ricarica_liste))
+        iptv.addSeparator()
         iptv.addAction(self._azione("Programme guide", self.apri_guida))
+        iptv.addAction(self._azione("Add guide URL", self.aggiungi_epg_url))
         iptv.addAction(self._azione("Reload guide", self.ricarica_guida))
         view = self.menuBar().addMenu("View")
         view.addAction(self._azione("Fullscreen", self.schermo_intero, "F"))
@@ -255,6 +262,59 @@ class MainWindow(QMainWindow):
         if self.player:
             for nome in ("brightness", "contrast", "saturation", "gamma", "hue"):
                 self.player.imposta(nome, 0)
+
+
+    def aggiungi_lista_url(self):
+        url, ok = QInputDialog.getText(self, "Add playlist URL", "URL")
+        if not ok or not url.strip():
+            return
+        cfg = self.sessione.config
+        liste = cfg.get("liste", [])
+        if isinstance(liste, str):
+            liste = [liste]
+        if url.strip() not in liste:
+            liste.append(url.strip())
+        cfg["liste"] = liste
+        scrivi_config(cfg)
+        self.ricarica_liste()
+
+    def ricarica_liste(self):
+        precedente = self.sessione
+        nuova = Sessione()
+        for lista in precedente.liste:
+            if lista["percorso"].startswith(("http://", "https://")):
+                continue
+            if os.path.isdir(lista["percorso"]):
+                nuovi = [(n, p, ide, "Local", lista["percorso"])
+                         for n, p, ide in media_in(lista["percorso"])]
+                if nuovi:
+                    nuova.canali.extend(nuovi)
+                    nuova.liste.append(lista)
+        self.sessione = nuova
+        self._percorso_attivo = None
+        self._categoria_attiva = None
+        self._riempi_liste()
+        self._riempi_elenco()
+        self.riga_stato.setText("%d channels" % len(self.sessione.canali))
+
+    def apri_cartella_liste(self):
+        percorso = CARTELLE_LISTE[0]
+        os.makedirs(percorso, exist_ok=True)
+        QDesktopServices.openUrl(QUrl.fromLocalFile(percorso))
+
+    def aggiungi_epg_url(self):
+        url, ok = QInputDialog.getText(self, "Add guide URL", "URL")
+        if not ok or not url.strip():
+            return
+        cfg = self.sessione.config
+        guide = cfg.get("epg", [])
+        if isinstance(guide, str):
+            guide = [guide] if guide else []
+        if url.strip() not in guide:
+            guide.append(url.strip())
+        cfg["epg"] = guide
+        scrivi_config(cfg)
+        self.ricarica_guida()
 
     def _epg_pronto(self):
         self.epg = self.sessione.epg
