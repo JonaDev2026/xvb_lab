@@ -65,6 +65,51 @@ class QtWidgetTests(unittest.TestCase):
             window.close()
             self.app.processEvents()
 
+    def test_video_menu_checkmarks_follow_saved_settings(self):
+        with patch("ui.main_window.MpvVideo", side_effect=RuntimeError("libmpv unavailable")):
+            window = MainWindow()
+            self.assertTrue(window.azione_hwdec.isChecked())
+            self.assertFalse(window.azione_deinterlaccia.isChecked())
+            window.sessione.config.update({
+                "proporzioni": "16:9",
+                "riempi": False,
+                "deinterlaccia": True,
+                "hwdec": False,
+            })
+            window._aggiorna_menu_video()
+            self.assertTrue(window.azioni_proporzioni["16:9"].isChecked())
+            self.assertTrue(window.azione_deinterlaccia.isChecked())
+            self.assertFalse(window.azione_hwdec.isChecked())
+            window.sessione.config["riempi"] = True
+            window._aggiorna_menu_video()
+            self.assertTrue(window.azione_riempi.isChecked())
+            self.assertFalse(window.azioni_proporzioni["16:9"].isChecked())
+            window.close()
+            self.app.processEvents()
+
+    def test_playback_and_audio_menu_states_follow_current_settings(self):
+        with patch("ui.main_window.MpvVideo", side_effect=RuntimeError("libmpv unavailable")):
+            window = MainWindow()
+            self.assertTrue(window.azioni_velocita[1].isChecked())
+            window.velocita = 1.5
+            window.shuffle_attivo = True
+            window.ripeti = "uno"
+            window.sessione.config.update({"boost": True, "normalizza": True})
+            window._aggiorna_menu_playback()
+            window._aggiorna_menu_audio()
+            self.assertTrue(window.azioni_velocita[1.5].isChecked())
+            self.assertTrue(window.azione_shuffle.isChecked())
+            self.assertTrue(window.azioni_ripeti["uno"].isChecked())
+            self.assertTrue(window.azione_boost.isChecked())
+            self.assertTrue(window.azione_normalizza.isChecked())
+            self.assertFalse(window.azione_carica_sottotitoli.isEnabled())
+            window.file_in_onda = "/tmp/movie.mkv"
+            window._aggiorna_menu_audio()
+            self.assertTrue(window.azione_carica_sottotitoli.isEnabled())
+            self.assertTrue(window.azione_sottotitoli_online.isEnabled())
+            window.close()
+            self.app.processEvents()
+
     def test_main_window_module_imports(self):
         self.assertTrue(MainWindow)
 
