@@ -519,10 +519,17 @@ class MainWindow(QMainWindow):
 
     def _riempi_liste(self):
         self.el_liste.clear()
+        radice_iptv = QTreeWidgetItem([_("IPTV")])
+        m3u = QTreeWidgetItem([_("M3U")])
+        radice_iptv.addChild(m3u)
+        self.el_liste.addTopLevelItem(radice_iptv)
+        radice_locale = QTreeWidgetItem([_("Local")])
+        self.el_liste.addTopLevelItem(radice_locale)
         for lista in self.sessione.liste:
+            locale = os.path.isdir(lista["percorso"])
             radice = QTreeWidgetItem([lista["nome"]])
             radice.setData(0, Qt.UserRole, (lista["percorso"], None))
-            self.el_liste.addTopLevelItem(radice)
+            (radice_locale if locale else m3u).addChild(radice)
             categorie = sorted(set(lista["categorie"].values()), key=str.casefold)
             for categoria in categorie:
                 voce = QTreeWidgetItem([categoria])
@@ -530,9 +537,9 @@ class MainWindow(QMainWindow):
                 radice.addChild(voce)
             radice.setExpanded(True)
         if self.sessione.preferiti:
-            preferiti = QTreeWidgetItem(["Favorites"])
+            preferiti = QTreeWidgetItem([_("Favorites")])
             preferiti.setData(0, Qt.UserRole, ("__favorite__", None))
-            self.el_liste.addTopLevelItem(preferiti)
+            radice_iptv.addChild(preferiti)
             categorie = sorted({voce[3] or "MyPlaylist" for voce in self.sessione.preferiti},
                                key=str.casefold)
             for categoria in categorie:
@@ -540,6 +547,9 @@ class MainWindow(QMainWindow):
                 voce.setData(0, Qt.UserRole, ("__favorite__", categoria))
                 preferiti.addChild(voce)
             preferiti.setExpanded(True)
+        radice_iptv.setExpanded(True)
+        m3u.setExpanded(True)
+        radice_locale.setExpanded(True)
 
     def _scegli_voce_liste(self, item, _colonna=0):
         dati = item.data(0, Qt.UserRole)
