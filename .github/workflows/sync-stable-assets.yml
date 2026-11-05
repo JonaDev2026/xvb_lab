@@ -1,9 +1,6 @@
 name: Sync Stable 4.4.4 assets
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
 
 permissions:
