@@ -1,61 +1,28 @@
+import locale
 import sys
+from pathlib import Path
 
-from PySide6.QtWidgets import (
-    QApplication,
-    QFileDialog,
-    QHBoxLayout,
-    QMainWindow,
-    QPushButton,
-    QVBoxLayout,
-    QWidget,
-)
+from PySide6.QtGui import QFont, QFontDatabase, QIcon
+from PySide6.QtWidgets import QApplication
 
 from engine.mpv import MPVEngine
-from engine.render import MPVRenderWidget
-
-
-class MainWindow(QMainWindow):
-    def __init__(self, engine):
-        super().__init__()
-        self.engine = engine
-        self.setWindowTitle("XVB Lab")
-        self.resize(1000, 650)
-
-        self.video = MPVRenderWidget(engine, self)
-        self.video.setMinimumSize(320, 180)
-
-        open_button = QPushButton("Apri file")
-        open_button.clicked.connect(self.open_file)
-        stop_button = QPushButton("Stop")
-        stop_button.clicked.connect(self.engine.stop)
-
-        controls = QHBoxLayout()
-        controls.addWidget(open_button)
-        controls.addWidget(stop_button)
-        controls.addStretch(1)
-
-        layout = QVBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(self.video, 1)
-        layout.addLayout(controls)
-
-        central = QWidget()
-        central.setLayout(layout)
-        self.setCentralWidget(central)
-
-    def open_file(self):
-        path, _ = QFileDialog.getOpenFileName(self, "Apri file multimediale")
-        if path:
-            self.engine.load(path)
-
-    def closeEvent(self, event):
-        self.video.close_render_context()
-        self.engine.close()
-        super().closeEvent(event)
+from ui.main_window import MainWindow
 
 
 def main():
     app = QApplication(sys.argv)
+    locale.setlocale(locale.LC_NUMERIC, "C")
+    app.setApplicationName("XVB")
+    root = Path(__file__).resolve().parent
+    font_path = root / "resources" / "fonts" / "static" / "GoogleSans-Regular.ttf"
+    if font_path.is_file():
+        font_id = QFontDatabase.addApplicationFont(str(font_path))
+        families = QFontDatabase.applicationFontFamilies(font_id) if font_id >= 0 else []
+        if families:
+            app.setFont(QFont(families[0], 10))
+    icon_path = root / "resources" / "icon.png"
+    if icon_path.is_file():
+        app.setWindowIcon(QIcon(str(icon_path)))
     engine = MPVEngine()
     window = MainWindow(engine)
     window.show()
