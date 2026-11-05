@@ -58,7 +58,12 @@ class MpvPlayer(QOpenGLWidget):
 
     def __init__(self, parent=None, mpv_path=None, options=None):
         super().__init__(parent)
-        formato = QSurfaceFormat()\n        formato.setRenderableType(QSurfaceFormat.OpenGL)\n        formato.setVersion(3, 2)\n        formato.setProfile(QSurfaceFormat.CoreProfile)\n        self.setFormat(formato)\n        self.setAttribute(Qt.WA_DontCreateNativeAncestors, True)
+        formato = QSurfaceFormat()
+        formato.setRenderableType(QSurfaceFormat.OpenGL)
+        formato.setVersion(3, 2)
+        formato.setProfile(QSurfaceFormat.CoreProfile)
+        self.setFormat(formato)
+        self.setAttribute(Qt.WA_DontCreateNativeAncestors, True)
         self.setUpdateBehavior(QOpenGLWidget.NoPartialUpdate)
         self.setFocusPolicy(Qt.StrongFocus)
         self._lib = self._load_library(mpv_path)
@@ -163,7 +168,10 @@ class MpvPlayer(QOpenGLWidget):
         self._lib.mpv_render_context_set_update_callback(
             self._render, self._render_callback, None)
 
-    def resizeGL(self, larghezza, altezza):\n        self.update()\n\n    def paintGL(self):
+    def resizeGL(self, larghezza, altezza):
+        self.update()
+
+    def paintGL(self):
         if not self._render:
             return
         scala = self.devicePixelRatioF()
