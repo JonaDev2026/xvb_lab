@@ -28,7 +28,7 @@ def titolo_url(u):
         n = m.group(1)
     if not n and len(pezzi) > 1:
         n = re.sub(r"\.[A-Za-z0-9]+$", "", pezzi[-2])
-    return re.sub(r"[_.]+", " ", n).strip() or urlparse(u).netloc or u
+    return re.sub(r"[_.-]+", " ", n).strip() or urlparse(u).netloc or u
 
 
 def tipo_url(u):
