@@ -205,6 +205,7 @@ class MainWindow(QMainWindow):
         self._timer_player = QTimer(self)
         self._timer_player.timeout.connect(self._aggiorna_player)
         self._timer_player.start(500)
+        self._aggiorna_recenti()
 
 
     def _aggiorna_player(self):
@@ -264,6 +265,8 @@ class MainWindow(QMainWindow):
         media.addAction(self._azione("Open file...", self.apri_file, "Ctrl+O"))
         media.addAction(self._azione("Open folder...", self.apri_cartella))
         media.addAction(self._azione("Open URL...", self.apri_url, "Ctrl+L"))
+        self.menu_recenti = media.addMenu("Recent")
+        media.addAction(self._azione("Clear recent", self.pulisci_recenti))
         media.addSeparator()
         media.addAction(self._azione("Quit", self.close, "Ctrl+Q"))
         playback = self.menuBar().addMenu("Playback")
@@ -806,6 +809,24 @@ class MainWindow(QMainWindow):
         os.makedirs(REGISTRAZIONI, exist_ok=True)
         QDesktopServices.openUrl(QUrl.fromLocalFile(REGISTRAZIONI))
 
+
+    def recenti(self):
+        return [p for p in self.sessione.config.get("recenti", []) if os.path.isfile(p)][:8]
+
+    def _aggiorna_recenti(self):
+        if not hasattr(self, "menu_recenti"):
+            return
+        self.menu_recenti.clear()
+        for percorso in self.recenti():
+            self.menu_recenti.addAction(
+                self._azione(os.path.basename(percorso), lambda _=False, p=percorso: self.apri(p)))
+        self.menu_recenti.setEnabled(bool(self.recenti()))
+
+    def pulisci_recenti(self):
+        self.sessione.config["recenti"] = []
+        scrivi_config(self.sessione.config)
+        self._aggiorna_recenti()
+
     def apri_file(self):
         percorso, _ = QFileDialog.getOpenFileName(self, "Open file")
         if percorso:
@@ -827,6 +848,12 @@ class MainWindow(QMainWindow):
             player = self._attivo()
             player.apri(percorso)
             self.file_in_onda = percorso
+            if os.path.isfile(percorso):
+                recenti = self.sessione.config.get("recenti", [])
+                recenti = [p for p in recenti if p != percorso and os.path.isfile(p)]
+                self.sessione.config["recenti"] = ([percorso] + recenti)[:8]
+                scrivi_config(self.sessione.config)
+                self._aggiorna_recenti()
             self.nome_in_onda = nome or os.path.basename(percorso.rstrip("/")) or percorso
             self.ide_in_onda = ide
             self.riga_stato.setText(self.nome_in_onda)
