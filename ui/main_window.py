@@ -61,6 +61,7 @@ class MainWindow(QMainWindow):
         sx.addWidget(self.elenco, 1)
         self.selettore_lista.currentIndexChanged.connect(self._cambia_lista)
         self.selettore_categoria.currentIndexChanged.connect(self._filtra)
+        self._cambia_lista()
         self._riempi_elenco()
 
         self.video = QWidget(self.contenuto)
@@ -181,7 +182,7 @@ class MainWindow(QMainWindow):
             return
         voce = self._canali_visibili[int(selezione[0])]
         self.info_canale.setText("%s\n%s" % (voce[0], voce[3]))
-        self.riga_stato.setText(voce[0])
+        self.apri(voce[1])
 
     def _apri_selezionato(self, _item=None):
         selezione = self.elenco.selection()
