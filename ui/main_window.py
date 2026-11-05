@@ -1177,7 +1177,7 @@ class MainWindow(QMainWindow):
     def _aggiorna_menu_audio(self):
         self.azione_boost.setChecked(bool(self.sessione.config.get("boost")))
         self.azione_normalizza.setChecked(bool(self.sessione.config.get("normalizza")))
-        presente = bool(self.file_in_onda)
+        presente = bool(getattr(self, "file_in_onda", None))
         self.azione_carica_sottotitoli.setEnabled(presente)
         self.azione_sottotitoli_online.setEnabled(presente)
 
@@ -1440,6 +1440,7 @@ class MainWindow(QMainWindow):
         audio.addAction(self.azione_normalizza)
         audio.addAction(self._azione(_("Audio equalizer..."), self.equalizzatore_audio))
         audio.aboutToShow.connect(self._aggiorna_menu_audio)
+        self._aggiorna_menu_audio()
         iptv = self.menuBar().addMenu(_("IPTV"))
         iptv.addAction(self._azione(_("Add playlist URL"), self.aggiungi_lista_url))
         iptv.addAction(self._azione(_("Open playlists folder"), self.apri_cartella_liste))
