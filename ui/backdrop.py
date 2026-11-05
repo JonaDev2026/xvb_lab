@@ -40,7 +40,7 @@ class Sfondo(QWidget):
             self._effetto.setOpacity(1.0)
         self.update()
 
-    def imposta_pixmap(self, immagine):
+    def imposta_pixmap(self, immagine, dissolvi=False, attesa=300):
         if isinstance(immagine, QPixmap):
             if not self._pixmap.isNull() and immagine.cacheKey() == self._pixmap.cacheKey():
                 return
@@ -48,8 +48,11 @@ class Sfondo(QWidget):
         else:
             self._pixmap = QPixmap(self._predefinita)
         self._percorso = None
-        self._animazione.stop()
-        self._effetto.setOpacity(1.0)
+        if dissolvi:
+            self.dissolvi(attesa)
+        else:
+            self._animazione.stop()
+            self._effetto.setOpacity(1.0)
         self.update()
 
     def dissolvi(self, attesa=300):
