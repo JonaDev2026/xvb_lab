@@ -388,6 +388,7 @@ Questa fase è il blocco tecnico più importante. Non iniziare a trasferire tutt
 - [x] MPRIS e tasti multimediali.
 - [x] Drag & drop e apertura da file manager.
 - [x] Singola istanza e socket locale.
+- [x] Preparazione asincrona dei file importati all'avvio, con deduplicazione rispetto alle cartelle configurate; 103 test di regressione/Qt superati dalla CI sul commit `b55c041`.
 - [ ] Test di stabilità, prestazioni e recupero errori.
 - [ ] Test X11 e Wayland su sessioni reali.
 
