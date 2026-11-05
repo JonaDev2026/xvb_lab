@@ -4,7 +4,7 @@ from core.config import leggi_config
 from core.playlists import (
     categorie_m3u, leggi_lista, liste_in_cartella, nome_vista
 )
-from core.epg import leggi_epg, unisci_guide
+from core.epg import leggi_epg, prendi_epg, unisci_guide
 
 
 class Sessione:
@@ -69,7 +69,7 @@ class Sessione:
             percorsi = [percorsi] if percorsi else []
         for percorso in percorsi:
             try:
-                guide.append(leggi_epg(percorso))
+                guide.append(leggi_epg(prendi_epg(percorso)))
             except Exception:
                 continue
         if guide:
