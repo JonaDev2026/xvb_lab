@@ -1,5 +1,5 @@
 from PySide6.QtCore import Qt, QUrl, QThread, Signal, QTimer, QSize
-from PySide6.QtGui import QAction, QKeySequence, QIcon, QDesktopServices, QPixmap, QShortcut, QCursor
+from PySide6.QtGui import QAction, QKeySequence, QIcon, QDesktopServices, QPixmap, QShortcut, QCursor, QTransform
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QFrame, QVBoxLayout, QHBoxLayout, QLabel, QDialog, QMenu,
     QPushButton, QFileDialog, QInputDialog, QMessageBox, QSlider, QTreeWidget, QTreeWidgetItem,
@@ -433,9 +433,18 @@ class MainWindow(QMainWindow):
         stato_layout = QHBoxLayout(stato)
         stato_layout.setContentsMargins(8, 0, 10, 0)
         stato_layout.setSpacing(8)
+        self.et_carico = QLabel(stato)
+        self.et_carico.setFixedSize(18, 18)
+        self.et_carico.hide()
+        self._icona_carico = QPixmap(os.path.join(QUI, "icone", "loading.png"))
+        self._angolo_carico = 0
+        stato_layout.addWidget(self.et_carico)
         self.riga_stato = QLabel("XVB", stato)
         self.riga_stato.setStyleSheet("color:#e0e0e0")
         stato_layout.addWidget(self.riga_stato, 1)
+        self._timer_carico = QTimer(self)
+        self._timer_carico.setInterval(50)
+        self._timer_carico.timeout.connect(self._gira_carico)
         self.orologio = QLabel(time.strftime("%a %d %b  %H:%M"), stato)
         self.orologio.setStyleSheet("color:#e0e0e0")
         stato_layout.addWidget(self.orologio)
@@ -619,12 +628,32 @@ class MainWindow(QMainWindow):
                 self._sfondo_url = "__default__"
             self.player.show()
 
+    def _mostra_carico(self, attivo):
+        if attivo and not self._timer_carico.isActive() and not self._icona_carico.isNull():
+            self.et_carico.show()
+            self._timer_carico.start()
+        elif not attivo:
+            self._timer_carico.stop()
+            self.et_carico.clear()
+            self.et_carico.hide()
+
+    def _gira_carico(self):
+        if self._icona_carico.isNull():
+            self._timer_carico.stop()
+            self.et_carico.hide()
+            return
+        trasformazione = QTransform().rotate(self._angolo_carico)
+        icona = self._icona_carico.transformed(trasformazione, Qt.SmoothTransformation)
+        self.et_carico.setPixmap(icona.scaled(16, 16, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        self._angolo_carico = (self._angolo_carico + 20) % 360
+
     def _aggiorna_player(self):
         self._aggiorna_sfondo()
         player = self._attivo()
         if not player:
             return
         try:
+            self._mostra_carico(player.leggi("paused-for-cache") == "yes")
             posizione = player.leggi("time-pos")
             durata = player.leggi("duration")
             if posizione is not None:
@@ -3495,6 +3524,7 @@ class MainWindow(QMainWindow):
                 worker.wait(45000)
         self.tendina.chiudi()
         self._timer_player.stop()
+        self._timer_carico.stop()
         self._timer_rec.stop()
         self._timer_dischi.stop()
         self._timer_info.stop()
