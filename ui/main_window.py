@@ -8,9 +8,11 @@ from engine.mpv import MpvVideo
 from ui.widgets import Elenco, Ricerca, Guida
 from core.session import Sessione
 from core.media import media_in
-from core.config import scrivi_config, CARTELLE_LISTE
+from core.config import scrivi_config, CARTELLE_LISTE, REGISTRAZIONI
 from core.playlists import liste_in_cartella
 import os
+import re
+import time
 
 
 class _CaricaGuide(QThread):
@@ -154,6 +156,16 @@ class MainWindow(QMainWindow):
         self.volume.valueChanged.connect(self._volume)
         self.posizione.sliderReleased.connect(self._seek)
         self._pieno = False
+        self.nome_in_onda = ""
+        self.ide_in_onda = None
+        self.file_in_onda = None
+        self.registrando = ""
+        self.inizio_rec = 0.0
+        self.fine_rec = 0.0
+        self.piano = None
+        self._timer_rec = QTimer(self)
+        self._timer_rec.timeout.connect(self.controlla_registrazione)
+        self._timer_rec.start(1000)
         self._thread_epg = _CaricaGuide(self.sessione)
         self._thread_epg.completato.connect(self._epg_pronto)
         self._thread_epg.errore.connect(self._epg_errore)
@@ -230,6 +242,11 @@ class MainWindow(QMainWindow):
         iptv.addAction(self._azione("Programme guide", self.apri_guida))
         iptv.addAction(self._azione("Add guide URL", self.aggiungi_epg_url))
         iptv.addAction(self._azione("Reload guide", self.ricarica_guida))
+        iptv.addSeparator()
+        iptv.addAction(self._azione("Record now / Stop recording", self.registra))
+        iptv.addAction(self._azione("Schedule...", self.pianifica))
+        iptv.addAction(self._azione("Cancel schedule", self.annulla_piano))
+        iptv.addAction(self._azione("Open recordings folder", self.apri_registrazioni))
         view = self.menuBar().addMenu("View")
         view.addAction(self._azione("Fullscreen", self.schermo_intero, "F"))
         help_menu = self.menuBar().addMenu("Help")
@@ -393,13 +410,13 @@ class MainWindow(QMainWindow):
             return
         voce = self._canali_visibili[int(selezione[0])]
         self.riga_stato.setText(voce[0])
-        self.apri(voce[1])
+        self.apri(voce[1], nome=voce[0], ide=voce[2])
 
     def _apri_selezionato(self, _item=None):
         selezione = self.elenco.selection()
         if selezione:
             voce = self._canali_visibili[int(selezione[0])]
-            self.apri(voce[1])
+            self.apri(voce[1], nome=voce[0], ide=voce[2])
 
 
     def apri_cartella(self):
@@ -426,6 +443,138 @@ class MainWindow(QMainWindow):
     def informazioni(self):
         QMessageBox.about(self, "XVB", "XVB Player 4.4.4")
 
+
+    def _programma_corrente(self):
+        if not self.ide_in_onda and not self.nome_in_onda:
+            return None
+        chiave = self.ide_in_onda if self.ide_in_onda in self.sessione.epg else self.sessione.epg_nomi.get(
+            __import__("core.epg", fromlist=["nome_piatto"]).nome_piatto(self.nome_in_onda))
+        if not chiave:
+            return None
+        adesso = time.time()
+        for programma in self.sessione.epg.get(chiave, []):
+            if programma[0] <= adesso < programma[1]:
+                return programma
+        return None
+
+    def registra(self):
+        if self.registrando:
+            self.ferma_registrazione()
+            return
+        f = self.file_in_onda or ""
+        if not f.startswith(("http://", "https://")) or not self.nome_in_onda:
+            self.riga_stato.setText("Open an IPTV stream before recording")
+            return
+        self.avvia_registrazione(self.nome_in_onda, 0.0)
+
+    def avvia_registrazione(self, nome, fine):
+        if not self.player:
+            return
+        try:
+            os.makedirs(REGISTRAZIONI, exist_ok=True)
+            programma = self._programma_corrente()
+            titolo = (programma[2] if programma and programma[2] else "") or nome
+            pulisci = lambda t: re.sub(r'[\\/:*?"<>|]+', "", t).strip() or "xvb"
+            cartella = os.path.join(REGISTRAZIONI, pulisci(nome))
+            os.makedirs(cartella, exist_ok=True)
+            video = self.player.leggi("vid")
+            estensione = "mkv" if video not in (None, "no", "0") else "mka"
+            destinazione = os.path.join(
+                cartella, "%s - %s.%s" % (
+                    pulisci(titolo), time.strftime("%Y-%m-%d %H-%M"), estensione))
+            self.player.imposta("stream-record", destinazione)
+        except Exception as errore:
+            self.riga_stato.setText("Cannot record: " + str(errore))
+            return
+        self.registrando = destinazione
+        self.fine_rec = fine
+        self.inizio_rec = time.time()
+        self._mostra_rec()
+
+    def ferma_registrazione(self):
+        if self.player:
+            try:
+                self.player.imposta("stream-record", "")
+            except Exception:
+                pass
+        destinazione = self.registrando
+        self.registrando = ""
+        self.fine_rec = 0.0
+        if destinazione:
+            self.riga_stato.setText("Saved " + os.path.basename(destinazione))
+            self._riempi_liste()
+
+    def _mostra_rec(self):
+        if not self.registrando:
+            return
+        durata = int(time.time() - self.inizio_rec)
+        ore, resto = divmod(durata, 3600)
+        cronometro = ("%d:%02d:%02d" % (ore, resto // 60, resto % 60)
+                      if ore else "%02d:%02d" % (resto // 60, resto % 60))
+        stato = "REC " + cronometro
+        if self.fine_rec:
+            stato += "  until " + time.strftime("%H:%M", time.localtime(self.fine_rec))
+        self.riga_stato.setText(stato)
+
+    @staticmethod
+    def ora_di(testo, dopo=None):
+        h, m = (int(x) for x in testo.strip().split(":"))
+        if not (0 <= h < 24 and 0 <= m < 60):
+            raise ValueError(testo)
+        adesso = time.localtime()
+        t = time.mktime((adesso.tm_year, adesso.tm_mon, adesso.tm_mday,
+                         h, m, 0, 0, 0, -1))
+        base = dopo if dopo is not None else time.time()
+        while t <= base:
+            t += 86400
+        return t
+
+    def pianifica(self):
+        if not self.file_in_onda or not self.nome_in_onda:
+            self.riga_stato.setText("Open the channel to record first")
+            return
+        inizio, ok = QInputDialog.getText(self, "Schedule", "Start (HH:MM):",
+                                          text=time.strftime("%H:%M"))
+        if not ok or not inizio:
+            return
+        fine, ok = QInputDialog.getText(self, "Schedule", "End (HH:MM):")
+        if not ok or not fine:
+            return
+        try:
+            t0 = self.ora_di(inizio)
+            t1 = self.ora_di(fine, dopo=t0)
+        except (ValueError, TypeError):
+            self.riga_stato.setText("Time must be HH:MM")
+            return
+        self.piano = (self.nome_in_onda, self.file_in_onda, self.ide_in_onda, t0, t1)
+        self.riga_stato.setText("Scheduled %s: %s–%s" % (
+            self.nome_in_onda, time.strftime("%H:%M", time.localtime(t0)),
+            time.strftime("%H:%M", time.localtime(t1))))
+
+    def annulla_piano(self):
+        self.piano = None
+        self.riga_stato.setText("Schedule cancelled")
+
+    def controlla_registrazione(self):
+        adesso = time.time()
+        if self.piano and adesso >= self.piano[3]:
+            nome, url, ide, _inizio, fine = self.piano
+            self.piano = None
+            if adesso < fine:
+                if self.file_in_onda != url:
+                    self.apri(url, nome=nome, ide=ide)
+                    QTimer.singleShot(5000, lambda: self.avvia_registrazione(nome, fine))
+                else:
+                    self.avvia_registrazione(nome, fine)
+        if self.registrando and self.fine_rec and adesso >= self.fine_rec:
+            self.ferma_registrazione()
+        elif self.registrando:
+            self._mostra_rec()
+
+    def apri_registrazioni(self):
+        os.makedirs(REGISTRAZIONI, exist_ok=True)
+        QDesktopServices.openUrl(QUrl.fromLocalFile(REGISTRAZIONI))
+
     def apri_file(self):
         percorso, _ = QFileDialog.getOpenFileName(self, "Open file")
         if percorso:
@@ -436,15 +585,19 @@ class MainWindow(QMainWindow):
         if ok and url.strip():
             self.apri(url.strip())
 
-    def apri(self, percorso, url=None, ide=None):
+    def apri(self, percorso, url=None, ide=None, nome=None):
         if url is not None:
+            nome = percorso
             percorso = url
         if self.player is None:
             QMessageBox.warning(self, "XVB", "libmpv non disponibile")
             return
         try:
             self.player.apri(percorso)
-            self.riga_stato.setText(percorso)
+            self.file_in_onda = percorso
+            self.nome_in_onda = nome or os.path.basename(percorso.rstrip("/")) or percorso
+            self.ide_in_onda = ide
+            self.riga_stato.setText(self.nome_in_onda)
             self.play_button.setText("Ⅱ")
         except Exception as errore:
             QMessageBox.critical(self, "XVB", str(errore))
@@ -457,6 +610,8 @@ class MainWindow(QMainWindow):
     def ferma(self):
         if self.player:
             self.player.ferma()
+            self.file_in_onda = None
+            self.nome_in_onda = ""
             self.play_button.setText("▶")
             self.riga_stato.setText("XVB")
 
