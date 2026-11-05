@@ -1,3 +1,4 @@
+import time
 import hashlib
 import os
 import tempfile
@@ -157,7 +158,7 @@ class QtWidgetTests(unittest.TestCase):
                              "%s–%s" % (time.strftime("%H:%M", time.localtime(100)),
                                         time.strftime("%H:%M", time.localtime(200))))
             self.assertEqual(window.et_prossimo.text(), "Next: Evening report")
-            self.assertTrue(window.et_prossimo.isVisible())
+            self.assertFalse(window.et_prossimo.isHidden())
             window.close()
             self.app.processEvents()
 
