@@ -128,7 +128,7 @@ La struttura Qt6 è ora presente nel repository e non va più descritta come ass
 - La finestra `Finestrella` ora dimensiona l'altezza sul contenuto; il tema dei dialoghi e della tendina usa i colori definiti dalla Stable.
 - Aggiunti test di regressione per la cancellazione multipla della lista e per l'altezza del dialogo. Non eseguiti: il primo collaudo completo resta rinviato al pull concordato.
 
-Commit di questo avanzamento: `1a9b18f`, `a665183`, `203f289`, `b2aee4c`, `7adaee1`, `28c5594`, `505c33b`, `4fb96d9`, `f5ab422`, `55ebe0f`.
+Commit di questo avanzamento: `b2aee4c`, `7adaee1`, `28c5594`, `505c33b`, `4fb96d9`, `f5ab422`, `55ebe0f`.
 
 Restano aperti il confronto puntuale con i widget originali, l'integrazione completa dei flussi applicativi, la verifica del motore video e la parità funzionale dell'intera Stable.
 
@@ -160,3 +160,5 @@ Il primo insieme dei quattro blocchi richiesti è stato implementato a livello d
 - I worker di verifica release e OpenSubtitles vengono gestiti in chiusura per evitare thread Qt lasciati attivi.
 
 Questi trasferimenti ampliano i collegamenti del player, ma non sono ancora dichiarati verificati: test e prova d'uso completa verranno eseguiti dopo il pull concordato.
+
+Ultimi commit successivi: `29e84b0`, `9429c66`, `8447a34`, `3cc2679`, `ba993b8`, `c15a13b`, `b5a2199`, `1125ba3`, `5aef256`, `c6ca98b`, `bac8c25`, `20faa8b`.
