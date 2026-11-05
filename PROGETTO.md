@@ -411,7 +411,7 @@ XVB Lab potrà essere considerata equivalente alla Stable solo quando:
 
 ## 8. Stato attuale
 
-**Stato: analisi iniziale completata; implementazione non ancora iniziata.**
+**Stato: analisi completata; avviata la base tecnica del nuovo progetto. Il rendering Qt/libmpv non è ancora implementato né verificato.**
 
 - [x] Repository Stable individuato: `JonaDev2026/xvb`.
 - [x] Tag di riferimento confermato: `v4.4.4`.
@@ -419,9 +419,28 @@ XVB Lab potrà essere considerata equivalente alla Stable solo quando:
 - [x] Traduzioni e risorse individuate.
 - [x] Dipendenze e packaging Debian esaminati in `crea_deb.sh`.
 - [x] Inventario iniziale delle aree funzionali ricavato da classi e metodi.
-- [ ] Repository Lab inizializzato con il codice del nuovo progetto.
-- [ ] Prototipo Qt6/libmpv.
+- [x] Prima struttura modulare creata nel repository Lab.
+- [x] Creati `main.py` e `requirements.txt` con la dipendenza iniziale PySide6.
+- [x] Creato il primo controller libmpv indipendente in `engine/mpv.py`, basato sull'API C di libmpv.
+- [x] Creati i package iniziali `engine/`, `core/`, `ui/`, `features/`, `integrations/`, `translations/` e `tests/`.
+- [ ] Verificare installazione e caricamento di libmpv sul sistema di sviluppo.
+- [ ] Implementare il rendering libmpv Render API integrato in Qt.
+- [ ] Verificare riproduzione reale in X11 e Wayland.
 - [ ] Nessuna funzione della Stable è stata ancora trasferita.
+
+### Avvio attuale della finestra di base
+
+In ambiente con Python e PySide6 installati:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python main.py
+```
+
+La finestra attuale è soltanto uno scheletro Qt per verificare l'avvio dell'applicazione. Non è ancora il player e non avvia libmpv.
+
 
 ## 9. Riferimenti
 
@@ -434,6 +453,16 @@ XVB Lab potrà essere considerata equivalente alla Stable solo quando:
 ---
 
 ## Registro delle decisioni e dei progressi
+
+### 2026-11-05 — Avvio della base tecnica
+
+- Creati i primi package modulari nel repository Lab.
+- Aggiunto `main.py` con una finestra PySide6 minimale, solo per verificare l'avvio dell'interfaccia.
+- Aggiunto `requirements.txt` con PySide6.
+- Aggiunto `engine/mpv.py`: primo controller autonomo per creare, inizializzare, comandare e chiudere un'istanza libmpv tramite API C.
+- Il controller non usa `wid`, Xlib o Tkinter.
+- Non è ancora stato eseguito un test sul computer dell'utente; il codice è una prima base da verificare.
+- Il prossimo passaggio tecnico è realizzare il rendering con libmpv Render API dentro Qt, quindi provarlo realmente su X11 e Wayland.
 
 ### 2026-11-05 — Separazione motore/funzioni
 
