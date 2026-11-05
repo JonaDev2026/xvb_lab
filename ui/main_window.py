@@ -421,6 +421,7 @@ class MainWindow(QMainWindow):
         self.applica_filtri_audio()
         self._volume(self.volume.value())
         self.applica_uscita_audio(silenzioso=True)
+        self.applica_video()
         self.aggiorna_periodico()
         self.elenco.salta = self.salta
         self.elenco.avanza = self.avanza
@@ -647,15 +648,16 @@ class MainWindow(QMainWindow):
         video = self.menuBar().addMenu(_("Video"))
         for nome, valore in (("Auto", "-1"), ("16:9", "16:9"), ("4:3", "4:3"), ("21:9", "21:9")):
             video.addAction(self._azione("Aspect " + nome,
-                                         lambda _=False, v=valore: self._imposta("video-aspect-override", v)))
-        video.addAction(self._azione(_("Deinterlace"), lambda: self._ciclo("deinterlace")))
-        video.addAction(self._azione(_("Hardware decoding"), lambda: self._ciclo_valori("hwdec", "no", "auto-safe")))
+                                         lambda _=False, v=valore: self.metti_proporzioni(v)))
+        video.addAction(self._azione(_("Fill screen (crop)"), self.riempi))
+        video.addAction(self._azione(_("Deinterlace"), self.deinterlaccia))
+        video.addAction(self._azione(_("Hardware decoding"), self.decodifica_hw))
         video.addSeparator()
         for nome, valore in (("Brightness +", ("brightness", 10)), ("Brightness -", ("brightness", -10)),
                              ("Contrast +", ("contrast", 10)), ("Contrast -", ("contrast", -10)),
                              ("Saturation +", ("saturation", 10)), ("Saturation -", ("saturation", -10))):
-            video.addAction(self._azione(nome, lambda _=False, v=valore: self._regola(*v)))
-        video.addAction(self._azione(_("Reset picture"), lambda: self._azzera_video()))
+            video.addAction(self._azione(nome, lambda _=False, v=valore: self.regola(*v)))
+        video.addAction(self._azione(_("Reset picture"), self.azzera_immagine))
         video.addAction(self._azione(_("Screenshot"), lambda: self._comando("screenshot")))
         self.menu_qualita = video.addMenu(_("Quality"))
         self.menu_qualita.setEnabled(False)
@@ -754,19 +756,72 @@ class MainWindow(QMainWindow):
         if player:
             player.comando("cycle-values", nome, *valori)
 
+    def metti_proporzioni(self, valore):
+        self.sessione.config["proporzioni"] = valore
+        self.sessione.config["riempi"] = False
+        scrivi_config(self.sessione.config)
+        self.applica_video()
+
+    def riempi(self):
+        self.sessione.config["riempi"] = not bool(self.sessione.config.get("riempi"))
+        scrivi_config(self.sessione.config)
+        self.applica_video()
+
+    def deinterlaccia(self):
+        attivo = not bool(self.sessione.config.get("deinterlaccia"))
+        self.sessione.config["deinterlaccia"] = attivo
+        scrivi_config(self.sessione.config)
+        self.applica_video()
+
+    def decodifica_hw(self):
+        attivo = not bool(self.sessione.config.get("hwdec", True))
+        self.sessione.config["hwdec"] = attivo
+        scrivi_config(self.sessione.config)
+        self.applica_video()
+
+    def regola(self, cosa, di):
+        valore = max(-100, min(100, int(self.sessione.config.get(cosa, 0)) + di))
+        self.sessione.config[cosa] = valore
+        scrivi_config(self.sessione.config)
+        self.applica_video()
+        self._messaggio_temporaneo("%s %+d" % (_(cosa), valore))
+
     def _regola(self, nome, valore):
         player = self._attivo()
         if player:
             player.regola(nome, valore)
 
+    def azzera_immagine(self):
+        for cosa in ("brightness", "contrast", "saturation"):
+            self.sessione.config.pop(cosa, None)
+        scrivi_config(self.sessione.config)
+        self.applica_video()
+
     def _azzera_video(self):
+        self.azzera_immagine()
+
+    def applica_video(self):
         player = self._attivo()
         if player:
-            for nome in ("brightness", "contrast", "saturation", "gamma", "hue"):
-                player.imposta(nome, 0)
-        if self.file_in_onda:
-            self.sessione.config.get("video", {}).pop(self.file_in_onda, None)
-            scrivi_config(self.sessione.config)
+            try:
+                player.imposta("video-aspect-override",
+                               self.sessione.config.get("proporzioni", "-1"))
+                player.imposta("panscan", 1.0 if self.sessione.config.get("riempi") else 0.0)
+                player.imposta("deinterlace", "yes" if self.sessione.config.get("deinterlaccia") else "no")
+                for cosa in ("brightness", "contrast", "saturation"):
+                    player.imposta(cosa, int(self.sessione.config.get(cosa, 0)))
+            except Exception:
+                pass
+            hw = "auto-safe" if self.sessione.config.get("hwdec", True) else "no"
+            if getattr(self, "_hwdec_messo", None) != hw:
+                try:
+                    player.imposta("hwdec", hw)
+                    self._hwdec_messo = hw
+                except Exception:
+                    pass
+        self.applica_filtri_audio()
+        if hasattr(self, "volume"):
+            self._volume(self.volume.get())
 
 
     def _chiedi_testo(self, titolo, etichetta, valore="", maschera=False):
