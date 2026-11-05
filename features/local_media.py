@@ -1,3 +1,4 @@
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -114,3 +115,62 @@ def read_media_tags(path, cache):
         pass
     cache[path] = [modified, title, artist, album, year]
     return title, artist, album, year
+
+
+
+def cache_cover_art(path):
+    extension = Path(path).suffix.lower()
+    if extension not in AUDIO_EXTENSIONS:
+        return None
+    folder = Path(path).parent
+    stem = Path(path).stem
+    candidates = [
+        folder / "cover.jpg", folder / "cover.jpeg", folder / "cover.png",
+        folder / "folder.jpg", folder / "folder.jpeg", folder / "folder.png",
+        folder / (stem + ".jpg"), folder / (stem + ".jpeg"), folder / (stem + ".png"),
+    ]
+    source = next((candidate for candidate in candidates if candidate.is_file()), None)
+    data = None
+    if source is not None:
+        try:
+            modified = source.stat().st_mtime
+            cache_key = f"{source}|{modified}"
+            data = source.read_bytes()
+        except OSError:
+            data = None
+    else:
+        try:
+            modified = os.path.getmtime(path)
+        except OSError:
+            return None
+        cache_key = f"{path}|{modified}"
+        try:
+            import mutagen
+            media = mutagen.File(path)
+            if media is not None:
+                pictures = getattr(media, "pictures", None) or []
+                if pictures:
+                    data = pictures[0].data
+                elif media.tags:
+                    for key in media.tags.keys():
+                        if str(key).startswith("APIC"):
+                            data = media.tags[key].data
+                            break
+                    if data is None and "covr" in media.tags:
+                        data = bytes(media.tags["covr"][0])
+                    if data is None and "metadata_block_picture" in media.tags:
+                        import base64
+                        from mutagen.flac import Picture
+                        data = Picture(base64.b64decode(media.tags["metadata_block_picture"][0])).data
+        except (ImportError, Exception):
+            data = None
+    if not data:
+        return None
+    cache_dir = Path.home() / ".cache" / "xvb-lab" / "covers"
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    output = cache_dir / (hashlib.md5(cache_key.encode("utf-8")).hexdigest() + ".img")
+    if not output.is_file() or output.stat().st_size == 0:
+        temporary = output.with_suffix(".img.tmp")
+        temporary.write_bytes(data)
+        temporary.replace(output)
+    return str(output)
