@@ -214,3 +214,11 @@ Non eseguiti test né verifiche di riproduzione.
 Non eseguiti test né prove d'uso. Il drag & drop misto (playlist insieme a cartelle e file nello stesso rilascio) resta da rifinire.
 
 - Rifinito il rilascio misto: ora cartelle, file multimediali e playlist M3U nello stesso trascinamento vengono registrati in configurazione e ricaricati senza perdere le cartelle/importazioni già presenti.
+
+## Asset originali della Stable
+
+- Aggiunto un workflow che recupera dal tag immutabile `v4.4.4` del repository originale la cartella completa `icone/`, i font e `icon.png`, poi li registra nel repository Lab.
+- In questo modo la UI Qt6 usa gli stessi file grafici e font della Stable, senza ricrearli o sostituirli con icone provvisorie.
+- Il workflow è automatico su push in `main` e può anche essere avviato manualmente.
+
+Il completamento del trasferimento degli asset dipende dall'esecuzione del workflow GitHub; non ho ancora verificato il risultato.
