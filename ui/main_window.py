@@ -28,7 +28,7 @@ from core.constants import (SCALA_FILE, CATEGORIE_URL, VERSIONE, DONA, REPO, UA,
                             CERCA, IN_ONDA, TESTO_ONDA)
 from core.discs import dischi, cd_audio, dvd_cifrato, e_dvd, titolo_da_etichetta
 from core.recordings import registrazioni, piu_nuova
-from core.epg import guide_da_aggiornare
+from core.epg import guide_da_aggiornare, CACHE_EPG
 from core.favorites import leggi_preferiti, leggi_preferiti_cat, scrivi_preferiti
 import os
 import re
