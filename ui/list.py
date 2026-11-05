@@ -110,7 +110,8 @@ class Elenco(QListWidget):
         if d.get("image") is not None and hasattr(d["image"], "toImage"):
             item.setIcon(d["image"])
         item.setBackground(QColor(ZEBRA) if self.posto[iid] % 2 else QColor(FONDO))
-        item.setSizeHint(QSize(self.viewport().width(), max(58 if sotto else 42, self.poster_h + 48)))
+        h = self.poster_h or (self.poster_onda_h if "onda" in d.get("tags", ()) else 0)
+        item.setSizeHint(QSize(self.viewport().width(), max(58 if sotto else 42, h + 48)))
 
     def delete(self, *iids):
         if not iids:
@@ -183,13 +184,23 @@ class Elenco(QListWidget):
     def ridisegna_colonna(self):
         self.viewport().update()
 
-    def metti_poster(self, h):
-        self.poster_h = h
+    def _aggiorna_altezze(self):
+        for iid in self.voci:
+            self._aggiorna_item(iid, self.item_for(iid))
+        self.doItemsLayout()
         self.viewport().update()
 
+    def metti_poster(self, h):
+        if h == self.poster_h:
+            return
+        self.poster_h = h
+        self._aggiorna_altezze()
+
     def metti_poster_onda(self, h):
+        if h == self.poster_onda_h:
+            return
         self.poster_onda_h = h
-        self.viewport().update()
+        self._aggiorna_altezze()
 
     def _nuovo_poster(self):
         return QLabel(self)
@@ -381,7 +392,8 @@ class _ElencoDelegate(QStyledItemDelegate):
         tags = d.get("tags", ())
         h = self.elenco.poster_h or (
             self.elenco.poster_onda_h if "onda" in tags else 0)
-        return QSize(max(1, option.rect.width()), max(58, h + 48))
+        sotto = (d.get("text") or "").partition("\n")[2]
+        return QSize(max(1, option.rect.width()), max(58 if sotto else 42, h + 48))
 
 
 
