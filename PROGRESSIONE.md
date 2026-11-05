@@ -148,3 +148,15 @@ Restano aperti il confronto puntuale con i widget originali, l'integrazione comp
 Commit recenti: `e24763c`, `16fc99a`, `14ca9fd`, `4837a37`, `5e53165`, `0078d03`, `0569cec`, `e95aece`, `45bf581`, `2884c01`, `f720f9e`, `f8ad1c5`, `4ab189d`, `49d8fb3`, `4202571`, `dd0b2ae`.
 
 Il primo insieme dei quattro blocchi richiesti è stato implementato a livello di struttura e collegamenti Qt6, ma non è dichiarato completo: restano confronto puntuale con la Stable, verifica reale libmpv su X11/Wayland e controllo end-to-end di playlist, IPTV, EPG e libreria. Nessun pull di collaudo è richiesto in questo aggiornamento.
+
+## Funzioni player e menu — completamento del trasferimento Qt6
+
+- Aggiunta la gestione dei capitoli mpv: voci Previous/Next e menu dei capitoli con titolo, tempo e spunta sul capitolo attivo; le voci restano nascoste quando il contenuto non ha capitoli.
+- Ripristinati i menu Repeat off / Repeat one / Repeat all con stato selezionato collegato alla configurazione.
+- Ripristinati i controlli video della Stable: proporzioni, crop/panscan, deinterlacciamento, decodifica hardware, luminosità, contrasto, saturazione e reset. I valori sono salvati nelle chiavi globali originali; rimosse le sovrascritture video per-file che non appartengono al comportamento Stable.
+- Ritardo audio salvato per URL come nella Stable; ritardo e dimensione sottotitoli restano controlli temporanei e non vengono salvati per-file.
+- Aggiunta l'integrazione OpenSubtitles in un modulo separato `integrations/opensubtitles.py`: login, ricerca per titolo/lingua, elenco risultati, download, estrazione sicura del sottotitolo dall'archivio e caricamento in mpv. Le credenziali sono salvate nel percorso originale con permessi 0600.
+- Aggiunto l'accesso libmpv `leggi_nodo` per le liste strutturate, usato sia per i dispositivi audio sia per i capitoli.
+- I worker di verifica release e OpenSubtitles vengono gestiti in chiusura per evitare thread Qt lasciati attivi.
+
+Questi trasferimenti ampliano i collegamenti del player, ma non sono ancora dichiarati verificati: test e prova d'uso completa verranno eseguiti dopo il pull concordato.
