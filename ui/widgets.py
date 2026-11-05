@@ -383,6 +383,8 @@ class Tendina(QFrame):
 
 
 class Elenco(QListWidget):
+    treeviewSelect = Signal()
+
     def __init__(self, dove, **kw):
         super().__init__(dove)
         self.setFrameShape(QFrame.NoFrame)
