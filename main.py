@@ -22,6 +22,7 @@ def main():
     server.files.connect(finestra.apri_da_fuori)
     server.raise_window.connect(lambda: (
         finestra.showNormal(), finestra.raise_(), finestra.activateWindow()))
+    server.start()
     lista = None
     if (len(argomenti) == 1 and os.path.isfile(argomenti[0])
             and not e_media(argomenti[0]) and e_una_lista(argomenti[0])):
