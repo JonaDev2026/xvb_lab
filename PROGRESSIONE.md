@@ -212,3 +212,5 @@ Non eseguiti test né verifiche di riproduzione.
 - Ripristinata la scelta della velocità di riproduzione con salvataggio della preferenza.
 
 Non eseguiti test né prove d'uso. Il drag & drop misto (playlist insieme a cartelle e file nello stesso rilascio) resta da rifinire.
+
+- Rifinito il rilascio misto: ora cartelle, file multimediali e playlist M3U nello stesso trascinamento vengono registrati in configurazione e ricaricati senza perdere le cartelle/importazioni già presenti.
