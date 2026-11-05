@@ -16,7 +16,7 @@ from core.config import scrivi_config, CARTELLE_LISTE, REGISTRAZIONI, leggi_conf
 from i18n import _, imposta_lingua, LINGUE
 from core.playlists import liste_in_cartella, BUFFER, LOGHI, NOMI_URL, CACHE_LISTE, copia_lista_url
 from core.colors import CACHE_LOGHI, leggi_colori, scrivi_colori, colore_di, colore_dal_logo
-from core.constants import SCALA_FILE
+from core.constants import SCALA_FILE, VERSIONE
 from core.discs import dischi, cd_audio, dvd_cifrato, e_dvd, titolo_da_etichetta
 from core.recordings import registrazioni
 import os
@@ -111,7 +111,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         imposta_lingua(leggi_config().get("lingua", "en"))
-        self.setWindowTitle("XVB v4.4.4")
+        self.setWindowTitle("XVB v" + VERSIONE)
         self.resize(1280, 720)
         self.setMinimumSize(800, 480)
         self.setStyleSheet(
