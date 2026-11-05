@@ -86,7 +86,8 @@ class MpvPlayer(QOpenGLWidget):
         self._timer = QTimer(self)
         self._timer.timeout.connect(self._eventi)
         self._timer.start(10)
-        self._osservate = set()\n        self._nomi_osservati = {}
+        self._osservate = set()
+        self._nomi_osservati = {}
         self._chiuso = False
 
     @staticmethod
