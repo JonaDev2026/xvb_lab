@@ -1112,6 +1112,9 @@ class MainWindow(QMainWindow):
         self._timer_rec.stop()
         if self._thread_epg.isRunning():
             self._thread_epg.wait(65000)
+        for worker in self._logo_threads + self._cover_threads:
+            if worker.isRunning():
+                worker.wait(12000)
         scrivi_tag(self.tag_cache)
         if self.pip_window is not None:
             self.esci_pip()
