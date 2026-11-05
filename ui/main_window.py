@@ -821,6 +821,28 @@ class MainWindow(QMainWindow):
         m3u = self.el_liste.insert(iptv, "end", iid="m3u",
                                    text=" M3U (%d)" % len(self.sessione.liste),
                                    open=True)
+        gruppi_m3u = {}
+        for indice, lista in enumerate(self.sessione.liste):
+            percorso = lista["percorso"]
+            if os.path.isdir(percorso):
+                continue
+            padre = m3u
+            if lista.get("gruppo"):
+                nome_gruppo = lista["gruppo"]
+                if nome_gruppo not in gruppi_m3u:
+                    gruppi_m3u[nome_gruppo] = self.el_liste.insert(
+                        m3u, "end", iid="gruppo:" + nome_gruppo,
+                        text=" " + nome_gruppo, open=True)
+                padre = gruppi_m3u[nome_gruppo]
+            iid = "lista:%d" % indice
+            self.el_liste.insert(padre, "end", iid=iid, text=" " + lista["nome"],
+                                 image=QPixmap(os.path.join(QUI, "icone", "player.png")))
+            self.el_liste.item(iid, valore=(percorso, None))
+            categorie = sorted(set(lista["categorie"].values()), key=str.casefold)
+            for j, categoria in enumerate(categorie):
+                figlio = iid + ":cat:%d" % j
+                self.el_liste.insert(iid, "end", iid=figlio, text=" " + categoria)
+                self.el_liste.item(figlio, valore=(percorso, categoria))
         raccolte = registrazioni()
         if raccolte:
             registrazioni_root = self.el_liste.insert(
