@@ -62,3 +62,6 @@ Nessuna funzione è ancora dichiarata migrata e l'applicazione non è pronta per
 - [x] Trasferita in `core/recordings.py` la presentazione delle registrazioni raggruppate per canale/giorno e il confronto numerico delle versioni.
 - [x] Trasferita in `core/colors.py` la fusione del colore dei programmi EPG con lo sfondo, mantenendo il fallback della Stable.
 - [x] Aggiunti test per registrazioni, confronto versioni e colori dei programmi EPG.
+
+- [x] Trasferita in `core/artwork.py` la premoltiplicazione alfa richiesta dalle sovrapposizioni libmpv, mantenendo la trasformazione RGBA della Stable.
+- [x] Aggiunto test numerico sui canali colore e alfa semitrasparenti.
