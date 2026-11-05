@@ -533,6 +533,10 @@ class MainWindow(QMainWindow):
         self._icona_carico = QPixmap(os.path.join(QUI, "icone", "loading.png"))
         self._angolo_carico = 0
         stato_layout.addWidget(self.et_carico)
+        self.et_categoria = QLabel(stato)
+        self.et_categoria.setStyleSheet("color:#9e9e9e")
+        self.et_categoria.hide()
+        stato_layout.addWidget(self.et_categoria)
         self.riga_stato = QLabel("XVB", stato)
         self.riga_stato.setStyleSheet("color:#e0e0e0")
         stato_layout.addWidget(self.riga_stato, 1)
@@ -2983,6 +2987,15 @@ class MainWindow(QMainWindow):
         self._aggiorna_mpris()
 
 
+    def _imposta_categoria_attiva(self, percorso):
+        categoria = None
+        if percorso and not os.path.isabs(percorso):
+            categoria = next((voce[3] for voce in self.sessione.canali
+                              if len(voce) > 3 and voce[1] == percorso), None)
+        self._categoria_attiva = str(categoria).strip() if categoria else None
+        self.et_categoria.setText(self._categoria_attiva or "")
+        self.et_categoria.setVisible(bool(self._categoria_attiva))
+
     def aggiorna_info_canale(self):
         if self.registrando:
             self._mostra_rec()
@@ -3422,6 +3435,7 @@ class MainWindow(QMainWindow):
         self._sfondo_forzato = False
         self._giro_traccia += 1
         self.file_in_onda = percorso
+        self._imposta_categoria_attiva(percorso)
         self._ripresa_traccia = percorso if os.path.isabs(percorso) else None
         if os.path.isabs(percorso) and os.path.splitext(percorso)[1][1:].lower() in AUDIO:
             self._richiedi_foto_artisti(percorso)
@@ -3606,6 +3620,7 @@ class MainWindow(QMainWindow):
                 self.fermato = ("file", self.nome_in_onda, self.file_in_onda, self.ide_in_onda)
             player.ferma()
             self.file_in_onda = None
+            self._imposta_categoria_attiva(None)
             self._segna_in_onda()
             self.nome_in_onda = ""
             self.play_button.setIcon(QIcon(os.path.join(QUI, "icone", "play.png")))
