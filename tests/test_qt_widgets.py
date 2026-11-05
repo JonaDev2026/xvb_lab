@@ -10,7 +10,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtWidgets import QApplication, QLabel, QVBoxLayout
 from ui.widgets import Ricerca, Cursore, Elenco, Finestrella, Tendina, Guida
-from ui.main_window import MainWindow, _AggiornaListe, _ScansionaCartelle, _ScaricaCopertine
+from ui.main_window import MainWindow, _AggiornaListe, _ScansionaCartelle, _prepara_file_cartella, _ScaricaCopertine
 
 
 class QtWidgetTests(unittest.TestCase):
@@ -33,6 +33,17 @@ class QtWidgetTests(unittest.TestCase):
             self.assertEqual(risultati[0][0]["__importati__"], preparati)
             prepara.assert_called_once_with(
                 root, [("Imported Film (2022)", percorso, None)], {}, [])
+
+    def test_imported_audio_metadata_uses_configured_library_roots(self):
+        percorso = "/media/imported/Artist/Album/Track.flac"
+        with patch("ui.main_window.tag_di", return_value=("", "", "", "")), patch(
+                "ui.main_window.dal_percorso",
+                return_value=("Track", "Artist", "Album", "2020")) as dal:
+            preparati = _prepara_file_cartella(
+                "/media/imported/Artist/Album", [("Track", percorso, None)], {}, ["/media/library"])
+        dal.assert_called_once_with(percorso, ["/media/library"])
+        self.assertEqual(preparati[0][0], "Track")
+        self.assertEqual(preparati[0][5], "Artist · Album · 2020")
 
     def test_imported_media_inside_configured_folder_are_not_prepared_twice(self):
         with tempfile.TemporaryDirectory() as root:
