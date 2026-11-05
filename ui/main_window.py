@@ -156,6 +156,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("XVB v" + VERSIONE)
         self.resize(1280, 720)
         self.setMinimumSize(800, 480)
+        self.setAcceptDrops(True)
         self.sessione = Sessione()
         self.setWindowFlag(Qt.WindowStaysOnTopHint, bool(self.sessione.config.get("in_cima")))
         self.ripeti = self.sessione.config.get("ripeti", "")
@@ -386,6 +387,10 @@ class MainWindow(QMainWindow):
         self._timer_info = QTimer(self)
         self._timer_info.timeout.connect(self.aggiorna_info_canale)
         self._timer_info.start(30000)
+        self._timer_spegnimento = QTimer(self)
+        self._timer_spegnimento.setSingleShot(True)
+        self._timer_spegnimento.timeout.connect(self.scade_timer_spegnimento)
+        self.timer_fine = None
 
         self._pieno = False
         self.player2 = None
@@ -730,7 +735,13 @@ class MainWindow(QMainWindow):
         playback.addSeparator()
         for velocita in (0.5, 0.75, 1, 1.25, 1.5, 2):
             playback.addAction(self._azione("Speed x%g" % velocita,
-                                            lambda _=False, v=velocita: self._imposta("speed", v)))
+                                            lambda _=False, v=velocita: self.metti_velocita(v)))
+        sleep = playback.addMenu(_("Sleep timer"))
+        for minuti in (15, 30, 45, 60, 90, 120):
+            sleep.addAction(self._azione(_("%d minutes") % minuti,
+                                         lambda _=False, m=minuti: self.imposta_timer_spegnimento(m)))
+        sleep.addSeparator()
+        sleep.addAction(self._azione(_("Cancel sleep timer"), self.annulla_timer_spegnimento))
         self.azione_shuffle = QAction(_("Shuffle"), self)
         self.azione_shuffle.setCheckable(True)
         self.azione_shuffle.setChecked(self.shuffle_attivo)
@@ -2246,6 +2257,40 @@ class MainWindow(QMainWindow):
         self.loop_ab_in_corso = False
         self._messaggio_temporaneo(_("A-B loop cleared"))
 
+    def metti_velocita(self, valore):
+        try:
+            valore = float(valore)
+            if valore not in (0.5, 0.75, 1, 1.25, 1.5, 2):
+                return
+            self._imposta("speed", valore)
+            self.sessione.config["velocita"] = valore
+            scrivi_config(self.sessione.config)
+            self._messaggio_temporaneo(_("speed x%g") % valore)
+        except Exception:
+            pass
+
+    def imposta_timer_spegnimento(self, minuti):
+        self.annulla_timer_spegnimento(silenzioso=True)
+        try:
+            minuti = int(minuti)
+            self._timer_spegnimento.start(minuti * 60000)
+            self.timer_fine = time.time() + minuti * 60
+            self._messaggio_temporaneo(_("sleep timer set: %d min") % minuti)
+        except Exception:
+            self.timer_fine = None
+            self._messaggio_temporaneo(_("cannot set sleep timer"))
+
+    def annulla_timer_spegnimento(self, silenzioso=False):
+        self._timer_spegnimento.stop()
+        self.timer_fine = None
+        if not silenzioso:
+            self._messaggio_temporaneo(_("sleep timer cancelled"))
+
+    def scade_timer_spegnimento(self):
+        self.timer_fine = None
+        self.ferma()
+        self._messaggio_temporaneo(_("sleep timer expired"))
+
     def salta(self, direzione):
         if not self._canali_visibili:
             return
@@ -2475,6 +2520,69 @@ class MainWindow(QMainWindow):
         self.canali = [(n, u, ide) for n, u, ide, _cat, _lista in self.sessione.canali]
         self._riempi_liste()
         return aggiunti
+
+    def dragEnterEvent(self, evento):
+        if evento.mimeData().hasUrls():
+            evento.acceptProposedAction()
+        else:
+            evento.ignore()
+
+    def dropEvent(self, evento):
+        percorsi = []
+        for url in evento.mimeData().urls():
+            percorso = url.toLocalFile()
+            if percorso and os.path.exists(percorso):
+                percorsi.append(percorso)
+        if percorsi:
+            self.apri_da_fuori(percorsi)
+            evento.acceptProposedAction()
+        else:
+            evento.ignore()
+
+    def apri_da_fuori(self, percorsi):
+        file_media = []
+        cartelle = []
+        liste = []
+        for percorso in percorsi:
+            percorso = os.path.abspath(percorso)
+            if os.path.isdir(percorso):
+                cartelle.append(percorso)
+            elif os.path.isfile(percorso) and e_media(percorso):
+                file_media.append(percorso)
+            elif os.path.isfile(percorso) and e_una_lista(percorso):
+                liste.append(percorso)
+        for cartella in cartelle:
+            if cartella in self.sessione.config.get("cartelle", []):
+                continue
+            nuovi = self._media_locale(cartella)
+            if nuovi:
+                self.sessione.canali.extend(nuovi)
+                self.sessione.liste.append({
+                    "percorso": cartella, "nome": os.path.basename(cartella),
+                    "canali": [(n, p, ide) for n, p, ide, _cat, _lista in nuovi],
+                    "categorie": {p: cat for _n, p, _ide, cat, _lista in nuovi},
+                })
+                self.sessione.config.setdefault("cartelle", []).append(cartella)
+        if liste:
+            archivio = self.sessione.config.setdefault("liste", [])
+            archivio.extend(p for p in liste if p not in archivio)
+        if file_media:
+            cartella = next((c for c in self.sessione.config.get("cartelle", [])
+                             if file_media[0].startswith(c.rstrip(os.sep) + os.sep)), None)
+            if len(file_media) == 1 and cartella:
+                self._percorso_attivo, self._categoria_attiva = cartella, None
+            else:
+                self._importa_percorsi(file_media)
+                self._percorso_attivo, self._categoria_attiva = "__importati__", None
+        scrivi_config(self.sessione.config)
+        self.canali = [(n, u, ide, cat, lista) for n, u, ide, cat, lista in self.sessione.canali]
+        self._riempi_liste()
+        self._riempi_elenco()
+        if file_media:
+            percorso = file_media[0]
+            voce = next((v for v in self.sessione.canali if v[1] == percorso), None)
+            self.apri(percorso, nome=voce[0] if voce else os.path.basename(percorso),
+                      ide=voce[2] if voce else None)
 
     def importa_file(self):
         percorsi, _ = QFileDialog.getOpenFileNames(
