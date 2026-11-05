@@ -847,32 +847,32 @@ class MainWindow(QMainWindow):
                     self.el_liste.item(iid, valore=("__recording__", percorso))
         locale = self.el_liste.insert("", "end", iid="locale",
                                       text=" Local", open=True)
-        gruppi = {}
+        montati = {p for p, _nome in dischi()}
         for indice, lista in enumerate(self.sessione.liste):
-            locale_lista = os.path.isdir(lista["percorso"])
-            if locale_lista:
-                padre = locale
-            elif lista.get("gruppo"):
-                nome_gruppo = lista["gruppo"]
-                if nome_gruppo not in gruppi:
-                    gruppi[nome_gruppo] = self.el_liste.insert(
-                        m3u, "end", iid="gruppo:" + nome_gruppo,
-                        text=" " + nome_gruppo, open=True)
-                padre = gruppi[nome_gruppo]
-            else:
-                padre = m3u
-            iid = "lista:%d" % indice
-            nodo = self.el_liste.insert(
-                padre, "end", iid=iid, text=" " + lista["nome"],
-                image=QPixmap(os.path.join(QUI, "icone", "player.png")) if locale_lista else None,
-                open=locale_lista)
-            self.el_liste.item(iid, valore=(lista["percorso"], None))
-            categorie = sorted(set(lista["categorie"].values()), key=str.casefold)
-            for j, categoria in enumerate(categorie):
-                figlio = self.el_liste.insert(
-                    nodo, "end", iid="%s:cat:%d" % (iid, j),
-                    text=" " + categoria)
-                self.el_liste.item(figlio, valore=(lista["percorso"], categoria))
+            percorso = lista["percorso"]
+            if not os.path.isdir(percorso) or percorso in montati:
+                continue
+            canali_cartella = [v for v in self.sessione.canali if v[4] == percorso]
+            iid = "media:%d" % indice
+            self.el_liste.insert(locale, "end", iid=iid,
+                                 text=" " + lista["nome"] + " (%d)" % len(canali_cartella),
+                                 image=QPixmap(os.path.join(QUI, "icone", "player.png")), open=True)
+            self.el_liste.item(iid, valore=("__media_folder__", percorso))
+            try:
+                sottocartelle = sorted(os.listdir(percorso), key=str.casefold)
+            except OSError:
+                sottocartelle = []
+            for j, nome_sotto in enumerate(sottocartelle):
+                sotto = os.path.join(percorso, nome_sotto)
+                if nome_sotto.startswith(".") or not os.path.isdir(sotto):
+                    continue
+                dentro = [v for v in canali_cartella if v[1].startswith(sotto + os.sep)]
+                if not dentro:
+                    continue
+                iid_sotto = iid + ":" + str(j)
+                self.el_liste.insert(iid, "end", iid=iid_sotto,
+                                     text=" " + nome_sotto + " (%d)" % len(dentro))
+                self.el_liste.item(iid_sotto, valore=("__media_folder__", sotto))
         if self.sessione.preferiti_musica:
             nodo = self.el_liste.insert(locale, "end", iid="preferiti:music", text=" " + _("Music favorites"), open=True)
             for i, (nome, url, ide, categoria) in enumerate(self.sessione.preferiti_musica):
@@ -906,6 +906,10 @@ class MainWindow(QMainWindow):
         if not dati:
             return
         self._percorso_attivo, self._categoria_attiva = dati
+        if self._percorso_attivo == "__media_folder__":
+            self._cartella_media_attiva = self._categoria_attiva
+            self._riempi_elenco()
+            return
         if self._percorso_attivo == "__epg__":
             self._guida_selezionata = self._categoria_attiva
             self.riga_stato.setText(self.nome_guida(self._guida_selezionata))
