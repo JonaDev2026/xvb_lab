@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 import sys
 import threading
 from logging.handlers import RotatingFileHandler
@@ -12,7 +13,7 @@ _XVB_LOGGER = logging.getLogger("xvb")
 
 
 class _XVBFiltroSicurezza(logging.Filter):
-    _parametri = __import__("re").compile(
+    _parametri = re.compile(
         r"(?i)(password|passwd|username|user|token|"
         r"api[_-]?key|authorization|secret)=([^&\\s]+)"
     )
