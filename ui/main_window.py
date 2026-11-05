@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QTimer, QDateTime
+from PySide6.QtCore import Qt, QTimer, QDateTime, QThread, QObject, Signal
 from PySide6.QtGui import QAction, QIcon
 from PySide6.QtWidgets import (
     QFileDialog,
@@ -21,6 +21,24 @@ from PySide6.QtWidgets import (
 )
 
 from engine.render import MPVRenderWidget
+from core.config import load_config, save_config
+from features.local_media import scan_folder, scan_imported
+
+
+class FolderScanWorker(QObject):
+    finished = Signal(object, object)
+
+    def __init__(self, source, value):
+        super().__init__()
+        self.source = source
+        self.value = value
+
+    def run(self):
+        try:
+            items = scan_folder(self.value) if self.source == "folder" else scan_imported(self.value)
+            self.finished.emit(items, None)
+        except Exception as error:
+            self.finished.emit([], str(error))
 
 
 FONDO = "#1c1b22"
@@ -42,6 +60,10 @@ class MainWindow(QMainWindow):
     def __init__(self, engine):
         super().__init__()
         self.engine = engine
+        self.config = load_config()
+        self.config.setdefault("folders", [])
+        self.config.setdefault("imported", [])
+        self._scan_threads = []
         self.resource_dir = Path(__file__).resolve().parents[1] / "resources"
         self.icons_dir = self.resource_dir / "icons"
         self.setWindowTitle("XVB v4.4.4")
@@ -151,7 +173,7 @@ class MainWindow(QMainWindow):
         bar = self.menuBar()
         media = bar.addMenu("Media")
         self._action(media, "Open file...", self.open_file)
-        self._action(media, "Open folder...", enabled=False)
+        self._action(media, "Open folder...", self.open_folder)
         self._action(media, "Open URL...", enabled=False)
         media.addSeparator()
         self._action(media, "Download posters and covers", enabled=False)
@@ -268,6 +290,8 @@ class MainWindow(QMainWindow):
         self.media_tree.setHeaderHidden(True)
         self.media_tree.setIndentation(16)
         self.media_tree.setAlternatingRowColors(False)
+        self.media_tree.itemDoubleClicked.connect(self.play_selected_media)
+        self.search.textChanged.connect(self.filter_media)
         left_layout.addWidget(self.media_tree, 1)
 
         self.video = MPVRenderWidget(self.engine, self)
@@ -286,7 +310,9 @@ class MainWindow(QMainWindow):
         self.playlist_tree.setHeaderHidden(True)
         self.playlist_tree.setIndentation(14)
         self.playlist_tree.setSelectionMode(QTreeWidget.SelectionMode.SingleSelection)
+        self.playlist_tree.itemClicked.connect(self.select_local_source)
         right_layout.addWidget(self.playlist_tree, 1)
+        self._populate_local_tree()
 
         splitter.addWidget(self.left_panel)
         splitter.addWidget(self.video)
@@ -396,11 +422,96 @@ class MainWindow(QMainWindow):
         from PySide6.QtCore import QSize
         return QSize(width, height)
 
-    def open_file(self):
-        path, _ = QFileDialog.getOpenFileName(self, "Open file")
+    def _populate_local_tree(self):
+        self.playlist_tree.clear()
+        root = QTreeWidgetItem(["Local"])
+        root.setIcon(0, self._icon("player"))
+        self.playlist_tree.addTopLevelItem(root)
+        root.setExpanded(True)
+        for folder in self.config.get("folders", []):
+            if not Path(folder).is_dir():
+                continue
+            item = QTreeWidgetItem([Path(folder).name or folder])
+            item.setData(0, Qt.ItemDataRole.UserRole, ("folder", folder))
+            item.setIcon(0, self._icon("player"))
+            root.addChild(item)
+        imported = self.config.get("imported", [])
+        if imported:
+            item = QTreeWidgetItem([f"Imported media ({len(imported)})"])
+            item.setData(0, Qt.ItemDataRole.UserRole, ("imported", imported))
+            item.setIcon(0, self._icon("playlist"))
+            root.addChild(item)
+        root.setExpanded(True)
+
+    def open_folder(self):
+        folder = QFileDialog.getExistingDirectory(self, "Open folder")
+        if not folder:
+            return
+        folder = str(Path(folder).resolve())
+        if folder not in self.config["folders"]:
+            self.config["folders"].append(folder)
+            save_config(self.config)
+        self._populate_local_tree()
+        self._scan_source("folder", folder)
+
+    def select_local_source(self, item, _column):
+        source = item.data(0, Qt.ItemDataRole.UserRole)
+        if source:
+            self._scan_source(source[0], source[1])
+
+    def _scan_source(self, source, value):
+        self.media_tree.clear()
+        self.playback_status.setText("Loading...")
+        thread = QThread(self)
+        worker = FolderScanWorker(source, value)
+        worker.moveToThread(thread)
+        thread.started.connect(worker.run)
+        worker.finished.connect(self._show_media_items)
+        worker.finished.connect(thread.quit)
+        worker.finished.connect(worker.deleteLater)
+        thread.finished.connect(thread.deleteLater)
+        thread.finished.connect(lambda: self._scan_threads.remove(thread) if thread in self._scan_threads else None)
+        self._scan_threads.append(thread)
+        thread.start()
+
+    def _show_media_items(self, items, error):
+        self.media_tree.clear()
+        if error:
+            self.playback_status.setText("Library error")
+            self.notice_text.setText(error)
+            self.notification.show()
+            return
+        for media in items:
+            item = QTreeWidgetItem([media["name"]])
+            item.setData(0, Qt.ItemDataRole.UserRole, media["path"])
+            item.setIcon(0, self._icon("music" if media["kind"] == "music" else "player"))
+            self.media_tree.addTopLevelItem(item)
+        self.playback_status.setText(f"{len(items)} files")
+
+    def filter_media(self, text):
+        query = text.casefold().strip()
+        for index in range(self.media_tree.topLevelItemCount()):
+            item = self.media_tree.topLevelItem(index)
+            item.setHidden(bool(query) and query not in item.text(0).casefold())
+
+    def play_selected_media(self, item, _column):
+        path = item.data(0, Qt.ItemDataRole.UserRole)
         if path:
             self.engine.load(path)
             self.title_status.setText(Path(path).name)
+            self.playback_status.setText("playing")
+
+    def open_file(self):
+        path, _ = QFileDialog.getOpenFileName(self, "Open file")
+        if path:
+            path = str(Path(path).resolve())
+            if path not in self.config["imported"]:
+                self.config["imported"].append(path)
+                save_config(self.config)
+            self._populate_local_tree()
+            self.engine.load(path)
+            self.title_status.setText(Path(path).name)
+            self.playback_status.setText("playing")
 
     def toggle_pause(self):
         self.engine.command("cycle", "pause")
