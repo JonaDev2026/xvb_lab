@@ -123,6 +123,7 @@ class Cursore(QWidget):
 from PySide6.QtCore import QTimer, QPoint, QRect, QSize
 from PySide6.QtGui import QFontMetrics, QPixmap, QImage, QIcon, QFont
 from core.epg import nome_piatto
+from core.colors import colore_sfondo_guida
 
 SCORRE = object()
 
@@ -608,7 +609,7 @@ class _TelaGuida(QWidget):
         from PySide6.QtGui import QPainter, QPen
         import time
         g, p = self.guida, QPainter(self)
-        p.fillRect(self.rect(), QColor("#121212"))
+        p.fillRect(self.rect(), QColor("#1c1b22"))
         altezza = max(1, len(g.righe)) * g.RIGA
         t = g.da
         while t <= g.fino:
@@ -626,14 +627,8 @@ class _TelaGuida(QWidget):
             for a, b, titolo in prog:
                 xa, xb = max(g.x_di(a), 0), g.x_di(b)
                 in_onda = a <= adesso < b
-                sfondo = QColor(colore)
-                if in_onda:
-                    sfondo = QColor(
-                        int(colore.red() * .4 + 18 * .6),
-                        int(colore.green() * .4 + 18 * .6),
-                        int(colore.blue() * .4 + 18 * .6))
-                else:
-                    sfondo = QColor("#303036")
+                fondo = "#1c1b22" if i % 2 else "#1c1b22"
+                sfondo = QColor(colore_sfondo_guida(colore.name(), fondo, 0.40)) if in_onda else QColor("#2c2c2c")
                 p.fillRect(QRect(round(xa + 1), y0 + 6, max(1, round(xb - xa - 2)), g.RIGA - 12), sfondo)
                 if xb - xa > 30:
                     p.setPen(QColor("#ffffff" if in_onda else "#e0e0e0"))
