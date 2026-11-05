@@ -579,7 +579,9 @@ class MainWindow(QMainWindow):
 
     def _chiedi_testo(self, titolo, etichetta, valore=""):
         def corpo(widget):
-            QVBoxLayout(widget)
+            testo = QLabel(etichetta, widget)
+            testo.setStyleSheet("color:#9e9e9e")
+            widget.contenuto.addWidget(testo)
         finestra = Finestrella(self, titolo, corpo, chiedi=etichetta,
                                valore=valore, larga=460)
         return finestra.risposta if finestra.exec() == QDialog.Accepted else None
