@@ -7,16 +7,31 @@ from PySide6.QtWidgets import QApplication
 from core.config import scrivi_config
 from core.media import e_media
 from core.playlists import e_una_lista
-from core.single_instance import porta_unica
+from core.single_instance import PORTA, porta_unica
 from ui.main_window import MainWindow
+
+
+def argomenti_avvio(argv):
+    nuova_istanza = "--nuova-istanza" in argv
+    argomenti = [os.path.abspath(voce) for voce in argv if voce != "--nuova-istanza"]
+    return argomenti, nuova_istanza
+
+
+def percorso_istanza(nuova_istanza):
+    if not nuova_istanza:
+        return PORTA
+    return os.path.join(
+        os.path.dirname(PORTA),
+        "xvb-lab-%d.sock" % os.getpid())
 
 
 def main():
     app = QApplication([sys.argv[0]])
     app.setApplicationName("XVB")
-    argomenti = [os.path.abspath(voce) for voce in sys.argv[1:]]
-    server = porta_unica(argomenti)
+    argomenti, nuova_istanza = argomenti_avvio(sys.argv[1:])
+    server = porta_unica(argomenti, percorso_istanza(nuova_istanza))
     if server is None:
+        print("XVB è già in esecuzione: richiesta di attivazione inviata.", flush=True)
         return 0
     finestra = MainWindow()
     server.files.connect(finestra.apri_da_fuori)
