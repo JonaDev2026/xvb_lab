@@ -144,7 +144,7 @@ class QtWidgetTests(unittest.TestCase):
             def aggiorna(self, stato):
                 self.stato = stato
         servizio = Servizio()
-        with patch("ui.main_window.MpvVideo", side_effect=RuntimeError("libmpv unavailable")), \\
+        with patch("ui.main_window.MpvVideo", side_effect=RuntimeError("libmpv unavailable")), \
              patch("ui.main_window.avvia_mpris", return_value=servizio):
             window = MainWindow()
             self.assertTrue(window._timer_mpris.isActive())
