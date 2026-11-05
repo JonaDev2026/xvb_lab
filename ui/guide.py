@@ -176,8 +176,13 @@ class _TelaGuida(QWidget):
     def mousePressEvent(self, e):
         g = self.guida
         i = int(e.position().y() // g.RIGA)
-        if 0 <= i < len(g.righe):
-            g._apri(i)
+        if not 0 <= i < len(g.righe):
+            return
+        x = e.position().x()
+        for a, b, _titolo in g.righe[i][3]:
+            if max(g.x_di(a), 0) <= x <= g.x_di(b):
+                g._apri(i)
+                return
 
 
 class _TestaGuida(QWidget):
