@@ -519,23 +519,29 @@ class MainWindow(QMainWindow):
         for modalita, azione in self.azioni_repeat.items():
             azione.setChecked(self.ripeti == modalita)
 
+    def _capitoli_disponibili(self):
+        player = self._attivo()
+        capitoli = player.leggi_nodo("chapter-list") if player else []
+        return capitoli if isinstance(capitoli, list) and len(capitoli) >= 2 else []
+
+    def _aggiorna_visibilita_capitoli(self):
+        disponibili = bool(self._capitoli_disponibili())
+        self.azione_capitolo_precedente.setVisible(disponibili)
+        self.azione_capitolo_successivo.setVisible(disponibili)
+        self.menu_capitoli.menuAction().setVisible(disponibili)
+
     def _riempi_menu_capitoli(self):
         menu = self.menu_capitoli
         menu.clear()
         player = self._attivo()
-        capitoli = player.leggi_nodo("chapter-list") if player else []
-        if not isinstance(capitoli, list) or len(capitoli) < 2:
-            azione = menu.addAction(_("No chapters available"))
-            azione.setEnabled(False)
+        capitoli = self._capitoli_disponibili()
+        if not capitoli:
             return
-        menu.addAction(self._azione(_("Previous chapter"), lambda: self.vai_capitolo(-1, True)))
-        menu.addAction(self._azione(_("Next chapter"), lambda: self.vai_capitolo(1, True)))
+        try:
+            attuale = int(float(player.leggi("chapter") or -1))
+        except (TypeError, ValueError):
+            attuale = -1
         if len(capitoli) <= 99:
-            menu.addSeparator()
-            try:
-                attuale = int(float(player.leggi("chapter") or -1))
-            except (TypeError, ValueError):
-                attuale = -1
             for indice, capitolo in enumerate(capitoli):
                 titolo = (capitolo.get("title") or "").strip()
                 if not titolo or titolo == "(unnamed)":
