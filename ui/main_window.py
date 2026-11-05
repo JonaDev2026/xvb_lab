@@ -774,6 +774,30 @@ class MainWindow(QMainWindow):
                 totale = float(durata)
                 if totale > 0:
                     self.posizione.setValue(int(float(posizione) * 1000 / totale))
+            if self.file_in_onda and os.path.isabs(self.file_in_onda) and posizione is not None and durata:
+                try:
+                    pos, totale = float(posizione), float(durata)
+                    if totale > 0:
+                        cfg = self.sessione.config
+                        posizioni = cfg.setdefault("posizioni", {})
+                        durate = cfg.setdefault("durate", {})
+                        if totale - pos < 20:
+                            posizioni.pop(self.file_in_onda, None)
+                            durate.pop(self.file_in_onda, None)
+                        else:
+                            posizioni[self.file_in_onda] = round(pos, 1)
+                            durate[self.file_in_onda] = round(totale, 1)
+                        if len(posizioni) > 300:
+                            for vecchio in list(posizioni)[:len(posizioni) - 300]:
+                                posizioni.pop(vecchio, None)
+                                durate.pop(vecchio, None)
+                        adesso = time.time()
+                        if adesso - getattr(self, "_posizione_scritta", 0.0) > 10:
+                            self._posizione_scritta = adesso
+                            scrivi_config(cfg)
+                            self.elenco.ridisegna_colonna()
+                except (TypeError, ValueError, OSError):
+                    pass
             if posizione and self.loop_ab_file == self.file_in_onda and self.loop_ab_a is not None and self.loop_ab_b is not None:
                 if float(posizione) >= self.loop_ab_b and self.loop_ab_in_corso:
                     self.loop_ab_in_corso = False
@@ -2129,6 +2153,14 @@ class MainWindow(QMainWindow):
         try:
             voce = self._canali_visibili[int(iid)]
             nome, url, ide = voce[:3]
+            if os.path.isabs(url):
+                posizioni = self.sessione.config.get("posizioni", {})
+                durate = self.sessione.config.get("durate", {})
+                posizione = posizioni.get(url)
+                durata = durate.get(url)
+                if posizione is not None and durata:
+                    return max(0.0, min(1.0, float(posizione) / float(durata)))
+                return None
             chiave = ide if ide and ide in self.sessione.epg else self.sessione.epg_nomi.get(
                 __import__("core.epg", fromlist=["nome_piatto"]).nome_piatto(nome))
             if not chiave:
@@ -2562,7 +2594,21 @@ class MainWindow(QMainWindow):
             player.seek(secondi, assoluto=False)
 
     def _evento_player(self, player, evento):
-        if player is not self._attivo() or not isinstance(evento, dict):
+        if player not in (self.player, self.player2) or not isinstance(evento, dict):
+            return
+        if player is not self._attivo():
+            return
+        if evento.get("id") == MpvVideo.MPV_EVENT_FILE_LOADED:
+            percorso = self._ripresa_traccia
+            if percorso and percorso == self.file_in_onda:
+                self._ripresa_traccia = None
+                try:
+                    posizione = float(self.sessione.config.get("posizioni", {}).get(percorso, 0.0))
+                    durata = float(player.leggi("duration") or 0)
+                    if posizione >= 10 and durata > posizione + 20:
+                        player.seek(posizione)
+                except (TypeError, ValueError, Exception):
+                    pass
             return
         if evento.get("id") != MpvVideo.MPV_EVENT_END_FILE:
             return
@@ -3170,6 +3216,7 @@ class MainWindow(QMainWindow):
         self._sfondo_forzato = False
         self._giro_traccia += 1
         self.file_in_onda = percorso
+        self._ripresa_traccia = percorso if os.path.isabs(percorso) else None
         if os.path.isabs(percorso) and os.path.splitext(percorso)[1][1:].lower() in AUDIO:
             self._richiedi_foto_artisti(percorso)
         self._segna_in_onda()
@@ -3770,6 +3817,24 @@ class MainWindow(QMainWindow):
             self._attiva_overlay()
 
     def closeEvent(self, evento):
+        player = self._attivo()
+        if player and self.file_in_onda and os.path.isabs(self.file_in_onda):
+            try:
+                posizione = float(player.leggi("time-pos") or 0)
+                durata = float(player.leggi("duration") or 0)
+                if durata > 0:
+                    cfg = self.sessione.config
+                    posizioni = cfg.setdefault("posizioni", {})
+                    durate = cfg.setdefault("durate", {})
+                    if durata - posizione < 20:
+                        posizioni.pop(self.file_in_onda, None)
+                        durate.pop(self.file_in_onda, None)
+                    else:
+                        posizioni[self.file_in_onda] = round(posizione, 1)
+                        durate[self.file_in_onda] = round(durata, 1)
+                    scrivi_config(cfg)
+            except Exception:
+                pass
         self._timer_overlay.stop()
         self._timer_spegnimento.stop()
         self._timer_avviso.stop()
