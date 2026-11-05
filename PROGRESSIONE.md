@@ -32,6 +32,8 @@ Audit strutturale della Stable 4.4.4 completato: sorgente `xvb.py` del tag `v4.4
 - [x] Trasferiti in `core/log.py` logging rotante, filtro per oscurare credenziali e token, gestione delle eccezioni globali e dei thread; il callback GUI è predisposto per Qt.
 - [x] Trasferita in `core/image.py` la premoltiplicazione alfa richiesta dalle sovrapposizioni mpv.
 - [x] Trasferiti in `core/metadata.py` estrazione titolo/anno, lettura metadati da percorso musicale, cache JSON, download HTTP con User-Agent XVB, copertine incorporate e ricerca poster locali.
+- [x] Trasferiti in `core/tags.py` lettura/scrittura della cache tag e accesso Mutagen con cache per percorso e data modifica.
+- [x] Aggiunti test per lettura tag, cache e fallback su file mancanti.
 - [x] Aggiunti test per i casi titolo/anno, struttura cartelle musicali, poster e cache JSON.
 - [x] Trasferita in `integrations/mpris.py` l'integrazione MPRIS originale: comandi multimediali, metadati, posizione, volume, shuffle e repeat; i callback dal bus D-Bus vengono inoltrati al thread Qt tramite segnale queued, senza `root.after` Tkinter.
 - [x] Aggiunti test per il filtro di sicurezza dei log.
