@@ -12,7 +12,7 @@ from core.tags import leggi_tag, tag_di, scrivi_tag
 from core.metadata import titolo_anno, dal_percorso, copertina_url, copertina_dentro, poster_film
 from integrations.mpris import avvia_mpris
 from core.config import scrivi_config, CARTELLE_LISTE, REGISTRAZIONI, leggi_config
-from i18n import _, imposta_lingua
+from i18n import _, imposta_lingua, LINGUE
 from core.playlists import liste_in_cartella, BUFFER, LOGHI
 from core.colors import CACHE_LOGHI, leggi_colori, scrivi_colori, colore_di, colore_dal_logo
 from core.constants import SCALA_FILE
@@ -267,6 +267,18 @@ class MainWindow(QMainWindow):
             return
 
 
+
+    def cambia_lingua(self, codice):
+        imposta_lingua(codice)
+        self.sessione.config["lingua"] = codice
+        scrivi_config(self.sessione.config)
+        self.menuBar().clear()
+        self._costruisci_menu()
+        self.et_liste.setText(_("Playlists"))
+        self.cerca.casella.setPlaceholderText(_("Search"))
+        self._aggiorna_recenti()
+        self.riga_stato.setText(_("ready"))
+
     def buffer_attuale(self):
         chiave = self.sessione.config.get("buffer", "standard")
         return next((voce for voce in BUFFER if voce[0] == chiave), BUFFER[2])
@@ -363,6 +375,9 @@ class MainWindow(QMainWindow):
         view.addAction(self._azione(_("Fullscreen"), self.schermo_intero, "F"))
         view.addAction(self._azione(_("Picture in picture"), self.pip_si_no))
         view.addAction(self._azione(_("Split screen"), self.split_si_no, "F2"))
+        lingua = view.addMenu(_("Language"))
+        for codice, nome in LINGUE:
+            lingua.addAction(self._azione(nome, lambda _=False, c=codice: self.cambia_lingua(c)))
         buffer_menu = view.addMenu(_("Buffer"))
         for chiave, etichetta, *_resto in BUFFER:
             buffer_menu.addAction(self._azione(etichetta, lambda _=False, k=chiave: self.metti_buffer(k)))
