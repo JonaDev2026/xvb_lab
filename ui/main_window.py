@@ -1209,6 +1209,10 @@ class MainWindow(QMainWindow):
 
     def logo_di(self, url):
         if os.path.isabs(url):
+            copertina = copertina_url(url)
+            if os.path.isfile(copertina):
+                pix = QPixmap(copertina)
+                return pix if not pix.isNull() else None
             estensione = os.path.splitext(url)[1][1:].lower()
             if estensione in AUDIO:
                 percorso = copertina_url(url)
