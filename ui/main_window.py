@@ -994,6 +994,7 @@ class MainWindow(QMainWindow):
         try:
             player = self._attivo()
             player.apri(percorso)
+            self._giro_traccia += 1
             self.file_in_onda = percorso
             if os.path.isfile(percorso):
                 recenti = self.sessione.config.get("recenti", [])
