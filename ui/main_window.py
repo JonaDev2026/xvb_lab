@@ -3080,6 +3080,7 @@ class MainWindow(QMainWindow):
             return
         self.registrando = destinazione
         self._player_rec = player
+        self._imposta_pulsante_rec(True)
         self.fine_rec = fine
         self.inizio_rec = time.time()
         self._mostra_rec()
@@ -3094,10 +3095,21 @@ class MainWindow(QMainWindow):
         destinazione = self.registrando
         self.registrando = ""
         self._player_rec = None
+        self._imposta_pulsante_rec(False)
         self.fine_rec = 0.0
         if destinazione:
             self.riga_stato.setText("Saved " + os.path.basename(destinazione))
             self._riempi_liste()
+
+    def _imposta_pulsante_rec(self, attiva):
+        pulsante = self._pulsanti.get("rec")
+        if pulsante is None:
+            return
+        nome = "rec_stop" if attiva else "rec"
+        percorso = os.path.join(QUI, "icone", nome + ".png")
+        if os.path.isfile(percorso):
+            pulsante.setIcon(QIcon(percorso))
+        pulsante.setToolTip(_("Stop") if attiva else _("Record"))
 
     def _mostra_rec(self):
         if not self.registrando:
