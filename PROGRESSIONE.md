@@ -289,3 +289,13 @@ Non eseguiti test grafici o prove di rendering. La dissolvenza originale dello s
 Commit: `aebfa92`. Nessun test runtime eseguito.
 
 - Completata la prima sincronizzazione degli asset originali; il workflow è stato lasciato manuale per evitare download e commit ripetuti a ogni push.
+
+
+## Scansione asincrona anche per drag & drop
+
+- Il rilascio di più cartelle sulla finestra ora usa un worker Qt dedicato per scandire tutte le cartelle in background.
+- I risultati vengono consegnati insieme al termine della scansione; file singoli e playlist trascinati nello stesso rilascio mantengono il flusso di importazione già presente.
+- Il ciclo di vita del worker riutilizza la gestione di chiusura già aggiunta per le scansioni avviate da Open folder.
+- La preparazione dei metadati/tag avviene ancora dopo la scansione e resta da separare dal thread grafico per librerie molto grandi.
+
+Commit: `b3f2b68`. Nessun test runtime eseguito.
