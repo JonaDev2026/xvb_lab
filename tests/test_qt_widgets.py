@@ -251,7 +251,7 @@ class QtWidgetTests(unittest.TestCase):
             window = MainWindow()
             window.file_in_onda = "dvd:///media/dvd"
             window.nome_in_onda = "DVD Movie"
-            with patch("ui.main_window.dvd_cifrato", return_value=False), \\
+            with patch("ui.main_window.dvd_cifrato", return_value=False), \
                  patch.object(window, "avvia_registrazione") as avvia:
                 window.registra()
             avvia.assert_called_once_with("DVD Movie", 0.0)
@@ -263,7 +263,7 @@ class QtWidgetTests(unittest.TestCase):
             window = MainWindow()
             window.file_in_onda = "dvd:///media/dvd"
             window.nome_in_onda = "Protected DVD"
-            with patch("ui.main_window.dvd_cifrato", return_value=True), \\
+            with patch("ui.main_window.dvd_cifrato", return_value=True), \
                  patch.object(window, "avvia_registrazione") as avvia:
                 window.registra()
             avvia.assert_not_called()
