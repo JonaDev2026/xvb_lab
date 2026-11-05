@@ -15,7 +15,6 @@ class Sessione:
         self.epg_nomi = {}
         self.epg = {}
         self.carica_liste()
-        self.carica_guide()
 
     def carica_liste(self):
         configurate = self.config.get("liste", [])
