@@ -110,7 +110,9 @@ class MpvVideo(QOpenGLWidget):
         lib.mpv_render_context_render.restype = None
         lib.mpv_render_context_set_update_callback.argtypes = [
             ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p]
+        lib.mpv_render_context_set_update_callback.restype = None
         lib.mpv_render_context_update.argtypes = [ctypes.c_void_p]
+        lib.mpv_render_context_update.restype = ctypes.c_uint64
         lib.mpv_render_context_free.argtypes = [ctypes.c_void_p]
         lib.mpv_render_context_report_swap.argtypes = [ctypes.c_void_p]
         return lib
@@ -184,6 +186,7 @@ class MpvVideo(QOpenGLWidget):
     def paintGL(self):
         if not self._render:
             return
+        self._lib.mpv_render_context_update(self._render)
         fbo = self.OpenGLFBO(
             int(self.defaultFramebufferObject()),
             int(self.width() * self.devicePixelRatioF()),
