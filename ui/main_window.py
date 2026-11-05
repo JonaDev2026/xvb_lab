@@ -581,6 +581,10 @@ class MainWindow(QMainWindow):
         self._worker_liste = None
         self.mpv = self.player
         self._mpris = avvia_mpris(self)
+        self._timer_mpris = QTimer(self)
+        self._timer_mpris.timeout.connect(self._aggiorna_mpris)
+        if self._mpris is not None:
+            self._timer_mpris.start(1000)
         self.nuova = None
         self.pagina_nuova = None
         self._versione_worker = None
@@ -3967,6 +3971,7 @@ class MainWindow(QMainWindow):
             self.ferma_registrazione()
         self._timer_refresh.stop()
         self._timer_epg.stop()
+        self._timer_mpris.stop()
         if self._worker_liste and self._worker_liste.isRunning():
             self._worker_liste.wait(35000)
         for worker in self._stream_workers:
