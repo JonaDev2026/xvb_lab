@@ -395,9 +395,3 @@ class _ElencoDelegate(QStyledItemDelegate):
         sotto = (d.get("text") or "").partition("\n")[2]
         return QSize(max(1, option.rect.width()), max(58 if sotto else 42, h + 48))
 
-
-
-
-from ui.list import Elenco
-from ui.dialogs import Finestrella, Tendina
-from ui.guide import Guida
