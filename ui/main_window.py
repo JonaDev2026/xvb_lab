@@ -7,6 +7,8 @@ from PySide6.QtWidgets import (
 from engine.mpv import MpvVideo
 from ui.widgets import Elenco, Ricerca, Guida
 from core.session import Sessione
+from core.media import media_in
+import os
 
 
 class _CaricaGuide(QThread):
@@ -181,17 +183,22 @@ class MainWindow(QMainWindow):
     def _costruisci_menu(self):
         media = self.menuBar().addMenu("Media")
         media.addAction(self._azione("Open file...", self.apri_file, "Ctrl+O"))
+        media.addAction(self._azione("Open folder...", self.apri_cartella))
         media.addAction(self._azione("Open URL...", self.apri_url, "Ctrl+L"))
         media.addSeparator()
         media.addAction(self._azione("Quit", self.close, "Ctrl+Q"))
         playback = self.menuBar().addMenu("Playback")
         playback.addAction(self._azione("Play / Pause", self.pausa, "Space"))
         playback.addAction(self._azione("Stop", self.ferma, "S"))
+        self.menuBar().addMenu("Video")
+        self.menuBar().addMenu("Audio")
         iptv = self.menuBar().addMenu("IPTV")
         iptv.addAction(self._azione("Programme guide", self.apri_guida))
         iptv.addAction(self._azione("Reload guide", self.ricarica_guida))
         view = self.menuBar().addMenu("View")
         view.addAction(self._azione("Fullscreen", self.schermo_intero, "F"))
+        help_menu = self.menuBar().addMenu("Help")
+        help_menu.addAction(self._azione("About XVB", self.informazioni))
 
 
 
@@ -268,6 +275,30 @@ class MainWindow(QMainWindow):
         if selezione:
             voce = self._canali_visibili[int(selezione[0])]
             self.apri(voce[1])
+
+
+    def apri_cartella(self):
+        cartella = QFileDialog.getExistingDirectory(self, "Open folder")
+        if not cartella:
+            return
+        gia = {voce[1] for voce in self.sessione.canali}
+        nuovi = [(nome, percorso, ide, "Local", cartella)
+                 for nome, percorso, ide in media_in(cartella) if percorso not in gia]
+        if not nuovi:
+            self.riga_stato.setText("No media files found")
+            return
+        self.sessione.canali.extend(nuovi)
+        self.sessione.liste.append({
+            "percorso": cartella, "nome": os.path.basename(cartella),
+            "canali": [(n, p, i) for n, p, i, _c, _l in nuovi],
+            "categorie": {p: "Local" for _n, p, _i, _c, _l in nuovi},
+        })
+        self.selettore_lista.addItem(os.path.basename(cartella), cartella)
+        self.selettore_lista.setCurrentIndex(self.selettore_lista.count() - 1)
+        self.riga_stato.setText("%d media files" % len(nuovi))
+
+    def informazioni(self):
+        QMessageBox.about(self, "XVB", "XVB Player 4.4.4")
 
     def apri_file(self):
         percorso, _ = QFileDialog.getOpenFileName(self, "Open file")
