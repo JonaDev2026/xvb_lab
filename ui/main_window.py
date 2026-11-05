@@ -17,6 +17,7 @@ from i18n import _, imposta_lingua, LINGUE
 from core.playlists import liste_in_cartella, BUFFER, LOGHI
 from core.colors import CACHE_LOGHI, leggi_colori, scrivi_colori, colore_di, colore_dal_logo
 from core.constants import SCALA_FILE
+from core.discs import dischi, cd_audio, dvd_cifrato, e_dvd, titolo_da_etichetta
 import os
 import re
 import time
@@ -272,6 +273,11 @@ class MainWindow(QMainWindow):
         self._timer_rec = QTimer(self)
         self._timer_rec.timeout.connect(self.controlla_registrazione)
         self._timer_rec.start(1000)
+        self._dischi_visti = None
+        self._timer_dischi = QTimer(self)
+        self._timer_dischi.timeout.connect(self.controlla_dischi)
+        self._timer_dischi.start(5000)
+        self.controlla_dischi()
         self.mpv = self.player
         self._mpris = avvia_mpris(self)
         self._indice_canale = -1
@@ -594,8 +600,66 @@ class MainWindow(QMainWindow):
         self.apri(url, nome=nome, ide=ide)
 
 
+
+    def controlla_dischi(self):
+        presenti = (tuple(dischi()), tuple(cd_audio()))
+        if presenti != self._dischi_visti:
+            self._dischi_visti = presenti
+            if hasattr(self, "el_liste"):
+                self._riempi_liste()
+
+    def apri_dvd(self, dispositivo):
+        player = self._attivo()
+        if not player:
+            return
+        try:
+            player.imposta("dvd-device", dispositivo)
+            self.apri("dvd://", nome=titolo_da_etichetta(os.path.basename(dispositivo)))
+        except Exception as errore:
+            self.riga_stato.setText("DVD: " + str(errore))
+
+    def apri_cd(self, dispositivo):
+        player = self._attivo()
+        if not player:
+            return
+        try:
+            player.imposta("cdrom-device", dispositivo)
+            self.apri("cdda://", nome=_("Audio CD"))
+        except Exception as errore:
+            self.riga_stato.setText("CD: " + str(errore))
+
+    def apri_disco_dati(self, mountpoint):
+        nuovi = self._media_locale(mountpoint)
+        if not nuovi:
+            self.riga_stato.setText(_("No media files found"))
+            return
+        self.sessione.canali.extend(nuovi)
+        self.sessione.liste.append({
+            "percorso": mountpoint, "nome": titolo_da_etichetta(os.path.basename(mountpoint)),
+            "canali": [(n, p, ide) for n, p, ide, _cat, _path in nuovi],
+            "categorie": {p: cat for _n, p, _ide, cat, _path in nuovi},
+        })
+        self._percorso_attivo, self._categoria_attiva = mountpoint, None
+        self._riempi_liste()
+        self._riempi_elenco()
+
     def _riempi_liste(self):
         self.el_liste.clear()
+        dischi_root = self.el_liste.insert("", "end", iid="dischi", text=" " + _("Discs"), open=True)
+        for indice, (punto, etichetta) in enumerate(dischi()):
+            if e_dvd(punto):
+                if not dvd_cifrato(punto):
+                    iid = "dvd:%d" % indice
+                    self.el_liste.insert(dischi_root, "end", iid=iid, text=" DVD · " + titolo_da_etichetta(etichetta))
+                    self.el_liste.item(iid, valore=("__dvd__", punto))
+            else:
+                iid = "data:%d" % indice
+                self.el_liste.insert(dischi_root, "end", iid=iid, text=" " + titulo_da_etichetta(etichetta))
+                self.el_liste.item(iid, valore=("__data__", punto))
+        for indice, (dispositivo, tracce) in enumerate(cd_audio()):
+            iid = "cd:%d" % indice
+            self.el_liste.insert(dischi_root, "end", iid=iid, text=" CD Audio · %d tracks" % tracce)
+            self.el_liste.item(iid, valore=("__cd__", dispositivo))
         iptv = self.el_liste.insert("", "end", iid="iptv", text=" IPTV",
                                     image=QPixmap("icone/tv.png"), open=True)
         epg = self.el_liste.insert(iptv, "end", iid="epg",
@@ -645,6 +709,15 @@ class MainWindow(QMainWindow):
         if not dati:
             return
         self._percorso_attivo, self._categoria_attiva = dati
+        if self._percorso_attivo == "__dvd__":
+            self.apri_dvd(self._categoria_attiva)
+            return
+        if self._percorso_attivo == "__cd__":
+            self.apri_cd(self._categoria_attiva)
+            return
+        if self._percorso_attivo == "__data__":
+            self.apri_disco_dati(self._categoria_attiva)
+            return
         self._riempi_elenco()
 
     def _filtra(self, *_):
@@ -1363,6 +1436,7 @@ class MainWindow(QMainWindow):
     def closeEvent(self, evento):
         self._timer_player.stop()
         self._timer_rec.stop()
+        self._timer_dischi.stop()
         if self._thread_epg.isRunning():
             self._thread_epg.wait(65000)
         for worker in self._logo_threads + self._cover_threads:
