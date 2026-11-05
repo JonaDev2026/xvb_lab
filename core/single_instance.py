@@ -27,14 +27,21 @@ class ServerUnico(QObject):
         self.server.bind(percorso)
         self.server.listen(4)
         self._attivo = True
-        self._thread = threading.Thread(target=self._ascolta, daemon=True)
-        self._thread.start()
+        self._thread = None
+
+    def start(self):
+        if self._thread is None:
+            self._thread = threading.Thread(target=self._ascolta, daemon=True)
+            self._thread.start()
 
     def _ascolta(self):
         while self._attivo:
             try:
                 connessione, _indirizzo = self.server.accept()
             except OSError:
+                return
+            if not self._attivo:
+                connessione.close()
                 return
             with connessione:
                 parti = []
@@ -55,6 +62,13 @@ class ServerUnico(QObject):
 
     def close(self):
         self._attivo = False
+        try:
+            risveglio = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            risveglio.settimeout(0.2)
+            risveglio.connect(self.percorso)
+            risveglio.close()
+        except OSError:
+            pass
         self.server.close()
         try:
             os.remove(self.percorso)
