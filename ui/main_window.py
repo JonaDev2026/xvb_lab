@@ -637,7 +637,14 @@ class MainWindow(QMainWindow):
         iid = item.data(0, Qt.UserRole)
         valore = self.el_liste.item(str(iid), "valore") if iid is not None else None
         menu = QMenu(self)
-        if valore and valore[0] == "__epg__":
+        if valore and valore[0] == "__url__":
+            url = valore[1]
+            menu.addAction(_("Rename..."), lambda: self.rinomina_url(url))
+            sposta = menu.addMenu(_("Move to"))
+            for chiave, etichetta in CATEGORIE_URL + ((None, "Temporary"),):
+                sposta.addAction(_(etichetta), lambda _=False, k=chiave, u=url: self.sposta_url(u, k))
+            menu.addAction(_("Remove URL"), lambda: self.rimuovi_url(url))
+        elif valore and valore[0] == "__epg__":
             menu.addAction(_("Remove guide"), lambda: self.togli_epg(valore[1]))
         elif valore and valore[0] == "__imported_file__":
             menu.addAction(_("Remove from library"), lambda: self.rimuovi_importato(valore[1]))
@@ -1841,14 +1848,66 @@ class MainWindow(QMainWindow):
         else:
             salvati[categoria] = [url] + salvati.get(categoria, [])
 
+
+    def rinomina_url(self, url):
+        nome = self._chiedi_testo(_("Rename..."), _("Name:"), self.nome_di_url(url))
+        if nome is None:
+            return
+        self.sessione.config.setdefault("nomi_url", {})[url] = nome.strip() or self.nome_di_url(url)
+        scrivi_config(self.sessione.config)
+        self._riempi_liste()
+        self._riempi_elenco()
+
+    def sposta_url(self, url, categoria):
+        self.metti_url(categoria, url)
+        self.sessione.config["ultima_categoria_url"] = categoria or ""
+        scrivi_config(self.sessione.config)
+        self._riempi_liste()
+        self._percorso_attivo, self._categoria_attiva = "__url__", categoria
+        self._riempi_elenco()
+
+    def rimuovi_url(self, url):
+        self.metti_url(None, url)
+        self.sessione.config["url_aperti"] = [
+            u for u in self.sessione.config.get("url_aperti", []) if u != url]
+        for categoria, _nome in CATEGORIE_URL:
+            self.sessione.config.setdefault("url_salvati", {}).setdefault(categoria, [])
+            self.sessione.config["url_salvati"][categoria] = [
+                u for u in self.sessione.config["url_salvati"][categoria] if u != url]
+        self.sessione.config.get("nomi_url", {}).pop(url, None)
+        scrivi_config(self.sessione.config)
+        self._riempi_liste()
+        self._riempi_elenco()
+
     def apri_url_da(self, url):
         self.apri(url, nome=self.nome_di_url(url))
         self._url_al_volo = url
 
     def apri_url(self):
-        url = self._chiedi_testo(_("Open URL"), "URL")
-        if url and url.strip():
-            self.apri(url.strip())
+        url = self._chiedi_testo(_("Open URL"), _("URL"))
+        if not url or not url.strip():
+            return
+        url = url.strip()
+        base = self.nome_di_url(url)
+        nome = self._chiedi_testo(_("Open URL"), _("Name:"), base)
+        if nome is None:
+            return
+        categorie = list(CATEGORIE_URL) + [(None, "Temporary")]
+        etichette = [_(nome_categoria) for _chiave, nome_categoria in categorie]
+        ultima = self.sessione.config.get("ultima_categoria_url", "radio")
+        indice = next((i for i, (k, _n) in enumerate(categorie) if k == ultima), len(categorie) - 1)
+        scelta, ok = QInputDialog.getItem(self, _("Open URL"), _("Save in:"), etichette, indice, False)
+        if not ok:
+            return
+        categoria = categorie[etichette.index(scelta)][0]
+        self.sessione.config.setdefault("nomi_url", {})[url] = nome.strip() or base
+        self.sessione.config["ultima_categoria_url"] = categoria or ""
+        self.metti_url(categoria, url)
+        scrivi_config(self.sessione.config)
+        self._riempi_liste()
+        self._percorso_attivo, self._categoria_attiva = "__url__", categoria
+        self._riempi_elenco()
+        self.apri(url, nome=nome.strip() or base)
 
     def apri(self, percorso, url=None, ide=None, nome=None):
         if url is not None:
