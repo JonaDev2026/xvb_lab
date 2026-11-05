@@ -1,5 +1,9 @@
+import json
 import os
 from pathlib import Path
+
+
+TAG_CACHE_FILE = Path.home() / ".cache" / "xvb-lab" / "tags.json"
 
 AUDIO_EXTENSIONS = {
     "aac", "aif", "aiff", "alac", "ape", "flac", "m4a", "m4b",
@@ -64,3 +68,49 @@ def scan_imported(paths):
                 "kind": kind,
             })
     return result
+
+
+
+def load_tag_cache():
+    try:
+        data = json.loads(TAG_CACHE_FILE.read_text(encoding="utf-8"))
+        return data if isinstance(data, dict) else {}
+    except (OSError, ValueError, TypeError):
+        return {}
+
+
+def save_tag_cache(cache):
+    TAG_CACHE_FILE.parent.mkdir(parents=True, exist_ok=True)
+    temporary = TAG_CACHE_FILE.with_suffix(".json.tmp")
+    temporary.write_text(json.dumps(cache, ensure_ascii=False), encoding="utf-8")
+    temporary.replace(TAG_CACHE_FILE)
+
+
+def read_media_tags(path, cache):
+    try:
+        modified = os.path.getmtime(path)
+    except OSError:
+        return "", "", "", ""
+    cached = cache.get(path)
+    if isinstance(cached, list) and len(cached) == 5 and cached[0] == modified:
+        return tuple(cached[1:])
+    try:
+        import mutagen
+    except ImportError:
+        return "", "", "", ""
+    title, artist, album, year = "", "", "", ""
+    try:
+        media = mutagen.File(path, easy=True)
+        if media and media.tags:
+            def value(key):
+                raw = media.tags.get(key) or [""]
+                return str(raw[0]).strip()
+            title = value("title")
+            artist = value("artist")
+            album = value("album")
+            date = value("date")
+            year = date[:4] if date[:4].isdigit() else ""
+    except Exception:
+        pass
+    cache[path] = [modified, title, artist, album, year]
+    return title, artist, album, year
