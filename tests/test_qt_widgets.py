@@ -8,8 +8,8 @@ from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtCore import QPoint
-from PySide6.QtGui import QColor, QPixmap
+from PySide6.QtCore import QEvent, QPoint, QPointF, Qt
+from PySide6.QtGui import QColor, QMouseEvent, QPixmap
 from PySide6.QtWidgets import QApplication, QLabel, QMenu, QVBoxLayout, QWidget
 from ui.widgets import Ricerca, Cursore, Elenco, Finestrella, Tendina, Guida
 from ui.main_window import MainWindow, _AggiornaListe, _ScansionaCartelle, _prepara_file_cartella, _ScaricaCopertine
@@ -382,6 +382,32 @@ class QtWidgetTests(unittest.TestCase):
             window._aggiorna_hud()
             self.assertTrue(window.hud_video.isHidden())
             self.assertFalse(window._timer_hud.isActive())
+            window.close()
+            self.app.processEvents()
+
+    def test_video_click_toggles_playback(self):
+        with patch("ui.main_window.MpvVideo", side_effect=RuntimeError("libmpv unavailable")):
+            window = MainWindow()
+            evento = QMouseEvent(
+                QEvent.Type.MouseButtonPress, QPointF(10, 10),
+                Qt.MouseButton.LeftButton, Qt.MouseButton.LeftButton,
+                Qt.KeyboardModifier.NoModifier)
+            with patch.object(window, "pausa") as pausa:
+                window.eventFilter(window.video, evento)
+                pausa.assert_called_once()
+            window.close()
+            self.app.processEvents()
+
+    def test_video_double_click_enters_fullscreen(self):
+        with patch("ui.main_window.MpvVideo", side_effect=RuntimeError("libmpv unavailable")):
+            window = MainWindow()
+            evento = QMouseEvent(
+                QEvent.Type.MouseButtonDblClick, QPointF(10, 10),
+                Qt.MouseButton.LeftButton, Qt.MouseButton.LeftButton,
+                Qt.KeyboardModifier.NoModifier)
+            with patch.object(window, "schermo_intero") as fullscreen:
+                self.assertTrue(window.eventFilter(window.video, evento))
+                fullscreen.assert_called_once()
             window.close()
             self.app.processEvents()
 
