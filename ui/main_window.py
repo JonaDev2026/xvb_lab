@@ -1,5 +1,5 @@
 from PySide6.QtCore import Qt, QUrl, QThread, Signal, QTimer
-from PySide6.QtGui import QAction, QKeySequence, QIcon, QDesktopServices
+from PySide6.QtGui import QAction, QKeySequence, QIcon, QDesktopServices, QPixmap
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QFrame, QVBoxLayout, QHBoxLayout, QLabel, QDialog,
     QPushButton, QFileDialog, QInputDialog, QMessageBox, QSlider, QTreeWidget, QTreeWidgetItem
@@ -9,10 +9,12 @@ from ui.widgets import Elenco, Ricerca, Guida
 from core.session import Sessione
 from core.media import media_in, AUDIO
 from core.tags import leggi_tag, tag_di, scrivi_tag
-from core.metadata import titolo_anno, dal_percorso
+from core.metadata import titolo_anno, dal_percorso, copertina_url, copertina_dentro, poster_film
 from integrations.mpris import avvia_mpris
 from core.config import scrivi_config, CARTELLE_LISTE, REGISTRAZIONI
-from core.playlists import liste_in_cartella, BUFFER
+from core.playlists import liste_in_cartella, BUFFER, LOGHI
+from core.colors import CACHE_LOGHI, leggi_colori, scrivi_colori, colore_di, colore_dal_logo
+from core.constants import SCALA_FILE
 import os
 import re
 import time
@@ -33,6 +35,23 @@ class _CaricaGuide(QThread):
         except Exception as errore:
             self.errore.emit(str(errore))
         self.completato.emit()
+
+
+
+class _ScaricaColoreLogo(QThread):
+    completato = Signal(str, str)
+
+    def __init__(self, url, logo):
+        super().__init__()
+        self.url = url
+        self.logo = logo
+
+    def run(self):
+        try:
+            colore = colore_dal_logo(self.logo) or ""
+        except Exception:
+            colore = ""
+        self.completato.emit(self.url, colore)
 
 
 class MainWindow(QMainWindow):
@@ -74,6 +93,8 @@ class MainWindow(QMainWindow):
         self.sessione = Sessione()
         self.tag_cache = leggi_tag()
         self.sottotitoli = {}
+        self.colori = leggi_colori()
+        self._logo_threads = []
         for cartella in self.sessione.config.get("cartelle", []):
             if os.path.isdir(cartella):
                 locali = self._media_locale(cartella)
@@ -506,7 +527,7 @@ class MainWindow(QMainWindow):
             nome, url, ide, gruppo, _lista = voce
             sotto = self.sottotitoli.get(url) or gruppo
             self.elenco.insert("", "end", iid=str(i), text=nome + "\n" + sotto,
-                               colore="#9e9e9e")
+                               colore=self.colore_canale(nome, url), logo=self.logo_di(url))
 
     def _seleziona_canale(self):
         selezione = self.elenco.selection()
@@ -525,6 +546,63 @@ class MainWindow(QMainWindow):
             self.apri(voce[1], nome=voce[0], ide=voce[2])
 
 
+
+
+    def colore_canale(self, nome, url):
+        if os.path.isabs(url):
+            try:
+                posizione = next(i for i, voce in enumerate(self.sessione.canali) if voce[1] == url)
+            except StopIteration:
+                posizione = 0
+            return SCALA_FILE[posizione % len(SCALA_FILE)]
+        return (self.sessione.config.get("colori_canali", {}).get(url)
+                or self.colori.get(url) or colore_di(nome))
+
+    def logo_di(self, url):
+        if os.path.isabs(url):
+            estensione = os.path.splitext(url)[1][1:].lower()
+            if estensione in AUDIO:
+                percorso = copertina_url(url)
+                if not os.path.isfile(percorso):
+                    dati = copertina_dentro(url)
+                    if dati:
+                        try:
+                            os.makedirs(os.path.dirname(percorso), exist_ok=True)
+                            with open(percorso, "wb") as stream:
+                                stream.write(dati)
+                        except OSError:
+                            pass
+                return QPixmap(percorso) if os.path.isfile(percorso) else None
+            poster = poster_film(url)
+            return QPixmap(poster) if poster else None
+        logo = LOGHI.get(url)
+        if not logo:
+            return None
+        import hashlib
+        percorso = os.path.join(CACHE_LOGHI, hashlib.md5(logo.encode()).hexdigest())
+        if os.path.isfile(percorso) and os.path.getsize(percorso):
+            pix = QPixmap(percorso)
+            return pix if not pix.isNull() else None
+        if not any(w.url == url and w.isRunning() for w in self._logo_threads):
+            worker = _ScaricaColoreLogo(url, logo)
+            worker.completato.connect(self._logo_pronto)
+            worker.finished.connect(lambda w=worker: self._rimuovi_worker_logo(w))
+            self._logo_threads.append(worker)
+            worker.start()
+        return None
+
+    def _rimuovi_worker_logo(self, worker):
+        if worker in self._logo_threads:
+            self._logo_threads.remove(worker)
+
+    def _logo_pronto(self, url, colore):
+        if colore:
+            self.colori[url] = colore
+            scrivi_colori(self.colori)
+        if hasattr(self, "elenco"):
+            self._riempi_elenco()
+        if getattr(self, "_finestra_guida", None):
+            self._finestra_guida.ridisegna()
 
     def _progresso_di(self, iid):
         try:
