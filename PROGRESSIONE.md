@@ -222,3 +222,13 @@ Non eseguiti test né prove d'uso. Il drag & drop misto (playlist insieme a cart
 - Il workflow è automatico su push in `main` e può anche essere avviato manualmente.
 
 Il completamento del trasferimento degli asset dipende dall'esecuzione del workflow GitHub; non ho ancora verificato il risultato.
+
+## Sfondo del lettore e foto artista
+
+- Aggiunto `ui/backdrop.py`: widget Qt6 che disegna l'immagine centrata mantenendo le proporzioni.
+- Il video resta sul widget libmpv; a player fermo viene mostrata l'immagine `icone/screen.png`; per i file audio vengono usate prima la foto artista in cache e poi la copertina del brano.
+- Migrata in `core/artist_artwork.py` la cache persistente degli artisti e la ricerca TheAudioDB con confronto del nome, cache negativa di sette giorni e salvataggio JPEG.
+- Il precaricamento delle foto avviene in un QThread, con pause fra le richieste; il thread viene interrotto e atteso in chiusura.
+- Il layout video ora separa lo sfondo dal contenitore dei player, così il secondo player dello split mantiene la disposizione affiancata.
+
+Non eseguiti test grafici o prove di rendering. La dissolvenza originale dello sfondo resta da trasferire.
