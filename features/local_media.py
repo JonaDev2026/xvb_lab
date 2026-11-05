@@ -22,8 +22,8 @@ def media_kind(path):
     return None
 
 
-def scan_folder(folder):
-    result = []
+def iter_folder_batches(folder, batch_size=30):
+    batch = []
     root = os.path.abspath(os.path.expanduser(folder))
     for current, directories, files in os.walk(root):
         directories[:] = sorted(
@@ -36,12 +36,20 @@ def scan_folder(folder):
             path = os.path.join(current, name)
             kind = media_kind(path)
             if kind:
-                result.append({
+                batch.append({
                     "name": Path(name).stem,
                     "path": path,
                     "kind": kind,
                 })
-    return result
+                if len(batch) >= batch_size:
+                    yield batch
+                    batch = []
+    if batch:
+        yield batch
+
+
+def scan_folder(folder):
+    return [item for batch in iter_folder_batches(folder) for item in batch]
 
 
 def scan_imported(paths):
