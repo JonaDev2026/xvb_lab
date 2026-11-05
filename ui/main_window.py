@@ -1,7 +1,8 @@
+import hashlib
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QTimer, QDateTime, QThread, QObject, Signal
-from PySide6.QtGui import QAction, QBrush, QColor, QIcon
+from PySide6.QtGui import QAction, QBrush, QColor, QIcon, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (
     QFileDialog,
     QFrame,
@@ -75,6 +76,7 @@ class MainWindow(QMainWindow):
         self.config.setdefault("folders", [])
         self.config.setdefault("imported", [])
         self._scan_threads = []
+        self._vinyl_icons = {}
         self.resource_dir = Path(__file__).resolve().parents[1] / "resources"
         self.icons_dir = self.resource_dir / "icons"
         self.setWindowTitle("XVB v4.4.4")
@@ -169,6 +171,33 @@ class MainWindow(QMainWindow):
     def _icon(self, name):
         path = self.icons_dir / f"{name}.png"
         return QIcon(str(path)) if path.is_file() else QIcon()
+
+    def _vinyl_icon(self, name):
+        colors = ("#ff5257", "#ff9f0a", "#ffd60a", "#30d158", "#0a84ff", "#bf5af2", "#ff375f", "#64d2ff")
+        digest = int(hashlib.md5(name.encode("utf-8")).hexdigest()[:8], 16)
+        color = colors[digest % len(colors)]
+        if color in self._vinyl_icons:
+            return self._vinyl_icons[color]
+        pixmap = QPixmap(24, 24)
+        pixmap.fill(Qt.GlobalColor.transparent)
+        painter = QPainter(pixmap)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setPen(QPen(QColor("#6a6a74"), 1.2))
+        painter.setBrush(QColor(24, 24, 28))
+        painter.drawEllipse(1.5, 1.5, 21, 21)
+        painter.setPen(QPen(QColor(72, 72, 80), 0.5))
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.drawEllipse(3.5, 3.5, 17, 17)
+        painter.drawEllipse(6, 6, 12, 12)
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(QColor(color))
+        painter.drawEllipse(7, 7, 10, 10)
+        painter.setBrush(QColor(24, 24, 28))
+        painter.drawEllipse(10.2, 10.2, 3.6, 3.6)
+        painter.end()
+        icon = QIcon(pixmap)
+        self._vinyl_icons[color] = icon
+        return icon
 
     def _action(self, menu, text, callback=None, enabled=True, shortcut=None):
         action = QAction(text, self)
@@ -633,6 +662,9 @@ class MainWindow(QMainWindow):
             if source_item is not None:
                 total = len(items)
                 source_item.setText(0, f"{root_path.name or str(root_path)} ({total})")
+                music_count = sum(media["kind"] == "music" for media in items)
+                parent_is_music = bool(items) and music_count * 2 > total
+                source_item.setIcon(0, self._icon("music" if parent_is_music else "player"))
                 for key in list(self._source_tree_items):
                     if key[0] != "folder" or key[1] == str(root_path):
                         continue
@@ -655,8 +687,11 @@ class MainWindow(QMainWindow):
                     child = QTreeWidgetItem([f"{dirname} ({len(children)})"])
                     child.setData(0, Qt.ItemDataRole.UserRole, ("folder", str(child_path)))
                     music_count = sum(media["kind"] == "music" for media in children)
-                    icon = "music" if music_count > len(children) / 2 else "player"
-                    child.setIcon(0, self._icon(icon))
+                    if parent_is_music:
+                        child.setIcon(0, self._vinyl_icon(dirname))
+                    else:
+                        icon = "music" if music_count * 2 > len(children) else "player"
+                        child.setIcon(0, self._icon(icon))
                     source_item.addChild(child)
                     self._source_tree_items[("folder", str(child_path.resolve()))] = child
                 source_item.setExpanded(True)
