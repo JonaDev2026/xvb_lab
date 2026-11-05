@@ -654,7 +654,7 @@ class MainWindow(QMainWindow):
                     self.el_liste.item(iid, valore=("__dvd__", punto))
             else:
                 iid = "data:%d" % indice
-                self.el_liste.insert(dischi_root, "end", iid=iid, text=" " + titulo_da_etichetta(etichetta))
+                self.el_liste.insert(dischi_root, "end", iid=iid, text=" " + titolo_da_etichetta(etichetta))
                 self.el_liste.item(iid, valore=("__data__", punto))
         for indice, (dispositivo, tracce) in enumerate(cd_audio()):
             iid = "cd:%d" % indice
