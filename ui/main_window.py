@@ -659,8 +659,10 @@ class MainWindow(QMainWindow):
         elif valore and valore[0] == "__media_folder__" and valore[1] in self.sessione.config.get("cartelle", []):
             menu.addAction(_("Remove media folder"), lambda: self.rimuovi_cartella_media(valore[1]))
         elif valore and isinstance(valore[0], str) and valore[0].startswith(("http://", "https://")):
+            menu.addAction(_("Rename..."), lambda: self.rinomina_lista(valore[0]))
             menu.addAction(_("Remove playlist"), lambda: self.rimuovi_lista(valore[0]))
         elif valore and os.path.isfile(str(valore[0])):
+            menu.addAction(_("Rename..."), lambda: self.rinomina_lista(valore[0]))
             menu.addAction(_("Remove from list"), lambda: self.rimuovi_lista(valore[0]))
         if menu.actions():
             menu.exec(self.el_liste.mapToGlobal(posizione))
@@ -691,6 +693,21 @@ class MainWindow(QMainWindow):
         self._categoria_attiva = None
         self._riempi_liste()
         self._riempi_elenco()
+
+
+    def rinomina_lista(self, percorso):
+        nome = self._chiedi_testo(_("Rename..."), _("Name:"),
+                                 self.sessione.config.get("liste_url", {}).get(
+                                     percorso, self.sessione.config.get("nomi_liste", {}).get(
+                                         percorso, os.path.basename(percorso))))
+        if nome is None or not nome.strip():
+            return
+        if percorso in self.sessione.config.get("liste_url", {}):
+            self.sessione.config["liste_url"][percorso] = nome.strip()
+        else:
+            self.sessione.config.setdefault("nomi_liste", {})[percorso] = nome.strip()
+        scrivi_config(self.sessione.config)
+        self.ricarica_liste(forza=False)
 
     def rimuovi_lista_selezionata(self):
         if self._percorso_attivo:
