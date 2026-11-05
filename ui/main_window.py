@@ -350,18 +350,17 @@ class MainWindow(QMainWindow):
         self._timer_overlay.setSingleShot(True)
         self._timer_overlay.timeout.connect(self._nascondi_overlay)
         comandi = QVBoxLayout(self.barra)
-        comandi.setContentsMargins(12, 5, 12, 5)
-        comandi.setSpacing(5)
+        comandi.setContentsMargins(12, 38, 12, 0)
+        comandi.setSpacing(0)
         self.posizione = QSlider(Qt.Horizontal, self.barra)
         self.posizione.setRange(0, 1000)
+        self.posizione.setGeometry(0, 30, self.barra.width(), 10)
         self.posizione.setFixedHeight(10)
         self.posizione.setStyleSheet(
             "QSlider::groove:horizontal{height:2px;background:#4a4a4a}"
             "QSlider::sub-page:horizontal{background:#ffffff}"
             "QSlider::handle:horizontal{width:0;height:0;border:0}")
         self.posizione.sliderReleased.connect(self._seek)
-        comandi.addWidget(self.posizione)
-
         controlli = QHBoxLayout()
         controlli.setSpacing(4)
         self._pulsanti = {}
@@ -3386,6 +3385,8 @@ class MainWindow(QMainWindow):
             self.chiudi_avviso()
         if evento.type() == evento.Type.Resize and oggetto is self.video:
             self._posiziona_overlay()
+        elif evento.type() == evento.Type.Resize and oggetto is self.barra:
+            self.posizione.setGeometry(0, 30, self.barra.width(), 10)
         if evento.type() in (evento.Type.MouseMove, evento.Type.MouseButtonPress):
             if self._overlay_attivo and (oggetto is self.player or oggetto is self.video
                                          or oggetto is self.barra
