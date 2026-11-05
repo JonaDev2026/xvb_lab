@@ -9,7 +9,7 @@ from .config import CASA
 from .constants import VERSIONE
 
 
-_XVB_LOGGER = logging.getLogger("xvb")
+_XVB_LOGGER = logging.getLogger("xvb5")
 
 
 class _XVBFiltroSicurezza(logging.Filter):
@@ -65,13 +65,13 @@ def configura_logging():
     _XVB_LOGGER.propagate = False
     filtro = _XVBFiltroSicurezza()
     percorsi = (
-        os.path.join(CASA, ".local", "state", "xvb"),
-        os.path.join(CASA, ".cache", "xvb"),
+        os.path.join(CASA, ".local", "state", "xvb5"),
+        os.path.join(CASA, ".cache", "xvb5"),
     )
     for cartella in percorsi:
         try:
             os.makedirs(cartella, exist_ok=True)
-            percorso = os.path.join(cartella, "xvb.log")
+            percorso = os.path.join(cartella, "xvb5.log")
             gestore = RotatingFileHandler(
                 percorso,
                 maxBytes=2 * 1024 * 1024,
@@ -83,7 +83,7 @@ def configura_logging():
             ))
             gestore.addFilter(filtro)
             _XVB_LOGGER.addHandler(gestore)
-            _XVB_LOGGER.info("XVB %s avviato", VERSIONE)
+            _XVB_LOGGER.info("XVB5 %s avviato", VERSIONE)
             sys.excepthook = _xvb_eccezione
             if hasattr(threading, "excepthook"):
                 threading.excepthook = _xvb_eccezione_thread
