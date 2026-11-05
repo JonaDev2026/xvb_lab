@@ -83,8 +83,7 @@ class QtWidgetTests(unittest.TestCase):
 
     def test_dialog_and_popup_construction(self):
         def corpo(parent):
-            layout = QVBoxLayout(parent)
-            layout.addWidget(QLabel("Body"))
+            parent.contenuto.addWidget(QLabel("Body"))
         dialog = Finestrella(None, "Title", corpo)
         self.assertEqual(dialog.windowTitle(), "Title")
         self.assertGreater(dialog.sizeHint().height(), 0)
