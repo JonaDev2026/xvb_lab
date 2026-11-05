@@ -107,6 +107,22 @@ class QtWidgetTests(unittest.TestCase):
         self.assertEqual(guide.righe, [])
         guide.close()
 
+    def test_recording_group_shows_its_files_in_main_list(self):
+        with patch("ui.main_window.MpvVideo", side_effect=RuntimeError("libmpv unavailable")):
+            window = MainWindow()
+            path = "/tmp/News/Evening News.mkv"
+            raccolte = [(("News", "2026-11-05"), [("20:30", "Evening News", path)])]
+            with patch("ui.main_window.registrazioni", return_value=raccolte), \\
+                 patch.object(window, "logo_di", return_value=None), \\
+                 patch.object(window, "colore_canale", return_value="#ffffff"):
+                window._riempi_liste()
+                self.assertEqual(window.el_liste.item("registrazioni:0", "valore"),
+                                 ("__recordings_group__", ("News", "2026-11-05")))
+                window._scegli_voce_liste("registrazioni:0")
+                self.assertEqual(window._canali_visibili,
+                                 [("Evening News", path, None, "20:30", "__recordings__")])
+            window.close()
+            self.app.processEvents()
 
 if __name__ == "__main__":
     unittest.main()
