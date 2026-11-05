@@ -603,6 +603,17 @@ class MainWindow(QMainWindow):
 
     def controlla_dischi(self):
         presenti = (tuple(dischi()), tuple(cd_audio()))
+        precedente = self._dischi_visti
+        if precedente is not None and presenti != precedente:
+            montati = {p for p, _ in presenti[0]}
+            rimossi = {p for p, _ in precedente[0]} - montati
+            if (self.file_in_onda == "dvd://" and not any(e_dvd(p) for p, _ in presenti[0])):
+                self.ferma()
+            elif self.file_in_onda == "cdda://" and not presenti[1]:
+                self.ferma()
+            elif self.file_in_onda and os.path.isabs(self.file_in_onda):
+                if any(self.file_in_onda.startswith(p + os.sep) for p in rimossi):
+                    self.ferma()
         if presenti != self._dischi_visti:
             self._dischi_visti = presenti
             if hasattr(self, "el_liste"):
