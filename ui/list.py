@@ -157,6 +157,8 @@ class Elenco(QListWidget):
                            (self.pannello, self.testo))
         self.setItemDelegate(_VoceDelegate(self))
         self.currentRowChanged.connect(self._selezione)
+        self.itemClicked.connect(self._clic_singolo)
+        self.itemDoubleClicked.connect(self._clic_doppio)
 
     def column(self, *a, **k):
         return None
@@ -203,12 +205,34 @@ class Elenco(QListWidget):
     def tag_raise(self, *a, **k):
         self.viewport().update()
 
+    def tag_names(self, indice):
+        try:
+            riga = int(str(indice).split(".")[0])
+            posizione = max(0, (riga - 1) // 3)
+            return self.dati[self.voci[posizione]].get("tags", ())
+        except (ValueError, IndexError, KeyError):
+            return ()
+
+    def tag_cget(self, tag, opzione):
+        return self.tag_configurazioni.get(tag, {}).get(opzione, "")
+
     def event_generate(self, evento, *a, **k):
         if evento == "<<TreeviewSelect>>":
             self.treeviewSelect.emit()
 
     def _selezione(self, riga):
         self.scelta = self.voci[riga] if 0 <= riga < len(self.voci) else None
+
+    def _clic_singolo(self, item):
+        riga = self.row(item)
+        if 0 <= riga < len(self.voci):
+            self.selection_set(self.voci[riga])
+            if self.singolo:
+                self.singolo()
+
+    def _clic_doppio(self, item):
+        if self.doppio:
+            self.doppio()
 
     def get_children(self, *a):
         return tuple(self.voci)
