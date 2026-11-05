@@ -1,7 +1,7 @@
 import hashlib
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QTimer, QDateTime, QThread, QObject, Signal
+from PySide6.QtCore import Qt, QTimer, QDateTime, QThread, QObject, Signal, QSize
 from PySide6.QtGui import QAction, QBrush, QColor, QIcon, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (
     QFileDialog,
@@ -24,7 +24,7 @@ from PySide6.QtWidgets import (
 
 from engine.render import MPVRenderWidget
 from core.config import load_config, save_config
-from features.local_media import iter_folder_batches, scan_imported
+from features.local_media import iter_folder_batches, scan_imported, load_tag_cache, save_tag_cache, read_media_tags
 
 
 class FolderScanWorker(QObject):
@@ -55,6 +55,39 @@ class FolderScanWorker(QObject):
             self.finished.emit([], str(error), self.source, self.value, self.token)
 
 
+class MetadataWorker(QObject):
+    finished = Signal(object, str, str, object, int)
+
+    def __init__(self, items, source, value, token):
+        super().__init__()
+        self.items = items
+        self.source = source
+        self.value = value
+        self.token = token
+
+    def run(self):
+        try:
+            cache = load_tag_cache()
+            changed = False
+            metadata = {}
+            for media in self.items:
+                if QThread.currentThread().isInterruptionRequested():
+                    break
+                if media["kind"] != "music":
+                    continue
+                path = media["path"]
+                previous = cache.get(path)
+                tags = read_media_tags(path, cache)
+                metadata[path] = tags
+                if cache.get(path) != previous:
+                    changed = True
+            if changed:
+                save_tag_cache(cache)
+            self.finished.emit(metadata, "", self.source, self.value, self.token)
+        except Exception as error:
+            self.finished.emit({}, str(error), self.source, self.value, self.token)
+
+
 FONDO = "#1c1b22"
 PANNELLO = "#1c1b22"
 BARRA = "#1c1b22"
@@ -78,6 +111,8 @@ class MainWindow(QMainWindow):
         self.config.setdefault("folders", [])
         self.config.setdefault("imported", [])
         self._scan_threads = []
+        self._metadata_threads = []
+        self._media_tree_items = {}
         self._vinyl_icons = {}
         self.resource_dir = Path(__file__).resolve().parents[1] / "resources"
         self.icons_dir = self.resource_dir / "icons"
@@ -629,13 +664,14 @@ class MainWindow(QMainWindow):
                 item.setForeground(0, QBrush())
 
     def _scan_source(self, source, value):
-        for previous in self._scan_threads:
+        for previous in self._scan_threads + self._metadata_threads:
             previous.requestInterruption()
         self._scan_token = getattr(self, "_scan_token", 0) + 1
         token = self._scan_token
         self._active_source = (source, value)
         self._update_local_selection((source, value))
         self.media_tree.clear()
+        self._media_tree_items = {}
         self.notification.hide()
         self.playback_status.setText("Loading...")
         thread = QThread(self)
@@ -665,6 +701,7 @@ class MainWindow(QMainWindow):
             query = self.search.text().casefold().strip()
             item.setHidden(bool(query) and query not in media["name"].casefold())
             self.media_tree.addTopLevelItem(item)
+            self._media_tree_items[media["path"]] = item
 
     def _show_media_items(self, items, error, source, value, token):
         if getattr(self, "_closing", False):
@@ -728,6 +765,37 @@ class MainWindow(QMainWindow):
                 label = source_item.text(0).split(" (")[0]
                 source_item.setText(0, f"{label} ({len(items)})")
         self.playback_status.setText(f"{len(items)} files")
+        thread = QThread(self)
+        worker = MetadataWorker(items, source, value, token)
+        worker.moveToThread(thread)
+        thread.started.connect(worker.run)
+        worker.finished.connect(self._apply_media_metadata)
+        worker.finished.connect(thread.quit)
+        worker.finished.connect(worker.deleteLater)
+        thread.finished.connect(thread.deleteLater)
+        thread.finished.connect(lambda: self._metadata_threads.remove(thread) if thread in self._metadata_threads else None)
+        self._metadata_threads.append(thread)
+        thread.start()
+
+    def _apply_media_metadata(self, metadata, error, source, value, token):
+        if getattr(self, "_closing", False):
+            return
+        if token != getattr(self, "_scan_token", None):
+            return
+        if getattr(self, "_active_source", None) != (source, value) or error:
+            return
+        for path, tags in metadata.items():
+            item = self._media_tree_items.get(path)
+            if item is None:
+                continue
+            title, artist, album, year = tags
+            subtitle = " · ".join(part for part in (artist, album, year) if part)
+            item.setText(0, title or Path(path).stem)
+            if subtitle:
+                item.setText(0, item.text(0) + "\\n" + subtitle)
+                item.setSizeHint(0, QSize(0, 42))
+            item.setToolTip(0, path)
+        self.media_tree.sortItems(0, Qt.SortOrder.AscendingOrder)
 
     def filter_media(self, text):
         query = text.casefold().strip()
@@ -784,12 +852,12 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event):
         self._closing = True
-        for thread in self._scan_threads:
+        for thread in self._scan_threads + self._metadata_threads:
             thread.requestInterruption()
-        running = [thread for thread in self._scan_threads if thread.isRunning()]
+        running = [thread for thread in self._scan_threads + self._metadata_threads if thread.isRunning()]
         for thread in running:
             thread.wait(1000)
-        running = [thread for thread in self._scan_threads if thread.isRunning()]
+        running = [thread for thread in self._scan_threads + self._metadata_threads if thread.isRunning()]
         if running:
             event.ignore()
             QTimer.singleShot(100, self.close)
