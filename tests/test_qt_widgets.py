@@ -323,9 +323,14 @@ class QtWidgetTests(unittest.TestCase):
             with patch.object(window, "apri_url_da") as apri:
                 window._scegli_voce_liste("urlcat:radio:0")
                 apri.assert_called_once_with(radio)
+            self.assertEqual(window._categoria_attiva, "radio")
             window._scegli_voce_liste("url")
             self.assertEqual(window._categoria_attiva, None)
             self.assertEqual([voce[1] for voce in window._canali_visibili], [temporary])
+            with patch.object(window, "apri_url_da") as apri:
+                window._scegli_voce_liste("urlcat:temporary:0")
+                apri.assert_called_once_with(temporary)
+            self.assertEqual(window._categoria_attiva, None)
             window.close()
             self.app.processEvents()
 
