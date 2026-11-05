@@ -145,6 +145,8 @@ class MainWindow(QMainWindow):
         sx.setSpacing(6)
         self.root = self
         self.sessione = Sessione()
+        self.ripeti = self.sessione.config.get("ripeti", "")
+        self.shuffle_attivo = bool(self.sessione.config.get("shuffle"))
         self.tag_cache = leggi_tag()
         self.sottotitoli = {}
         self.colori = leggi_colori()
