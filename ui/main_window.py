@@ -1,7 +1,7 @@
 from PySide6.QtCore import Qt, QUrl, QThread, Signal, QTimer, QSize
 from PySide6.QtGui import QAction, QKeySequence, QIcon, QDesktopServices, QPixmap
 from PySide6.QtWidgets import (
-    QMainWindow, QWidget, QFrame, QVBoxLayout, QHBoxLayout, QLabel, QDialog,
+    QMainWindow, QWidget, QFrame, QVBoxLayout, QHBoxLayout, QLabel, QDialog, QMenu,
     QPushButton, QFileDialog, QInputDialog, QMessageBox, QSlider, QTreeWidget, QTreeWidgetItem
 )
 from engine.mpv import MpvVideo
@@ -168,6 +168,8 @@ class MainWindow(QMainWindow):
         self.cerca = Ricerca(self.sinistra, self._filtra, vuota=_("Search"))
         sx.addWidget(self.cerca)
         self.elenco = Elenco(self.sinistra)
+        self.elenco.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.elenco.customContextMenuRequested.connect(self._menu_canale)
         self.elenco.singolo = self._seleziona_canale
         self.elenco.itemDoubleClicked.connect(self._apri_selezionato)
         self.elenco.prog_di = self._progresso_di
@@ -983,6 +985,52 @@ class MainWindow(QMainWindow):
             self._riempi_elenco()
         if getattr(self, "_finestra_guida", None):
             self._finestra_guida.ridisegna()
+
+
+    def _menu_canale(self, posizione):
+        item = self.elenco.itemAt(posizione)
+        if item is None:
+            return
+        indice = self.elenco.row(item)
+        self.elenco.selection_set(str(indice))
+        if not 0 <= indice < len(self._canali_visibili):
+            return
+        voce = self._canali_visibili[indice]
+        preferiti = self.sessione.preferiti
+        gia = any(v[1] == voce[1] for v in preferiti)
+        menu = QMenu(self)
+        if gia:
+            menu.addAction(_("Remove from favorites"), lambda: self.rimuovi_preferito(voce[1]))
+        else:
+            menu.addAction(_("Add to favorites"), lambda: self.aggiungi_preferito(voce))
+        menu.exec(self.elenco.mapToGlobal(posizione))
+
+    def aggiungi_preferito(self, voce):
+        nome, url, ide, categoria, _lista = voce
+        preferiti = leggi_preferiti()
+        if any(v[1] == url for v in preferiti):
+            return
+        preferiti.append((nome, url, ide, categoria))
+        scrivi_preferiti(preferiti)
+        self.sessione.preferiti = leggi_preferiti_cat()
+        self._ricostruisci_canali_preferiti()
+        self._riempi_liste()
+        self.riga_stato.setText(_("Added to favorites"))
+
+    def rimuovi_preferito(self, url):
+        preferiti = [v for v in leggi_preferiti() if v[1] != url]
+        scrivi_preferiti(preferiti)
+        self.sessione.preferiti = leggi_preferiti_cat()
+        self._ricostruisci_canali_preferiti()
+        self._riempi_liste()
+        self._riempi_elenco()
+        self.riga_stato.setText(_("Removed from favorites"))
+
+    def _ricostruisci_canali_preferiti(self):
+        self.sessione.canali = [v for v in self.sessione.canali if v[4] != "__favorite__"]
+        for nome, url, ide, categoria in self.sessione.preferiti:
+            self.sessione.canali.append((nome, url, ide, categoria or "MyPlaylist", "__favorite__"))
+        self.canali = [(n, u, ide) for n, u, ide, _cat, _lista in self.sessione.canali]
 
     def _progresso_di(self, iid):
         try:
