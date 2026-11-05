@@ -2039,6 +2039,18 @@ class MainWindow(QMainWindow):
                     player.imposta("audio-delay", float(ritardi.get(percorso, 0.0)))
                 except Exception:
                     pass
+                for proprieta, chiave in (("sub-delay", "ritardo_sub"), ("sub-scale", "scala_sub")):
+                    try:
+                        valore = self.sessione.config.get(chiave, {}).get(percorso)
+                        if valore is not None:
+                            player.imposta(proprieta, valore)
+                    except Exception:
+                        pass
+                for proprieta, valore in self.sessione.config.get("video", {}).get(percorso, {}).items():
+                    try:
+                        player.imposta(proprieta, valore)
+                    except Exception:
+                        pass
                 try:
                     player.imposta(
                         "stream-lavf-o",
