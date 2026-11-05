@@ -1849,6 +1849,7 @@ class MainWindow(QMainWindow):
             self.showFullScreen()
 
     def closeEvent(self, evento):
+        self.tendina.chiudi()
         self._timer_player.stop()
         self._timer_rec.stop()
         self._timer_dischi.stop()
