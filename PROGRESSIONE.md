@@ -469,3 +469,12 @@ Commit: `db89146`, `88fe27e`, `ab1d743`.
 - Aggiunti test Qt per programma corrente/successivo e categoria attiva; GitHub Actions sul commit `57b66f8` ha superato compilazione e suite di regressione/Qt.
 
 Commit: `6998665`, `beb8a9f`, `572e42a`, `57b66f8`.
+
+
+## Stato del controllo REC
+
+- Il pulsante REC della barra comandi ora passa all'icona `rec_stop.png` e al tooltip Stop durante la registrazione, tornando a `rec.png` e Record quando termina.
+- Il comportamento è applicato sia alle registrazioni avviate manualmente sia a quelle pianificate, perché passa dai metodi comuni di avvio/arresto.
+- Aggiunto test Qt sul cambio e ripristino dello stato del pulsante. GitHub Actions sul commit `b37b04e` ha superato compilazione e suite di regressione/Qt.
+
+Commit: `ad03baa`, `b37b04e`.
