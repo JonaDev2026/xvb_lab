@@ -402,6 +402,7 @@ class MainWindow(QMainWindow):
         pulsante("sidebar", "playlist", self._sidebar, 24, _("Playlists"))
         pulsante("fullscreen", "pieno", self.schermo_intero, 24, _("Fullscreen"))
         pulsante("mute", "volume", self._muto, 24, _("Mute"))
+        self.colore_barra = None
         self.volume = Cursore(
             self.barra, self._volume, larga=85, alta=26, barra=BARRA,
             traccia="#4a4a4a", pieno="#ffffff")
