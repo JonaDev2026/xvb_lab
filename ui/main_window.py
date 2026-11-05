@@ -530,6 +530,7 @@ class MainWindow(QMainWindow):
         self.elenco.salta = self.salta
         self.elenco.avanza = self.avanza
         self._installa_scorciatoie()
+        self._aggiorna_overlay_pannelli()
 
 
     def _focus_blocca_tasti(self):
@@ -809,12 +810,10 @@ class MainWindow(QMainWindow):
             self._aggiorna_overlay_pannelli()
 
     def _aggiorna_overlay_pannelli(self):
-        if self.isFullScreen():
-            self._attiva_overlay()
-        elif self.sinistra.isHidden() and self.destra.isHidden():
-            self._attiva_overlay()
-        else:
+        if self.pip_window is not None:
             self._disattiva_overlay()
+            return
+        self._attiva_overlay()
 
     def _aggiorna_menu_view(self):
         self.azione_lista.setText(_("Show list") if self.sinistra.isHidden() else _("Hide list"))
@@ -3514,10 +3513,16 @@ class MainWindow(QMainWindow):
         self._posiziona_overlay()
         self.barra.show()
         self.barra.raise_()
-        self._timer_overlay.start(3000)
+        if self.isFullScreen() or (self.sinistra.isHidden() and self.destra.isHidden()):
+            self._timer_overlay.start(3000)
+        else:
+            self._timer_overlay.stop()
 
     def _nascondi_overlay(self):
         if not self._overlay_attivo or not self.barra.isVisible():
+            return
+        if not self.isFullScreen() and (self.sinistra.isVisible() or self.destra.isVisible()):
+            self._timer_overlay.stop()
             return
         if self.barra.frameGeometry().contains(QCursor.pos()):
             self._timer_overlay.start(3000)
