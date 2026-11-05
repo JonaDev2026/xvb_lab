@@ -315,6 +315,7 @@ class MainWindow(QMainWindow):
         self._giro_traccia = 0
         self.ripeti = self.sessione.config.get("ripeti", "")
         self.shuffle_attivo = bool(self.sessione.config.get("shuffle"))
+        self._epg_rifare = False
         self._epg_sessione = self.sessione
         self._thread_epg = _CaricaGuide(self._epg_sessione)
         self._thread_epg.completato.connect(self._epg_pronto)
@@ -663,6 +664,7 @@ class MainWindow(QMainWindow):
 
     def ricarica_guida(self):
         if self._thread_epg.isRunning():
+            self._epg_rifare = True
             return
         self.sessione.epg = {}
         self.sessione.epg_nomi = {}
