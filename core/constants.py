@@ -42,3 +42,7 @@ CERCA = "#42414d"
 CIMA = "#1c1b22"
 MENU = CIMA
 PUNTO = 24
+
+
+CATEGORIE_URL = (("podcast", "Podcast"), ("musica", "Music"), ("radio", "Radio"),
+                 ("cam", "IP cam"), ("film", "Film"), ("video", "Video"))
