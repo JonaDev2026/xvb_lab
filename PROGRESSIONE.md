@@ -464,3 +464,23 @@ Avvicinare l'albero Local alla struttura della Stable 4.4.4, mantenendo la confi
 
 - UI: `c0e69d0a73c31f9d3743bf6241c078b7b5640e61`
 - Correzione ripristino Imported media: `36e37ff671fef9aeaa823795f6257a433f05d984`
+
+
+### 2026-11-05 — Arresto sicuro delle scansioni Local
+
+**Modifiche**
+
+- Quando si seleziona una nuova sorgente, le scansioni precedenti ricevono una richiesta di interruzione.
+- Il worker controlla la richiesta tra un blocco e il successivo e interrompe il lavoro non più necessario.
+- Durante la chiusura della finestra vengono interrotte le scansioni attive.
+- La finestra attende la conclusione dei worker; se una scansione è ancora attiva, rimanda la chiusura e riprova.
+- I risultati tardivi non modificano più l'interfaccia durante la chiusura.
+
+**Verifica**
+
+- Codice pubblicato su GitHub.
+- Compilazione e prova di chiusura durante una scansione ancora da eseguire localmente.
+
+**Commit**
+
+- UI e worker: `c4674ffb49d334da4ce56c3eefced664f9359796`
