@@ -422,3 +422,12 @@ Commit: `8a13358`, `ba3fb7f`, `c785c2a`, `f79da58`, `e076863`, `8f4a0ff`, `2786e
 - Aggiunti test per selezione playlist esterna e pulizia delle URL temporanee. GitHub Actions sul commit `2c55359` ha superato compilazione e suite di regressione/Qt.
 
 Commit: `5258042`, `dd25959`, `427a80c`, `6f12365`, `fc7e772`, `5d0eb61`, `603ce4a`, `2c55359`.
+
+
+## Finestra guida EPG e rimozione guide
+
+- La finestra TV Guide ora è unica: una seconda richiesta riporta in primo piano quella esistente; alla chiusura viene eliminata e può essere ricreata.
+- La rimozione di una guida conserva il nome visualizzato prima di cancellare i metadati, così la riga di stato riporta il nome XMLTV effettivo e non il solo URL.
+- Aggiunti test Qt per ciclo di vita della finestra guida e nome mostrato dopo la rimozione. GitHub Actions sul commit `3d4b525` ha superato compilazione e suite di regressione/Qt.
+
+Commit: `bb2b853`, `89525ea`, `38480ad`, `d0e3817`, `ea1a835`, `3d4b525`.
