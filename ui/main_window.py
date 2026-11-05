@@ -515,6 +515,51 @@ class MainWindow(QMainWindow):
             "cache-pause-wait": str(voce[5]),
         }
 
+    def _aggiorna_menu_repeat(self):
+        for modalita, azione in self.azioni_repeat.items():
+            azione.setChecked(self.ripeti == modalita)
+
+    def _riempi_menu_capitoli(self):
+        menu = self.menu_capitoli
+        menu.clear()
+        player = self._attivo()
+        capitoli = player.leggi_nodo("chapter-list") if player else []
+        if not isinstance(capitoli, list) or len(capitoli) < 2:
+            azione = menu.addAction(_("No chapters available"))
+            azione.setEnabled(False)
+            return
+        menu.addAction(self._azione(_("Previous chapter"), lambda: self.vai_capitolo(-1, True)))
+        menu.addAction(self._azione(_("Next chapter"), lambda: self.vai_capitolo(1, True)))
+        if len(capitoli) <= 99:
+            menu.addSeparator()
+            try:
+                attuale = int(float(player.leggi("chapter") or -1))
+            except (TypeError, ValueError):
+                attuale = -1
+            for indice, capitolo in enumerate(capitoli):
+                titolo = (capitolo.get("title") or "").strip()
+                if not titolo or titolo == "(unnamed)":
+                    titolo = _("Chapter %d") % (indice + 1)
+                secondi = int(float(capitolo.get("time") or 0))
+                ore, resto = divmod(secondi, 3600)
+                minuti, secondi = divmod(resto, 60)
+                orario = "%02d:%02d:%02d" % (ore, minuti, secondi)
+                testo = ("✓  " if indice == attuale else "    ") + titolo + "  ·  " + orario
+                menu.addAction(self._azione(
+                    testo, lambda _=False, i=indice: self.vai_capitolo(i)))
+
+    def vai_capitolo(self, numero, relativo=False):
+        player = self._attivo()
+        if not player:
+            return
+        try:
+            if relativo:
+                player.comando("add", "chapter", numero)
+            else:
+                player.imposta("chapter", numero)
+        except Exception:
+            pass
+
     def _ciclo_ripeti(self):
         modalita = ("", "uno", "tutti")
         try:
