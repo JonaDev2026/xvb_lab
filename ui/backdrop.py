@@ -4,7 +4,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QPainter, QPixmap
 from PySide6.QtWidgets import QWidget
 
-from core.constants import QUI
+from core.config import QUI
 
 
 class Sfondo(QWidget):
