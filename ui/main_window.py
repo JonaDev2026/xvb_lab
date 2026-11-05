@@ -23,23 +23,33 @@ from PySide6.QtWidgets import (
 
 from engine.render import MPVRenderWidget
 from core.config import load_config, save_config
-from features.local_media import scan_folder, scan_imported
+from features.local_media import iter_folder_batches, scan_imported
 
 
 class FolderScanWorker(QObject):
-    finished = Signal(object, object, str, object)
+    batch_ready = Signal(object, str, object, int)
+    finished = Signal(object, object, str, object, int)
 
-    def __init__(self, source, value):
+    def __init__(self, source, value, token):
         super().__init__()
         self.source = source
         self.value = value
+        self.token = token
 
     def run(self):
         try:
-            items = scan_folder(self.value) if self.source == "folder" else scan_imported(self.value)
-            self.finished.emit(items, None, self.source, self.value)
+            items = []
+            if self.source == "folder":
+                batches = iter_folder_batches(self.value)
+            else:
+                imported = scan_imported(self.value)
+                batches = (imported[index:index + 30] for index in range(0, len(imported), 30))
+            for batch in batches:
+                items.extend(batch)
+                self.batch_ready.emit(batch, self.source, self.value, self.token)
+            self.finished.emit(items, None, self.source, self.value, self.token)
         except Exception as error:
-            self.finished.emit([], str(error), self.source, self.value)
+            self.finished.emit([], str(error), self.source, self.value, self.token)
 
 
 FONDO = "#1c1b22"
@@ -558,13 +568,16 @@ class MainWindow(QMainWindow):
             self._scan_source(source[0], source[1])
 
     def _scan_source(self, source, value):
+        self._scan_token = getattr(self, "_scan_token", 0) + 1
+        token = self._scan_token
         self._active_source = (source, value)
         self.media_tree.clear()
         self.playback_status.setText("Loading...")
         thread = QThread(self)
-        worker = FolderScanWorker(source, value)
+        worker = FolderScanWorker(source, value, token)
         worker.moveToThread(thread)
         thread.started.connect(worker.run)
+        worker.batch_ready.connect(self._append_media_batch)
         worker.finished.connect(self._show_media_items)
         worker.finished.connect(thread.quit)
         worker.finished.connect(worker.deleteLater)
@@ -573,20 +586,27 @@ class MainWindow(QMainWindow):
         self._scan_threads.append(thread)
         thread.start()
 
-    def _show_media_items(self, items, error, source, value):
-        if getattr(self, "_active_source", None) != (source, value):
+    def _append_media_batch(self, items, source, value, token):
+        if token != getattr(self, "_scan_token", None):
             return
-        self.media_tree.clear()
-        if error:
-            self.playback_status.setText("Library error")
-            self.notice_text.setText(error)
-            self.notification.show()
+        if getattr(self, "_active_source", None) != (source, value):
             return
         for media in items:
             item = QTreeWidgetItem([media["name"]])
             item.setData(0, Qt.ItemDataRole.UserRole, media["path"])
             item.setIcon(0, self._icon("music" if media["kind"] == "music" else "player"))
             self.media_tree.addTopLevelItem(item)
+
+    def _show_media_items(self, items, error, source, value, token):
+        if token != getattr(self, "_scan_token", None):
+            return
+        if getattr(self, "_active_source", None) != (source, value):
+            return
+        if error:
+            self.playback_status.setText("Library error")
+            self.notice_text.setText(error)
+            self.notification.show()
+            return
         source, value = getattr(self, "_active_source", (None, None))
         if source == "folder":
             root_path = Path(value).resolve()
