@@ -17,11 +17,14 @@ Audit strutturale della Stable 4.4.4 completato: sorgente `xvb.py` del tag `v4.4
 - [x] Recuperato il sorgente ufficiale Stable 4.4.4.
 - [x] Inventariate le 8 classi top-level.
 - [x] Elencati i 400 metodi diretti con riga sorgente.
+- [x] Inventariate anche tutte le 106 funzioni top-level con riga sorgente in `analisi/FUNZIONI_TOP_LEVEL_STABLE_4.4.4.md`.
 - [x] Copiato `traduzioni.py` dalla Stable senza modifiche in `i18n/traduzioni.py` (1.418 righe, sette lingue).
 - [x] Aggiunta API `i18n` separata dal toolkit grafico, con inglese predefinito.
 - [x] Rilevati i punti originali di costruzione menu, pannelli, fullscreen e overlay.
-- [ ] Mappatura completa di ogni metodo e delle funzioni top-level.
-- [ ] Migrazione dei moduli applicativi in Qt6.
+- [ ] Mappatura completa delle dipendenze e assegnazione di ogni metodo/funzione al modulo Qt6.
+- [x] Trasferite in `core/media.py` le funzioni originali di classificazione media, URL, scansione cartelle e formattazione durata.
+- [x] Trasferite in `core/config.py` le directory applicative e la persistenza JSON, inclusa la compatibilità con la vecchia configurazione TV.
+- [ ] Migrazione dei restanti moduli applicativi in Qt6.
 - [ ] Ricostruzione della UI originale in Qt6.
 - [ ] Integrazione e verifica libmpv Render API su X11 e Wayland.
 - [ ] Test di parità funzionale con Stable.
