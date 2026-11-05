@@ -240,6 +240,7 @@ class MainWindow(QMainWindow):
         self.mpv = self.player
         self._mpris = avvia_mpris(self)
         self._indice_canale = -1
+        self._giro_traccia = 0
         self.ripeti = self.sessione.config.get("ripeti", "")
         self.shuffle_attivo = bool(self.sessione.config.get("shuffle"))
         self._epg_sessione = self.sessione
@@ -758,7 +759,7 @@ class MainWindow(QMainWindow):
                 "durata": durata,
                 "shuffle": self.shuffle_attivo,
                 "giro_ripeti": {"uno": "Track", "tutti": "Playlist"}.get(self.ripeti, "None"),
-                "giro": int(time.time()),
+                "giro": self._giro_traccia,
             })
         except Exception:
             pass
