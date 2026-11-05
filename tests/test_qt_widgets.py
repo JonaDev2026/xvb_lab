@@ -1,3 +1,4 @@
+import hashlib
 import os
 import tempfile
 import unittest
@@ -7,7 +8,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtWidgets import QApplication, QLabel, QVBoxLayout
 from ui.widgets import Ricerca, Cursore, Elenco, Finestrella, Tendina, Guida
-from ui.main_window import MainWindow
+from ui.main_window import MainWindow, _AggiornaListe
 
 
 class QtWidgetTests(unittest.TestCase):
@@ -211,6 +212,40 @@ class QtWidgetTests(unittest.TestCase):
             self.assertIn("xmltv-original.xml", window.riga_stato.text())
             window.close()
             self.app.processEvents()
+    def test_playlist_refresh_does_not_reload_unchanged_content(self):
+        with tempfile.TemporaryDirectory() as root:
+            url = "https://example.test/list.m3u"
+            cache = os.path.join(root, hashlib.md5(url.encode()).hexdigest() + ".m3u")
+            with open(cache, "wb") as stream:
+                stream.write(b"#EXTM3U\\n#EXTINF:-1,News\\nhttps://stream.test/news")
+            risultati = []
+            def aggiorna(_url):
+                os.utime(cache, (2000, 2000))
+                return cache
+            with patch("ui.main_window.CACHE_LISTE", root), \\
+                 patch("ui.main_window.copia_lista_url", side_effect=aggiorna):
+                worker = _AggiornaListe([url])
+                worker.completato.connect(risultati.append)
+                worker.run()
+            self.assertEqual(risultati, [False])
+
+    def test_playlist_refresh_reloads_changed_content(self):
+        with tempfile.TemporaryDirectory() as root:
+            url = "https://example.test/list.m3u"
+            cache = os.path.join(root, hashlib.md5(url.encode()).hexdigest() + ".m3u")
+            with open(cache, "wb") as stream:
+                stream.write(b"#EXTM3U\\n#EXTINF:-1,News\\nhttps://stream.test/news")
+            risultati = []
+            def aggiorna(_url):
+                with open(cache, "wb") as stream:
+                    stream.write(b"#EXTM3U\\n#EXTINF:-1,Sports\\nhttps://stream.test/sports")
+                return cache
+            with patch("ui.main_window.CACHE_LISTE", root), \\
+                 patch("ui.main_window.copia_lista_url", side_effect=aggiorna):
+                worker = _AggiornaListe([url])
+                worker.completato.connect(risultati.append)
+                worker.run()
+            self.assertEqual(risultati, [True])
 
 if __name__ == "__main__":
     unittest.main()
