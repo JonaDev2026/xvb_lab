@@ -221,6 +221,7 @@ class MainWindow(QMainWindow):
         self._update_clock()
         self._end_timer = QTimer(self)
         self._end_timer.timeout.connect(self._check_playback_end)
+        self._end_timer.timeout.connect(self._update_playback_display)
         self._end_timer.start(500)
         self.engine.command("set_property", "volume", str(self.volume_slider.value()))
         self.engine.command("set_property", "mute", "yes" if self.config.get("muted", False) else "no")
@@ -461,17 +462,34 @@ class MainWindow(QMainWindow):
         self.previous_button = self._tool_button("prima", "Previous", self.play_previous, enabled=False)
         controls.addWidget(self.previous_button)
         controls.addWidget(self._text_button("-10", "Back 10 seconds", lambda: self.seek(-10)))
-        self.play_button = self._tool_button("play", "Play", self.toggle_pause)
+        self.play_button = self._tool_button("play", "Play / Pause", self.toggle_pause)
         controls.addWidget(self.play_button)
         controls.addWidget(self._tool_button("stop", "Stop", self.stop_playback))
         controls.addWidget(self._text_button("+10", "Forward 10 seconds", lambda: self.seek(10)))
         self.next_button = self._tool_button("dopo", "Next", self.play_next, enabled=False)
         controls.addWidget(self.next_button)
-        controls.addSpacing(14)
+        controls.addSpacing(8)
+        self.repeat_button = self._tool_button("repeat", "No repeat", self.cycle_repeat)
+        controls.addWidget(self.repeat_button)
+        self.shuffle_button = self._tool_button("shuffle", "Shuffle off", self.toggle_shuffle)
+        self.shuffle_button.setCheckable(True)
+        self.shuffle_button.setChecked(bool(self.config.get("shuffle", False)))
+        controls.addWidget(self.shuffle_button)
         controls.addWidget(self._tool_button("rec", "Record", enabled=False))
-        controls.addWidget(self._tool_button("repeat", "No repeat", enabled=False))
-        controls.addWidget(self._tool_button("shuffle", "Shuffle", enabled=False))
-        controls.addStretch(1)
+        controls.addSpacing(8)
+        self.position_label = QLabel("00:00")
+        self.position_label.setMinimumWidth(42)
+        controls.addWidget(self.position_label)
+        self.position_slider = QSlider(Qt.Orientation.Horizontal)
+        self.position_slider.setRange(0, 1000)
+        self.position_slider.setMinimumWidth(100)
+        self.position_slider.setTracking(False)
+        self.position_slider.sliderPressed.connect(self._position_pressed)
+        self.position_slider.sliderReleased.connect(self._position_released)
+        controls.addWidget(self.position_slider, 1)
+        self.duration_label = QLabel("00:00")
+        self.duration_label.setMinimumWidth(42)
+        controls.addWidget(self.duration_label)
         controls.addWidget(self._tool_button("favorite_off", "Favorite", enabled=False))
         self.playlist_button = self._tool_button("playlist", "Playlists", self.toggle_right_panel)
         controls.addWidget(self.playlist_button)
@@ -988,6 +1006,9 @@ class MainWindow(QMainWindow):
         enabled = not bool(self.config.get("shuffle", False))
         self.config["shuffle"] = enabled
         self.shuffle_action.setChecked(enabled)
+        self.shuffle_button.setChecked(enabled)
+        self.shuffle_button.setIcon(self._icon("shuffle"))
+        self.shuffle_button.setToolTip("Shuffle on" if enabled else "Shuffle off")
         if enabled:
             self._apply_shuffle()
         elif self._normal_media_order:
@@ -1011,7 +1032,48 @@ class MainWindow(QMainWindow):
     def set_repeat(self, mode):
         self.config["repeat"] = mode
         self.repeat_actions[mode].setChecked(True)
+        icon = "repeat_one" if mode == "one" else "repeat"
+        self.repeat_button.setIcon(self._icon(icon))
+        self.repeat_button.setToolTip({"": "No repeat", "one": "Repeat one", "all": "Repeat all"}[mode])
         save_config(self.config)
+
+    def cycle_repeat(self):
+        current = self.config.get("repeat", "")
+        self.set_repeat({"": "all", "all": "one", "one": ""}.get(current, ""))
+
+    def _position_pressed(self):
+        self._seeking_position = True
+
+    def _position_released(self):
+        duration = self.engine.get_double("duration")
+        if duration and duration > 0:
+            target = duration * self.position_slider.value() / 1000
+            self.engine.command("seek", f"{target:.3f}", "absolute")
+        self._seeking_position = False
+
+    def _format_time(self, seconds):
+        if seconds is None or seconds < 0:
+            return "--:--"
+        total = int(seconds)
+        hours, remainder = divmod(total, 3600)
+        minutes, secs = divmod(remainder, 60)
+        return f"{hours}:{minutes:02d}:{secs:02d}" if hours else f"{minutes:02d}:{secs:02d}"
+
+    def _update_playback_display(self):
+        position = self.engine.get_double("time-pos")
+        duration = self.engine.get_double("duration")
+        self.position_label.setText(self._format_time(position))
+        self.duration_label.setText(self._format_time(duration))
+        if duration and duration > 0 and position is not None and not getattr(self, "_seeking_position", False):
+            self.position_slider.blockSignals(True)
+            self.position_slider.setValue(max(0, min(1000, int(position / duration * 1000))))
+            self.position_slider.blockSignals(False)
+        try:
+            paused = self.engine.get_flag("pause")
+            self.play_button.setIcon(self._icon("play" if paused else "pausa"))
+            self.play_button.setToolTip("Play" if paused else "Pause")
+        except Exception:
+            pass
 
     def _check_playback_end(self):
         if not self._current_media_path or self._end_handled:
