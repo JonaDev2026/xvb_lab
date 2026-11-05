@@ -84,16 +84,31 @@ class _DurataFile(QThread):
 class _ScansionaCartelle(QThread):
     completato = Signal(object, str)
 
-    def __init__(self, cartelle, tag_cache):
+    def __init__(self, cartelle, tag_cache, importati=(), gia=()):
         super().__init__()
         self.cartelle = list(cartelle)
         self.tag_cache = tag_cache
+        self.importati = list(importati)
+        self.gia = set(gia)
 
     def run(self):
         risultati = {}
         try:
             for cartella in self.cartelle:
                 risultati[cartella] = _prepara_file_cartella(cartella, media_in(cartella), self.tag_cache)
+            preparati = []
+            for percorso in self.importati:
+                if not os.path.isfile(percorso) or percorso in self.gia:
+                    continue
+                assoluto = os.path.abspath(percorso)
+                if any(os.path.commonpath((assoluto, os.path.abspath(cartella))) == os.path.abspath(cartella)
+                       for cartella in self.cartelle):
+                    continue
+                cartella = os.path.dirname(percorso)
+                nome = os.path.splitext(os.path.basename(percorso))[0]
+                preparati.extend(_prepara_file_cartella(
+                    cartella, [(nome, percorso, None)], self.tag_cache))
+            risultati["__importati__"] = preparati
             self.completato.emit(risultati, "")
         except Exception as errore:
             self.completato.emit(risultati, str(errore))
@@ -487,22 +502,6 @@ class MainWindow(QMainWindow):
         self.info = leggi_json(FILE_INFO)
         self._worker_copertine = None
         self.canali = [(n, u, ide) for n, u, ide, _cat, _lista in self.sessione.canali]
-        for percorso in self.sessione.config.get("importati", []):
-            if not os.path.isfile(percorso) or any(v[1] == percorso for v in self.sessione.canali):
-                continue
-            estensione = os.path.splitext(percorso)[1][1:].lower()
-            if estensione in AUDIO:
-                titolo, artista, album, anno = tag_di(percorso, self.tag_cache)
-                nome = titolo or os.path.splitext(os.path.basename(percorso))[0]
-                self.sottotitoli[percorso] = " · ".join(x for x in (artista, album, anno) if x)
-                categoria = "Music"
-            else:
-                nome, anno = titolo_anno(percorso)
-                nome = nome or os.path.splitext(os.path.basename(percorso))[0]
-                self.sottotitoli[percorso] = anno or ""
-                categoria = "Video"
-            self.sessione.canali.append((nome, percorso, None, categoria, "__importati__"))
-        self.canali = [(n, u, ide) for n, u, ide, _cat, _lista in self.sessione.canali]
 
         self.epg = self.sessione.epg
         self.epg_nomi = self.sessione.epg_nomi
@@ -808,9 +807,11 @@ class MainWindow(QMainWindow):
 
     def _carica_cartelle_configurate(self):
         cartelle = [p for p in self.sessione.config.get("cartelle", []) if os.path.isdir(p)]
-        if not cartelle:
+        importati = self.sessione.config.get("importati", [])
+        gia = {voce[1] for voce in self.sessione.canali}
+        if not cartelle and not importati:
             return
-        worker = _ScansionaCartelle(cartelle, self.tag_cache)
+        worker = _ScansionaCartelle(cartelle, self.tag_cache, importati, gia)
         worker.completato.connect(self._cartelle_configurate_scansionate)
         worker.finished.connect(lambda w=worker: self._rimuovi_worker_scansione(w))
         self.__dict__.setdefault("_scan_workers", []).append(worker)
@@ -821,6 +822,16 @@ class MainWindow(QMainWindow):
             self.riga_stato.setText(_("Some media folders could not be scanned: %s") % errore)
         gia = {voce["percorso"] for voce in self.sessione.liste}
         for cartella, elementi in risultati.items():
+            if cartella == "__importati__":
+                percorsi = {voce[1] for voce in self.sessione.canali}
+                for nome, percorso, ide, categoria, _origine, sotto in elementi:
+                    if percorso in percorsi:
+                        continue
+                    self.sottotitoli[percorso] = sotto
+                    self.sessione.canali.append(
+                        (nome, percorso, ide, categoria, "__importati__"))
+                    percorsi.add(percorso)
+                continue
             if cartella in gia:
                 continue
             locali = self._media_locale(cartella, elementi)
