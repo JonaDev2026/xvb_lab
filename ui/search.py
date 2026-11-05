@@ -1,6 +1,6 @@
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QColor, QPainter, QPen
-from PySide6.QtWidgets import QWidget, QLineEdit
+from PySide6.QtWidgets import QWidget, QLineEdit, QSizePolicy
 
 
 class Ricerca(QWidget):
@@ -66,7 +66,11 @@ class Cursore(QWidget):
         self.larga, self.alta, self.cambia = larga, alta, cambia
         self.barra, self.traccia, self.pieno = map(QColor, (barra, traccia, pieno))
         self.valore, self.tinta = 85, None
-        self.setFixedSize(larga, alta)
+        self.setFixedHeight(alta)
+        self.setMinimumWidth(0)
+        self.setMaximumWidth(larga)
+        self.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.resize(larga, alta)
         self.setCursor(Qt.PointingHandCursor)
         self.valoreCambiato.connect(self.cambia)
 
