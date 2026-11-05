@@ -9,6 +9,7 @@ from unittest.mock import patch
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QPoint
+from PySide6.QtGui import QColor, QPixmap
 from PySide6.QtWidgets import QApplication, QLabel, QMenu, QVBoxLayout
 from ui.widgets import Ricerca, Cursore, Elenco, Finestrella, Tendina, Guida
 from ui.main_window import MainWindow, _AggiornaListe, _ScansionaCartelle, _prepara_file_cartella, _ScaricaCopertine
@@ -245,6 +246,39 @@ class QtWidgetTests(unittest.TestCase):
             self.assertEqual(window.sessione.config["epg_nomi_utente"][url], "My Guide")
             self.assertEqual(window.nome_guida(url), "My Guide")
             refill.assert_called_once()
+            window.close()
+            self.app.processEvents()
+
+    def test_local_media_cover_uses_adjacent_jpeg_and_remote_cover_cache(self):
+        with patch("ui.main_window.MpvVideo", side_effect=RuntimeError("libmpv unavailable")):
+            window = MainWindow()
+            self.assertEqual(
+                window.percorso_copertina("/media/video/Movie.mkv"),
+                "/media/video/Movie.jpg")
+            remoto = window.percorso_copertina("https://example.test/channel")
+            self.assertTrue(remoto.endswith(".jpg"))
+            self.assertNotEqual(remoto, "https://example.test/channel")
+            window.close()
+            self.app.processEvents()
+
+    def test_local_media_cover_is_saved_as_jpeg_and_used_by_list(self):
+        with tempfile.TemporaryDirectory() as root, \
+                patch("ui.main_window.MpvVideo", side_effect=RuntimeError("libmpv unavailable")):
+            window = MainWindow()
+            media = os.path.join(root, "Track.mp3")
+            sorgente = os.path.join(root, "cover.png")
+            with open(media, "wb") as stream:
+                stream.write(b"audio")
+            immagine = QPixmap(16, 16)
+            immagine.fill(QColor("#123456"))
+            self.assertTrue(immagine.save(sorgente, "PNG"))
+            with patch("ui.main_window.QFileDialog.getOpenFileName",
+                       return_value=(sorgente, "")), patch.object(window, "_riempi_elenco"):
+                window.metti_copertina(media)
+            destinazione = os.path.join(root, "Track.jpg")
+            self.assertTrue(os.path.isfile(destinazione))
+            self.assertFalse(QPixmap(destinazione).isNull())
+            self.assertFalse(window.logo_di(media).isNull())
             window.close()
             self.app.processEvents()
 
