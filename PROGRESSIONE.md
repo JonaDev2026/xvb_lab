@@ -666,3 +666,34 @@ Allineare le dimensioni fondamentali dell'interfaccia Qt ai valori effettivi del
 
 - Metriche principali allineate ai valori Stable.
 - Restano da trasferire fedelmente struttura, componenti e comportamento dei due alberi e della barra di riproduzione.
+
+
+### 2026-11-05 — Allineamento della barra comandi alla Stable
+
+**Obiettivo**
+
+Correggere ulteriori differenze visibili nella barra comandi, confrontandola con la disposizione effettiva della Stable 4.4.4.
+
+**File modificati**
+
+- `ui/main_window.py` — dimensione icone e visibilità dei controlli.
+
+**Modifiche**
+
+- Icone dei comandi principali riportate a 34×34 px; Stop resta 24×24 px.
+- Nascosti i pulsanti Favorite e Quality, che nella Stable sono inizialmente nascosti.
+- Conservati il pulsante PiP, il selettore volume e il pulsante Playlists nella barra.
+
+**Verifica**
+
+- Modifica registrata su GitHub.
+- Avvio, compilazione e confronto visivo locale ancora da eseguire.
+
+**Commit**
+
+- `fa92078c74b12b4d701927cc7522ae07b3b25cf1`.
+
+**Stato e prossimo passaggio**
+
+- Ulteriori differenze della barra comandi corrette.
+- La ricostruzione della UI non è completa: restano da trasferire struttura e contenuti reali dell'elenco media e della sidebar IPTV/EPG/M3U.
