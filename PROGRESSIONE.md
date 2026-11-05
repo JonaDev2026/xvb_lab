@@ -257,3 +257,5 @@ Non eseguiti test grafici o prove di rendering. La dissolvenza originale dello s
 
 - La barra comandi Qt6 è ora sovrapposta al video anche nella finestra normale, come nella Stable; resta visibile con i pannelli laterali aperti e si nasconde dopo tre secondi quando entrambi sono chiusi o a schermo intero. In PiP torna al layout esterno.
 - La sfumatura colorata del canale viene mantenuta anche nella barra sovrapposta semitrasparente.
+
+- Aggiornato il test Qt della finestra principale per verificare la nuova collocazione della barra in overlay nel layout normale, invece della vecchia barra esterna.
