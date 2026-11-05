@@ -11,7 +11,8 @@ class ArtworkTests(unittest.TestCase):
         result = artwork.disco_frame(base, 80, 64, 0, "#30a0d0")
         self.assertEqual(result.size, (80, 64))
         self.assertEqual(result.getpixel((0, 0))[3], 0)
-        self.assertGreater(result.getpixel((40, 32))[3], 0)
+        self.assertEqual(result.getpixel((40, 32))[3], 0)
+        self.assertGreater(result.getpixel((48, 32))[3], 0)
 
     def test_sidebar_icons_keep_requested_dimensions(self):
         for funzione in (artwork.cartellina, artwork.segnalibro, artwork.globo,
