@@ -470,6 +470,7 @@ class MainWindow(QMainWindow):
         iptv.addAction(self._azione(_("Add playlist URL"), self.aggiungi_lista_url))
         iptv.addAction(self._azione(_("Open playlists folder"), self.apri_cartella_liste))
         iptv.addAction(self._azione(_("Reload playlists"), self.ricarica_liste))
+        iptv.addAction(self._azione(_("Remove selected playlist"), self.rimuovi_lista_selezionata))
         iptv.addSeparator()
         iptv.addAction(self._azione(_("Programme guide"), self.apri_guida))
         iptv.addAction(self._azione(_("Add guide URL"), self.aggiungi_epg_url))
@@ -551,6 +552,40 @@ class MainWindow(QMainWindow):
     def _liste_auto_pronte(self, cambiata):
         if cambiata:
             self.ricarica_liste(forza=False)
+
+
+    def _menu_liste(self, posizione):
+        item = self.el_liste.itemAt(posizione)
+        if item is None:
+            return
+        iid = item.data(0, Qt.UserRole)
+        valore = self.el_liste.item(str(iid), "valore") if iid is not None else None
+        menu = QMenu(self)
+        if valore and valore[0] == "__epg__":
+            menu.addAction(_("Remove guide"), lambda: self.togli_epg(valore[1]))
+        elif valore and isinstance(valore[0], str) and valore[0].startswith(("http://", "https://")):
+            menu.addAction(_("Remove playlist"), lambda: self.rimuovi_lista(valore[0]))
+        elif valore and os.path.isfile(str(valore[0])):
+            menu.addAction(_("Remove from list"), lambda: self.rimuovi_lista(valore[0]))
+        if menu.actions():
+            menu.exec(self.el_liste.mapToGlobal(posizione))
+
+    def rimuovi_lista_selezionata(self):
+        if self._percorso_attivo:
+            self.rimuovi_lista(self._percorso_attivo)
+
+    def rimuovi_lista(self, percorso):
+        cfg = self.sessione.config
+        if percorso in cfg.get("liste_url", {}):
+            cfg["liste_url"].pop(percorso, None)
+        elif percorso in cfg.get("liste", []):
+            cfg["liste"] = [p for p in cfg["liste"] if p != percorso]
+        else:
+            return
+        scrivi_config(cfg)
+        self._percorso_attivo = None
+        self._categoria_attiva = None
+        self.ricarica_liste(forza=False)
 
     def aggiungi_lista_url(self):
         url = self._chiedi_testo(_("Add playlist URL"), _("URL of the playlist (m3u):"))
