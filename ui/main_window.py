@@ -14,7 +14,7 @@ from core.metadata import titolo_anno, dal_percorso, copertina_url, copertina_de
 from integrations.mpris import avvia_mpris
 from core.config import scrivi_config, CARTELLE_LISTE, REGISTRAZIONI, leggi_config, QUI
 from i18n import _, imposta_lingua, LINGUE
-from core.playlists import liste_in_cartella, BUFFER, LOGHI
+from core.playlists import liste_in_cartella, BUFFER, LOGHI, NOMI_URL, CACHE_LISTE, copia_lista_url
 from core.colors import CACHE_LOGHI, leggi_colori, scrivi_colori, colore_di, colore_dal_logo
 from core.constants import SCALA_FILE
 from core.discs import dischi, cd_audio, dvd_cifrato, e_dvd, titolo_da_etichetta
@@ -23,6 +23,8 @@ import re
 import time
 import random
 import json
+import hashlib
+from urllib.parse import urlparse
 
 
 class _CaricaGuide(QThread):
@@ -496,30 +498,39 @@ class MainWindow(QMainWindow):
 
     def _chiedi_testo(self, titolo, etichetta, valore=""):
         def corpo(widget):
-            layout = QVBoxLayout(widget)
-            testo = QLabel(etichetta, widget)
-            testo.setStyleSheet("color:#9e9e9e")
-            layout.addWidget(testo)
+            QVBoxLayout(widget)
         finestra = Finestrella(self, titolo, corpo, chiedi=etichetta,
                                valore=valore, larga=460)
         return finestra.risposta if finestra.exec() == QDialog.Accepted else None
 
     def aggiungi_lista_url(self):
-        url = self._chiedi_testo(_("Add playlist URL"), "URL")
+        url = self._chiedi_testo(_("Add playlist URL"), _("URL of the playlist (m3u):"))
         if not url or not url.strip():
             return
-        cfg = self.sessione.config
-        liste = cfg.get("liste", [])
-        if isinstance(liste, str):
-            liste = [liste]
-        if url.strip() not in liste:
-            liste.append(url.strip())
-        cfg["liste"] = liste
-        scrivi_config(cfg)
-        self.ricarica_liste()
+        url = url.strip()
+        liste_url = self.sessione.config.setdefault("liste_url", {})
+        if url in liste_url:
+            self.riga_stato.setText(_("%s is already there") % nome_di(url))
+            return
+        base = os.path.basename(urlparse(url).path.rstrip("/"))
+        base = re.sub(r"\\.(m3u8?|txt)$", "", base, flags=re.I) or "playlist"
+        nome = self._chiedi_testo(_("Add URL"), _("Name:"), base)
+        if not nome or not nome.strip():
+            return
+        liste_url[url] = nome.strip()
+        scrivi_config(self.sessione.config)
+        self.ricarica_liste(scegli=url)
 
-    def ricarica_liste(self):
+    def ricarica_liste(self, scegli=None):
         precedente = self.sessione
+        NOMI_URL.clear()
+        NOMI_URL.update(precedente.config.get("nomi_liste", {}))
+        NOMI_URL.update(precedente.config.get("liste_url", {}))
+        for url in precedente.config.get("liste_url", {}):
+            try:
+                copia_lista_url(url, "forza")
+            except Exception:
+                pass
         nuova = Sessione()
         nuova.epg = precedente.epg
         nuova.epg_nomi = precedente.epg_nomi
@@ -536,7 +547,7 @@ class MainWindow(QMainWindow):
         self.canali = [(n, u, ide) for n, u, ide, _cat, _lista in nuova.canali]
         self.epg = nuova.epg
         self.epg_nomi = nuova.epg_nomi
-        self._percorso_attivo = None
+        self._percorso_attivo = scegli if scegli else None
         self._categoria_attiva = None
         self._riempi_liste()
         self._riempi_elenco()
