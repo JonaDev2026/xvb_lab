@@ -1514,23 +1514,31 @@ class MainWindow(QMainWindow):
         self.sessione.config["riempi"] = False
         scrivi_config(self.sessione.config)
         self.applica_video()
+        if hasattr(self, "azioni_proporzioni"):
+            self._aggiorna_menu_video()
 
     def riempi(self):
         self.sessione.config["riempi"] = not bool(self.sessione.config.get("riempi"))
         scrivi_config(self.sessione.config)
         self.applica_video()
+        if hasattr(self, "azioni_proporzioni"):
+            self._aggiorna_menu_video()
 
     def deinterlaccia(self):
         attivo = not bool(self.sessione.config.get("deinterlaccia"))
         self.sessione.config["deinterlaccia"] = attivo
         scrivi_config(self.sessione.config)
         self.applica_video()
+        if hasattr(self, "azione_deinterlaccia"):
+            self._aggiorna_menu_video()
 
     def decodifica_hw(self):
         attivo = not bool(self.sessione.config.get("hwdec", True))
         self.sessione.config["hwdec"] = attivo
         scrivi_config(self.sessione.config)
         self.applica_video()
+        if hasattr(self, "azione_hwdec"):
+            self._aggiorna_menu_video()
 
     def regola(self, cosa, di):
         valore = max(-100, min(100, int(self.sessione.config.get(cosa, 0)) + di))
@@ -2873,12 +2881,16 @@ class MainWindow(QMainWindow):
         self.sessione.config["boost"] = attivo
         scrivi_config(self.sessione.config)
         self._volume(self.volume.value())
+        if hasattr(self, "azione_boost"):
+            self._aggiorna_menu_audio()
 
     def normalizza(self):
         attivo = not bool(self.sessione.config.get("normalizza"))
         self.sessione.config["normalizza"] = attivo
         scrivi_config(self.sessione.config)
         self.applica_filtri_audio()
+        if hasattr(self, "azione_normalizza"):
+            self._aggiorna_menu_audio()
 
     def applica_filtri_audio(self):
         filtri = []
@@ -3169,6 +3181,8 @@ class MainWindow(QMainWindow):
             else:
                 self.speed_button.setText("x%g" % valore)
                 self.speed_button.show()
+            if hasattr(self, "azioni_velocita"):
+                self._aggiorna_menu_playback()
             self._messaggio_temporaneo(_("speed x%g") % valore)
         except Exception:
             pass
