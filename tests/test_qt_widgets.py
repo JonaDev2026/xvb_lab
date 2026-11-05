@@ -8,7 +8,8 @@ from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication, QLabel, QVBoxLayout
+from PySide6.QtCore import QPoint
+from PySide6.QtWidgets import QApplication, QLabel, QMenu, QVBoxLayout
 from ui.widgets import Ricerca, Cursore, Elenco, Finestrella, Tendina, Guida
 from ui.main_window import MainWindow, _AggiornaListe, _ScansionaCartelle, _prepara_file_cartella, _ScaricaCopertine
 
@@ -117,6 +118,100 @@ class QtWidgetTests(unittest.TestCase):
             window._aggiorna_menu_audio()
             self.assertTrue(window.azione_carica_sottotitoli.isEnabled())
             self.assertTrue(window.azione_sottotitoli_online.isEnabled())
+            window.close()
+            self.app.processEvents()
+
+    def test_iptv_context_menu_restores_stable_actions(self):
+        with patch("ui.main_window.MpvVideo", side_effect=RuntimeError("libmpv unavailable")):
+            window = MainWindow()
+            url = "https://example.test/context-menu"
+            window._canali_visibili = [("News", url, "news", "World", "playlist.m3u")]
+            window.elenco.insert("", "end", iid="0", text="News")
+            item = window.elenco.topLevelItem(0)
+            viste = []
+            with patch.object(window.elenco, "itemAt", return_value=item), \
+                    patch.object(window.elenco, "row", return_value=0), \
+                    patch.object(QMenu, "exec", autospec=True,
+                                 side_effect=lambda menu, _pos: viste.extend(
+                                     action.text() for action in menu.actions())):
+                window._menu_canale(QPoint(2, 2))
+            self.assertIn("Rename...", viste)
+            self.assertIn("Set logo...", viste)
+            self.assertIn("Set color...", viste)
+            self.assertIn("Add to favorites", viste)
+            window.close()
+            self.app.processEvents()
+
+    def test_local_media_context_menu_keeps_cover_and_favorite_actions(self):
+        with patch("ui.main_window.MpvVideo", side_effect=RuntimeError("libmpv unavailable")):
+            window = MainWindow()
+            percorso = "/tmp/context-menu-track.mp3"
+            window._canali_visibili = [("Track", percorso, None, "Music", "__importati__")]
+            window.elenco.insert("", "end", iid="0", text="Track")
+            item = window.elenco.topLevelItem(0)
+            viste = []
+            with patch.object(window.elenco, "itemAt", return_value=item), \
+                    patch.object(window.elenco, "row", return_value=0), \
+                    patch.object(QMenu, "exec", autospec=True,
+                                 side_effect=lambda menu, _pos: viste.extend(
+                                     action.text() for action in menu.actions())):
+                window._menu_canale(QPoint(2, 2))
+            self.assertIn("Set cover...", viste)
+            self.assertIn("Add to favorites", viste)
+            self.assertNotIn("Rename...", viste)
+            window.close()
+            self.app.processEvents()
+
+    def test_channel_rename_is_saved_and_used_for_display_only(self):
+        with patch("ui.main_window.MpvVideo", side_effect=RuntimeError("libmpv unavailable")):
+            window = MainWindow()
+            url = "https://example.test/renamed-channel"
+            with patch("ui.main_window.QInputDialog.getText", return_value=("My News", True)), \
+                    patch("ui.main_window.scrivi_config"), \
+                    patch.object(window, "_riempi_elenco"):
+                window.rinomina_canale("News", url)
+            self.assertEqual(window.sessione.config["nomi_canali"][url], "My News")
+            self.assertEqual(window.nome_canale("News", url), "My News")
+            with patch("ui.main_window.QInputDialog.getText", return_value=("News", True)), \
+                    patch("ui.main_window.scrivi_config"), \
+                    patch.object(window, "_riempi_elenco"):
+                window.rinomina_canale("News", url)
+            self.assertNotIn(url, window.sessione.config["nomi_canali"])
+            self.assertEqual(window.nome_canale("News", url), "News")
+            window.close()
+            self.app.processEvents()
+
+    def test_manual_channel_color_updates_config_and_list(self):
+        from PySide6.QtGui import QColor
+        with patch("ui.main_window.MpvVideo", side_effect=RuntimeError("libmpv unavailable")):
+            window = MainWindow()
+            url = "https://example.test/colored-channel"
+            with patch("ui.main_window.QColorDialog.getColor", return_value=QColor("#123456")), \
+                    patch("ui.main_window.scrivi_config"), \
+                    patch.object(window, "_riempi_elenco") as refill:
+                window.scegli_colore("News", url)
+            self.assertEqual(window.sessione.config["colori_canali"][url], "#123456")
+            refill.assert_called_once()
+            self.assertEqual(window.colore_canale("News", url), "#123456")
+            with patch("ui.main_window.scrivi_config"), patch.object(window, "_riempi_elenco") as refill:
+                window.togli_colore(url)
+            self.assertNotIn(url, window.sessione.config["colori_canali"])
+            refill.assert_called_once()
+            window.close()
+            self.app.processEvents()
+
+    def test_renamed_channel_uses_alias_in_status_without_changing_epg_name(self):
+        with patch("ui.main_window.MpvVideo", side_effect=RuntimeError("libmpv unavailable")):
+            window = MainWindow()
+            url = "https://example.test/status-name"
+            window.sessione.config.setdefault("nomi_canali", {})[url] = "My News"
+            window.file_in_onda = url
+            window.nome_in_onda = "News"
+            window.ide_in_onda = "news"
+            window.aggiorna_info_canale()
+            self.assertEqual(window.riga_stato.text(), "My News")
+            self.assertEqual(window._programmi_canale(), [])
+            self.assertEqual(window.nome_in_onda, "News")
             window.close()
             self.app.processEvents()
 
