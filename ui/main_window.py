@@ -417,7 +417,7 @@ class MainWindow(QMainWindow):
             (QKeySequence(Qt.Key_M), self._muto),
             (QKeySequence(Qt.Key_Plus), lambda: self._regola("audio-delay", 0.1)),
             (QKeySequence(Qt.Key_Minus), lambda: self._regola("audio-delay", -0.1)),
-            (QKeySequence(Qt.Key_Up), lambda: self.volume.set(self.volume.get() + 5)),
+            (QKeySequence(Qt.Key_Up), lambda: self.volume.setValue(self.volume.value() + 5)),
             (QKeySequence(Qt.Key_Down), lambda: self.volume.set(self.volume.get() - 5)),
             (QKeySequence(Qt.Key_Left), lambda: self.salta(-1)),
             (QKeySequence(Qt.Key_Right), lambda: self.salta(1)),
