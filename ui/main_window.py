@@ -333,6 +333,7 @@ class MainWindow(QMainWindow):
         self._mpris = avvia_mpris(self)
         self._indice_canale = -1
         self._giro_traccia = 0
+        self._eof_gestito = False
         self.ripeti = self.sessione.config.get("ripeti", "")
         self.shuffle_attivo = bool(self.sessione.config.get("shuffle"))
         self._epg_rifare = False
@@ -361,6 +362,10 @@ class MainWindow(QMainWindow):
                 totale = float(durata)
                 if totale > 0:
                     self.posizione.setValue(int(float(posizione) * 1000 / totale))
+            if player.leggi("eof-reached") == "yes" and not self._eof_gestito:
+                self._eof_gestito = True
+                if self.ripeti == "tutti":
+                    self.salta(1)
         except Exception:
             return
 
@@ -1492,9 +1497,16 @@ class MainWindow(QMainWindow):
 
     def mpris_shuffle(self, attivo):
         self.shuffle_attivo = bool(attivo)
+        if hasattr(self, "azione_shuffle"):
+            self.azione_shuffle.setChecked(self.shuffle_attivo)
         self.sessione.config["shuffle"] = self.shuffle_attivo
         scrivi_config(self.sessione.config)
         self._aggiorna_mpris()
+
+
+    def _aggiorna_azioni_ripeti(self):
+        for chiave, azione in getattr(self, "azioni_ripeti", {}).items():
+            azione.setChecked(chiave == self.ripeti)
 
     def metti_ripeti(self, modalita):
         self.ripeti = modalita or ""
@@ -1503,6 +1515,8 @@ class MainWindow(QMainWindow):
         player = self._attivo()
         if player:
             player.imposta("loop-file", "inf" if self.ripeti == "uno" else "no")
+            player.imposta("loop-playlist", "inf" if self.ripeti == "tutti" else "no")
+        self._aggiorna_azioni_ripeti()
         self._aggiorna_mpris()
 
     def _programma_corrente(self):
@@ -1707,6 +1721,7 @@ class MainWindow(QMainWindow):
         try:
             player = self._attivo()
             player.apri(percorso)
+            self._eof_gestito = False
             self._giro_traccia += 1
             self.file_in_onda = percorso
             if os.path.isfile(percorso):
