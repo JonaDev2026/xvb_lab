@@ -10,6 +10,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QInputDialog,
     QMainWindow,
     QMenu,
     QMessageBox,
@@ -111,6 +112,7 @@ class MainWindow(QMainWindow):
         self.config = load_config()
         self.config.setdefault("folders", [])
         self.config.setdefault("imported", [])
+        self.config.setdefault("recent", [])
         self._scan_threads = []
         self._metadata_threads = []
         self._media_tree_items = {}
@@ -255,24 +257,27 @@ class MainWindow(QMainWindow):
         media = bar.addMenu("Media")
         self._action(media, "Open file...", self.open_file)
         self._action(media, "Open folder...", self.open_folder)
-        self._action(media, "Open URL...", enabled=False)
+        self._action(media, "Open URL...", self.open_url)
         media.addSeparator()
         self._action(media, "Download posters and covers", enabled=False)
         media.addSeparator()
-        self._action(media, "Recent", enabled=False)
-        self._action(media, "Clear recent", enabled=False)
+        self.recent_menu = media.addMenu("Recent")
+        self.recent_menu.aboutToShow.connect(self._populate_recent_menu)
+        self._action(media, "Clear recent", self.clear_recent)
 
         playback = bar.addMenu("Playback")
         self._action(playback, "Play / Pause", self.toggle_pause, shortcut="Space")
-        self._action(playback, "Stop", self.engine.stop)
+        self._action(playback, "Stop", self.stop_playback, shortcut="Ctrl+.")
+        self._action(playback, "Previous", self.play_previous, shortcut="Ctrl+Left")
+        self._action(playback, "Next", self.play_next, shortcut="Ctrl+Right")
         playback.addSeparator()
         self._action(playback, "Sleep timer", enabled=False)
         for minutes in (15, 30, 45, 60, 90):
             self._action(playback, f"{minutes} minutes", enabled=False)
         self._action(playback, "Cancel sleep timer", enabled=False)
         playback.addSeparator()
-        self._action(playback, "Back 10 s", lambda: self.seek(-10))
-        self._action(playback, "Forward 10 s", lambda: self.seek(10))
+        self._action(playback, "Back 10 s", lambda: self.seek(-10), shortcut="Left")
+        self._action(playback, "Forward 10 s", lambda: self.seek(10), shortcut="Right")
         playback.addSeparator()
         self._action(playback, "Set A (loop start)", enabled=False)
         self._action(playback, "Set B (loop end)", enabled=False)
@@ -325,7 +330,7 @@ class MainWindow(QMainWindow):
             self._action(iptv, label, enabled=False)
 
         view = bar.addMenu("View")
-        self._action(view, "Fullscreen", self.toggle_fullscreen)
+        self._action(view, "Fullscreen", self.toggle_fullscreen, shortcut="F11")
         self._action(view, "Picture in picture", enabled=False)
         self._action(view, "Split screen  F2", enabled=False)
         self._action(view, "Always on top", enabled=False)
@@ -885,6 +890,7 @@ class MainWindow(QMainWindow):
             return
         self.engine.load(path)
         self._current_media_path = str(path)
+        self._add_recent(str(path))
         self.title_status.setText(Path(path).name)
         self.playback_status.setText("playing")
         self._update_playback_navigation()
@@ -927,6 +933,54 @@ class MainWindow(QMainWindow):
     def play_next(self):
         self._play_adjacent_media(1)
 
+    def open_url(self):
+        url, accepted = QInputDialog.getText(self, "Open URL", "URL:")
+        if not accepted or not url.strip():
+            return
+        url = url.strip()
+        self.engine.load(url)
+        self._current_media_path = None
+        self.title_status.setText(url)
+        self.playback_status.setText("playing")
+        self._update_playback_navigation()
+
+    def _add_recent(self, path):
+        recent = [entry for entry in self.config.get("recent", []) if entry != path]
+        recent.insert(0, path)
+        self.config["recent"] = recent[:12]
+        save_config(self.config)
+
+    def _populate_recent_menu(self):
+        self.recent_menu.clear()
+        recent = [path for path in self.config.get("recent", []) if Path(path).is_file()]
+        if not recent:
+            action = self.recent_menu.addAction("No recent files")
+            action.setEnabled(False)
+            return
+        for path in recent:
+            action = self.recent_menu.addAction(Path(path).name)
+            action.setToolTip(path)
+            action.triggered.connect(lambda checked=False, selected=path: self._open_recent(selected))
+
+    def _open_recent(self, path):
+        if not Path(path).is_file():
+            self.config["recent"] = [entry for entry in self.config.get("recent", []) if entry != path]
+            save_config(self.config)
+            return
+        self._play_media_path(path)
+
+    def clear_recent(self):
+        self.config["recent"] = []
+        save_config(self.config)
+        self.recent_menu.clear()
+
+    def stop_playback(self):
+        self.engine.stop()
+        self._current_media_path = None
+        self.title_status.clear()
+        self.playback_status.setText("stopped")
+        self._update_playback_navigation()
+
     def open_file(self):
         path, _ = QFileDialog.getOpenFileName(self, "Open file")
         if path:
@@ -936,6 +990,7 @@ class MainWindow(QMainWindow):
                 save_config(self.config)
             self._populate_local_tree()
             self.engine.load(path)
+            self._add_recent(path)
             self.title_status.setText(Path(path).name)
             self.playback_status.setText("playing")
 
