@@ -60,6 +60,7 @@ def _prepara_file_cartella(cartella, elementi, tag_cache):
             sotto = anno or ""
             categoria = "Video"
         risultato.append((nome, percorso, ide, categoria, cartella, sotto))
+    risultato.sort(key=lambda voce: str(voce[0]).strip().casefold())
     return risultato
 
 
