@@ -27,6 +27,7 @@ from PySide6.QtWidgets import (
 
 from engine.render import MPVRenderWidget
 from features.sleep_timer import SleepTimer
+from features.ab_loop import ABLoop
 from ui.metrics import (
     WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_MIN_WIDTH, WINDOW_MIN_HEIGHT,
     LEFT_PANEL_WIDTH, RIGHT_PANEL_WIDTH, MEDIA_ROW_HEIGHT,
@@ -137,6 +138,7 @@ class MainWindow(QMainWindow):
         self.next_button = None
         self._vinyl_icons = {}
         self.sleep_timer = SleepTimer(self)
+        self.ab_loop = ABLoop(self.engine)
         self.sleep_timer.expired.connect(self._sleep_timer_expired)
         self.resource_dir = Path(__file__).resolve().parents[1] / "resources"
         self.icons_dir = self.resource_dir / "icons"
@@ -306,9 +308,9 @@ class MainWindow(QMainWindow):
         self._action(playback, "Back 10 s", lambda: self.seek(-10), shortcut="Alt+Left")
         self._action(playback, "Forward 10 s", lambda: self.seek(10), shortcut="Alt+Right")
         playback.addSeparator()
-        self._action(playback, "Set A (loop start)", enabled=False)
-        self._action(playback, "Set B (loop end)", enabled=False)
-        self._action(playback, "Clear A-B loop", enabled=False)
+        self._action(playback, "Set A (loop start)", self.set_loop_a)
+        self._action(playback, "Set B (loop end)", self.set_loop_b)
+        self._action(playback, "Clear A-B loop", self.clear_ab_loop)
         playback.addSeparator()
         self._action(playback, "Previous", enabled=False)
         self._action(playback, "Next", enabled=False)
@@ -1080,6 +1082,7 @@ class MainWindow(QMainWindow):
     def _update_playback_display(self):
         position = self.engine.get_double("time-pos")
         duration = self.engine.get_double("duration")
+        self.ab_loop.update(self._current_media_path, position)
         self.position_label.setText(self._format_time(position))
         self.duration_label.setText(self._format_time(duration))
         if duration and duration > 0 and position is not None and not getattr(self, "_seeking_position", False):
@@ -1159,6 +1162,22 @@ class MainWindow(QMainWindow):
         self.config["recent"] = []
         save_config(self.config)
         self.recent_menu.clear()
+
+    def set_loop_a(self):
+        ok, message = self.ab_loop.set_a(
+            self._current_media_path, self.engine.get_double("time-pos")
+        )
+        self.playback_status.setText(message)
+
+    def set_loop_b(self):
+        ok, message = self.ab_loop.set_b(
+            self._current_media_path, self.engine.get_double("time-pos")
+        )
+        self.playback_status.setText(message)
+
+    def clear_ab_loop(self):
+        self.ab_loop.clear()
+        self.playback_status.setText("A-B loop cleared")
 
     def set_sleep_timer(self, minutes):
         self.sleep_timer.start(minutes)
