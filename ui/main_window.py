@@ -26,6 +26,7 @@ import re
 import time
 import random
 import json
+import shutil
 import hashlib
 from urllib.parse import urlparse, quote
 
@@ -640,6 +641,9 @@ class MainWindow(QMainWindow):
         if valore and valore[0] == "__url__":
             url = valore[1]
             menu.addAction(_("Rename..."), lambda: self.rinomina_url(url))
+            menu.addAction(_("Set cover..."), lambda: self.metti_copertina(url))
+            if os.path.isfile(copertina_url(url)):
+                menu.addAction(_("Remove cover"), lambda: self.togli_copertina(url))
             sposta = menu.addMenu(_("Move to"))
             for chiave, etichetta in CATEGORIE_URL + ((None, "Temporary"),):
                 sposta.addAction(_(etichetta), lambda _=False, k=chiave, u=url: self.sposta_url(u, k))
@@ -647,6 +651,9 @@ class MainWindow(QMainWindow):
         elif valore and valore[0] == "__epg__":
             menu.addAction(_("Remove guide"), lambda: self.togli_epg(valore[1]))
         elif valore and valore[0] == "__imported_file__":
+            menu.addAction(_("Set cover..."), lambda: self.metti_copertina(valore[1]))
+            if os.path.isfile(copertina_url(valore[1])):
+                menu.addAction(_("Remove cover"), lambda: self.togli_copertina(valore[1]))
             menu.addAction(_("Remove from library"), lambda: self.rimuovi_importato(valore[1]))
         elif valore and valore[0] == "__media_folder__" and valore[1] in self.sessione.config.get("cartelle", []):
             menu.addAction(_("Remove media folder"), lambda: self.rimuovi_cartella_media(valore[1]))
@@ -838,6 +845,28 @@ class MainWindow(QMainWindow):
         self.epg_nomi = self.sessione.epg_nomi
         self._finestra_guida = Guida(self)
         self._finestra_guida.show()
+
+
+    def metti_copertina(self, dove):
+        percorso, _ = QFileDialog.getOpenFileName(
+            self, _("Choose cover"), "", "Images (*.png *.jpg *.jpeg *.webp)")
+        if not percorso:
+            return
+        destinazione = copertina_url(dove)
+        try:
+            os.makedirs(os.path.dirname(destinazione), exist_ok=True)
+            shutil.copy2(percorso, destinazione)
+            self._riempi_elenco()
+            self.riga_stato.setText(_("Cover saved"))
+        except Exception as errore:
+            self.riga_stato.setText(_("Cover error: %s") % errore)
+
+    def togli_copertina(self, dove):
+        try:
+            os.remove(copertina_url(dove))
+        except OSError:
+            pass
+        self._riempi_elenco()
 
     def colore_canale(self, nome, url):
         if url.startswith(REGISTRAZIONI + os.sep):
@@ -1195,6 +1224,10 @@ class MainWindow(QMainWindow):
                 return None
             poster = poster_film(url)
             return QPixmap(poster) if poster else None
+        copertina = copertina_url(url)
+        if os.path.isfile(copertina):
+            pix = QPixmap(copertina)
+            return pix if not pix.isNull() else None
         logo = LOGHI.get(url)
         if not logo:
             return None
