@@ -1,7 +1,7 @@
 VERSIONE = "4.4.4"
 AUTORE = "Jonathan Sanfilippo"
 ANNO = "2026"
-REPO = "JonaDev2026/xvb"
+REPO = "JonaDev2026/xvb_lab"
 DONA = "https://www.paypal.com/paypalme/Jonathanuk"
 UA = "Mozilla/5.0 (X11; Linux x86_64)"
 IN_AFFANNO = 3.0
