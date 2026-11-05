@@ -204,8 +204,8 @@ class QtWidgetTests(unittest.TestCase):
             url = "https://example.test/guide.xml.gz"
             window.sessione.config["epg"] = [url]
             window.sessione.config["epg_nomi"] = {url: "xmltv-original.xml"}
-            with patch("ui.main_window.scrivi_config"), \\
-                 patch.object(window, "ricarica_guida"), \\
+            with patch("ui.main_window.scrivi_config"), \
+                 patch.object(window, "ricarica_guida"), \
                  patch.object(window, "_riempi_liste"):
                 window.togli_epg(url)
             self.assertEqual(window.riga_stato.text(), "removed xmltv-original.xml")
