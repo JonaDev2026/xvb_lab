@@ -4,18 +4,18 @@ import os
 import re
 from urllib.request import Request, urlopen
 
-from .config import CASA
+from .config import CASA, CONFIG_DIR, CACHE_DIR
 from .constants import VERSIONE
 from .media import AUDIO
 
-COPERTINE_URL = os.path.join(CASA, ".config", "xvb", "copertine")
+COPERTINE_URL = os.path.join(CONFIG_DIR, "copertine")
 TMDB = "https://api.themoviedb.org/3"
 TMDB_IMG = "https://image.tmdb.org/t/p/w342"
-FILE_PROVATI = os.path.join(CASA, ".cache", "xvb", "info_provate.json")
-FILE_INFO = os.path.join(CASA, ".cache", "xvb", "info.json")
+FILE_PROVATI = os.path.join(CACHE_DIR, "info_provate.json")
+FILE_INFO = os.path.join(CACHE_DIR, "info.json")
 LINGUE_TMDB = {"en": "en-US", "it": "it-IT", "es": "es-ES", "fr": "fr-FR",
                "de": "de-DE", "pt": "pt-BR", "ru": "ru-RU"}
-UA_XVB = "XVB/%s ( https://github.com/JonaDev2026/xvb )"
+UA_XVB = "XVB5/%s ( https://github.com/JonaDev2026/xvb_lab )"
 
 
 def copertina_url(url):
