@@ -3,6 +3,7 @@ import datetime
 import os
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from core.epg import (
     ora_xmltv, unisci_programmi, unisci_guide, piu_nuova,
@@ -43,7 +44,7 @@ class EpgLogicTests(unittest.TestCase):
 
     def test_remote_guide_refreshes_after_six_hours(self):
         with tempfile.TemporaryDirectory() as root:
-            with unittest.mock.patch("core.epg.CACHE_EPG", root):
+            with patch("core.epg.CACHE_EPG", root):
                 source = "https://example.test/guide.xml"
                 import hashlib
                 cache = os.path.join(root, hashlib.md5(source.encode()).hexdigest())
