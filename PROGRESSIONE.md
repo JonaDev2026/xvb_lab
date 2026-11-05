@@ -499,3 +499,13 @@ Commit: `c01cd46`, `48dd002`, `f18d97b`.
 - Il rendering libmpv e la verifica pratica dell'avvio restano da eseguire sul sistema Linux di prova.
 
 Commit: `c868b66`, `9fe7995`, `7493e57`, `94586e1`, `b55c041`.
+
+
+## Menu contestuali dei canali — Qt6
+
+- Ripristinate nel menu contestuale della lista centrale le azioni IPTV della Stable 4.4.4: rinomina del nome visualizzato, assegnazione/rimozione logo e scelta/rimozione del colore manuale.
+- Per i file locali sono disponibili assegnazione/rimozione copertina; le azioni Preferiti già presenti restano disponibili.
+- Il nome personalizzato viene applicato alla lista e alla barra di stato senza sostituire il nome originale usato per identificare il canale e associare l'EPG.
+- Aggiunti cinque test Qt per menu IPTV, menu file locali, persistenza/ripristino del nome, colore manuale e nome mostrato nella barra di stato.
+- Commit implementazione: `ef77c63`. Commit test: `1e1ee10`.
+- Verifica CI del nuovo commit: in attesa; nessuna prova runtime su X11/Wayland è stata eseguita.
