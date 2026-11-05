@@ -182,6 +182,22 @@ class QtWidgetTests(unittest.TestCase):
                 ricarica.assert_called_once_with(scegli=os.path.abspath(stream.name), forza=False)
             window.close()
             self.app.processEvents()
+    def test_tv_guide_window_is_single_instance(self):
+        with patch("ui.main_window.MpvVideo", side_effect=RuntimeError("libmpv unavailable")):
+            window = MainWindow()
+            window.epg = {"news": []}
+            window.sessione.epg = window.epg
+            window.apri_guida()
+            prima = window._finestra_guida
+            window.apri_guida()
+            self.assertIs(window._finestra_guida, prima)
+            prima.close()
+            self.app.processEvents()
+            self.assertIsNone(window._finestra_guida)
+            window.apri_guida()
+            self.assertIsNotNone(window._finestra_guida)
+            window.close()
+            self.app.processEvents()
 
 if __name__ == "__main__":
     unittest.main()
