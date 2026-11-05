@@ -252,3 +252,5 @@ Non eseguiti test grafici o prove di rendering. La dissolvenza originale dello s
 - In caso di errore persistente viene mostrato lo sfondo invece di lasciare il riquadro del video in stato nero.
 
 - Ripristinato l'indicatore di buffering animato nella barra di stato: usa l'icona originale `loading.png`, ruotata ogni 50 ms quando libmpv segnala `paused-for-cache`.
+
+- Ripristinata la tinta del canale nella progress e nella sfumatura della barra comandi; il cursore volume riceve la stessa sfumatura sottostante. A riproduzione ferma la barra torna al colore neutro.
