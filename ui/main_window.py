@@ -1514,6 +1514,7 @@ class MainWindow(QMainWindow):
             self.togli_epg(self._guida_selezionata)
 
     def togli_epg(self, dove):
+        nome = self.nome_guida(dove)
         self.sessione.config["epg"] = [
             d for d in self.sessione.config.get("epg", []) if d != dove]
         self.sessione.config.get("epg_nomi", {}).pop(dove, None)
@@ -1522,7 +1523,7 @@ class MainWindow(QMainWindow):
         self._guida_selezionata = None
         self.ricarica_guida()
         self._riempi_liste()
-        self.riga_stato.setText(_("removed %s") % self.nome_guida(dove))
+        self.riga_stato.setText(_("removed %s") % nome)
 
     def ricarica_epg_manuale(self):
         for dove in self.sessione.config.get("epg", []):
