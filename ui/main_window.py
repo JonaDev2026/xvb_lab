@@ -4442,7 +4442,7 @@ class MainWindow(QMainWindow):
             self.barra.raise_()
         hud = getattr(self, "hud_video", None)
         if hud is not None:
-            hud.posiziona(self.split, self.schermo_attivo)
+            hud.posiziona(getattr(self, "split", False), getattr(self, "schermo_attivo", 0))
 
     def _attiva_overlay(self):
         if not self._overlay_attivo:
