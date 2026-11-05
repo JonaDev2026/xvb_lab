@@ -72,3 +72,7 @@ Nessuna funzione è ancora dichiarata migrata e l'applicazione non è pronta per
 - [x] Aggiunti test di regressione per selezione copertine MusicBrainz e rilevamento font desktop.
 
 - [x] Trasferiti in `core/system.py` i parametri tipografici originali e la risoluzione dei due formati di file Google Sans inclusi nella Stable.
+
+- [x] Trasferita la ricerca TMDB della Stable: generi film/serie con cache per lingua e metadati con priorità al risultato provvisto di poster.
+- [x] Aggiunti test per cache generi, selezione poster e fallback tra ricerca film e serie.
+- [x] Corretto `PROGETTO.md`: il branch attuale non contiene ancora `main.py`, `engine/` o `ui/`; non viene più riportata come verificata una base Qt6 che non è presente nel repository.
