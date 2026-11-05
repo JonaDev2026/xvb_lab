@@ -209,3 +209,46 @@ Ricostruire XVB Player mantenendo le funzionalità della Stable 4.4.4 e adottand
 
 - Obiettivo e riferimento funzionale definiti.
 - Nessuna funzione della Stable ancora trasferita.
+
+
+### 2026-11-05 — Prima ricostruzione della finestra principale Qt
+
+**Obiettivo**
+
+Sostituire la finestra dimostrativa con la prima struttura grafica ricavata direttamente dalla Stable 4.4.4, mantenendo il widget video libmpv già verificato.
+
+**File creati o modificati**
+
+- `ui/main_window.py` — nuova finestra principale Qt.
+- `main.py` — avvio dell'applicazione collegato alla nuova finestra e caricamento facoltativo del font Google Sans e dell'icona originali.
+
+**Modifiche**
+
+- Impostate le dimensioni iniziali originali 1280 × 720 e il titolo XVB v4.4.4.
+- Ricostruiti i pannelli sinistro, video centrale e destro con splitter ridimensionabile e dimensioni iniziali 300/760/220.
+- Aggiunti ricerca, albero media, pannello Playlists e albero delle playlist.
+- Ricostruiti i sette menu principali: Media, Playback, Video, Audio, IPTV, View e Help, con le voci rilevate nel sorgente Stable.
+- Aggiunta la barra comandi da 96 px con le icone originali disponibili, i controlli di riproduzione già collegabili al motore e il cursore volume.
+- Aggiunta la barra di stato da 28 px con campi predisposti per categoria, playback, titolo, guida, formato e orologio locale.
+- Aggiunta la barra notifiche da 42 px, inizialmente nascosta.
+- Mantenuti i colori principali rilevati nel sorgente Stable.
+- Le voci non ancora trasferite sono disabilitate: la presenza grafica di una voce non viene considerata implementazione della relativa funzione.
+
+**Verifica**
+
+- Codice scritto e pubblicato nel repository.
+- Non ancora eseguito sul computer di sviluppo dopo queste modifiche.
+- Da verificare import Qt, layout effettivo, caricamento delle icone, dimensioni, ridimensionamento dei pannelli e collegamento dei comandi.
+- Le funzioni IPTV, EPG, libreria, registrazioni, PiP, split screen, MPRIS e le altre voci disabilitate restano da implementare.
+
+**Commit**
+
+- `61e5297c95818882ad4f59603796b37973729665` — creazione della finestra.
+- `532eb5ccaaed5b2f35c640d58110531bb29a4b38` — orologio localizzato.
+- `a41c054b60e8d8f1b6e348f8a08f1ddc54c1d022` — collegamento di main.py.
+- `f1792f771960089868bf8fbc664306bef553a29c` — regolazione pannelli e barra comandi.
+
+**Stato e prossimo passaggio**
+
+- Prima struttura grafica scritta, non ancora collaudata.
+- La finestra non è ancora equivalente alla Stable: i contenuti degli alberi, le interazioni, i menu e le funzioni applicative devono essere trasferiti e verificati.
