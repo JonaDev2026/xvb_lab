@@ -546,3 +546,5 @@ Commit: `c868b66`, `9fe7995`, `7493e57`, `94586e1`, `b55c041`.
 - La prova grafica reale resta necessaria: il nuovo comando serve a distinguere un inoltro a un processo già attivo da un problema di avvio della finestra.
 
 - Il punto di avvio inizializza ora il logging rotante già presente in `core/log.py`; gli errori durante la costruzione della finestra vengono registrati e mostrati in un dialogo, invece di lasciare un'uscita senza indicazioni. Commit: `1be2dc9`.
+
+- Anche gli errori di creazione del socket/istanza vengono ora registrati e mostrati in un dialogo; il processo non termina più senza un'indicazione grafica in caso di errore di bind. Commit: `86f2792`.
