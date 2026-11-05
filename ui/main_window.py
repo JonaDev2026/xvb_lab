@@ -1909,7 +1909,15 @@ class MainWindow(QMainWindow):
         destinazione = self.percorso_copertina(dove)
         try:
             os.makedirs(os.path.dirname(destinazione), exist_ok=True)
-            shutil.copy2(percorso, destinazione)
+            if os.path.isabs(dove):
+                immagine = QPixmap(percorso)
+                if immagine.isNull():
+                    raise ValueError(_("Invalid image"))
+                immagine = immagine.scaled(800, 800, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+                if not immagine.save(destinazione, "JPEG", 90):
+                    raise OSError(_("Unable to save cover"))
+            else:
+                shutil.copy2(percorso, destinazione)
             self._riempi_elenco()
             self.riga_stato.setText(_("Cover saved"))
         except Exception as errore:
