@@ -244,14 +244,17 @@ class _AggiornaListe(QThread):
     def run(self):
         cambiata = False
         for url in self.urls:
+            percorso = os.path.join(
+                CACHE_LISTE, hashlib.md5(url.encode()).hexdigest() + ".m3u")
             try:
-                prima = os.path.getmtime(os.path.join(
-                    CACHE_LISTE, hashlib.md5(url.encode()).hexdigest() + ".m3u"))
+                with open(percorso, "rb") as stream:
+                    prima = stream.read()
             except OSError:
-                prima = 0
+                prima = None
             try:
                 percorso = copia_lista_url(url)
-                dopo = os.path.getmtime(percorso)
+                with open(percorso, "rb") as stream:
+                    dopo = stream.read()
                 cambiata = cambiata or dopo != prima
             except Exception:
                 continue
