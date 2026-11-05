@@ -182,7 +182,6 @@ class MainWindow(QMainWindow):
         comandi = QVBoxLayout(self.barra)
         comandi.setContentsMargins(12, 5, 12, 5)
         comandi.setSpacing(5)
-        comandi.addWidget(self.posizione if hasattr(self, "posizione") else QWidget(self.barra)) if False else None
         self.posizione = QSlider(Qt.Horizontal, self.barra)
         self.posizione.setRange(0, 1000)
         self.posizione.setFixedHeight(10)
@@ -243,12 +242,7 @@ class MainWindow(QMainWindow):
         self.riga_stato.setStyleSheet("background:#121217;color:#9e9e9e")
         root.addWidget(self.riga_stato)
 
-        self.stop_button.clicked.connect(self.ferma)
-        self.precedente_button.clicked.connect(lambda: self.salta(-1))
-        self.successivo_button.clicked.connect(lambda: self.salta(+1))
-        self.play_button.clicked.connect(self.pausa)
         self.volume.valueChanged.connect(self._volume)
-        self.posizione.sliderReleased.connect(self._seek)
         self._pieno = False
         self.player2 = None
         self.player_pip = None
@@ -323,6 +317,27 @@ class MainWindow(QMainWindow):
             "demuxer-readahead-secs": str(voce[4]),
             "cache-pause-wait": str(voce[5]),
         }
+
+    def _ciclo_ripeti(self):
+        modalita = ("", "uno", "tutti")
+        try:
+            indice = modalita.index(self.ripeti)
+        except ValueError:
+            indice = 0
+        self.metti_ripeti(modalita[(indice + 1) % len(modalita)])
+
+    def _sidebar(self):
+        self.destra.setVisible(not self.destra.isVisible())
+
+    def _muto(self):
+        self._muto_attivo = not getattr(self, "_muto_attivo", False)
+        self._imposta("mute", "yes" if self._muto_attivo else "no")
+        pulsante = self._pulsanti.get("mute")
+        if pulsante:
+            nome = "volume_off" if self._muto_attivo else "volume"
+            percorso = os.path.join("icone", nome + ".png")
+            if os.path.isfile(percorso):
+                pulsante.setIcon(QIcon(percorso))
 
     def metti_buffer(self, chiave):
         voce = next((v for v in BUFFER if v[0] == chiave), None)
@@ -1194,7 +1209,10 @@ class MainWindow(QMainWindow):
         player = self._attivo()
         if player:
             player.pausa()
-            self.play_button.setText("▶" if player.leggi("pause") == "yes" else "Ⅱ")
+            fermo = player.leggi("pause") == "yes"
+            percorso = os.path.join("icone", "play" if fermo else "pausa")
+            self.play_button.setIcon(QIcon(percorso + ".png"))
+            self.play_button.setToolTip(_("Resume") if fermo else _("Pause"))
             self._aggiorna_mpris()
 
     def ferma(self):
@@ -1203,7 +1221,8 @@ class MainWindow(QMainWindow):
             player.ferma()
             self.file_in_onda = None
             self.nome_in_onda = ""
-            self.play_button.setText("▶")
+            self.play_button.setIcon(QIcon(os.path.join("icone", "play.png")))
+            self.play_button.setToolTip(_("Play"))
             self.riga_stato.setText("XVB")
             self._aggiorna_mpris()
 
