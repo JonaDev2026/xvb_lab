@@ -111,11 +111,11 @@ class Guida(QDialog):
         self.app = app
         c = colori or {}
         self.fondo = c.get("fondo", "#121212")
-        self.pannello = c.get("pannello", "#1b1b1f")
-        self.tasto = c.get("tasto", "#303036")
-        self.testo = c.get("testo", "#f2f2f2")
-        self.grigio = c.get("grigio", "#92929a")
-        self.accento = c.get("accento", "#a78bfa")
+        self.pannello = c.get("pannello", "#1c1b22")
+        self.tasto = c.get("tasto", "#2c2c2c")
+        self.testo = c.get("testo", "#e0e0e0")
+        self.grigio = c.get("grigio", "#9e9e9e")
+        self.accento = c.get("accento", "#bb86fc")
         self.LOGO_L = c.get("logo_l", self.LOGO_L)
         self.setWindowTitle(c.get("titolo", "TV guide"))
         self.resize(1100, 620)
