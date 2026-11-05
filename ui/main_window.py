@@ -511,7 +511,6 @@ class MainWindow(QMainWindow):
                 } else "player"))
                 item.addChild(child)
                 self._source_tree_items[("imported", (path,))] = child
-            item.setExpanded(False)
         self._set_tree_expanded(root, "local", True)
         self.playlist_tree.blockSignals(False)
 
