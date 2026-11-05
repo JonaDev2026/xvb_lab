@@ -416,6 +416,7 @@ class MainWindow(QMainWindow):
         self._aggiorna_recenti()
         self.applica_filtri_audio()
         self._volume(self.volume.value())
+        self.applica_uscita_audio(silenzioso=True)
         self.aggiorna_periodico()
         self.elenco.salta = self.salta
         self.elenco.avanza = self.avanza
@@ -652,6 +653,7 @@ class MainWindow(QMainWindow):
         self.menu_tracce_audio.aboutToShow.connect(lambda: self._riempi_menu_tracce(self.menu_tracce_audio, "audio"))
         self.menu_tracce_sub.aboutToShow.connect(lambda: self._riempi_menu_tracce(self.menu_tracce_sub, "sub"))
         audio.addAction(self._azione(_("Load subtitles..."), self.carica_sottotitoli))
+        audio.addAction(self._azione(_("Audio output device..."), self.scegli_uscita_audio))
         audio.addAction(self._azione(_("Subtitles on/off"), lambda: self._ciclo("sub-visibility")))
         audio.addAction(self._azione("Subtitle delay +100 ms", lambda: self._regola("sub-delay", 0.1)))
         audio.addAction(self._azione("Subtitle delay -100 ms", lambda: self._regola("sub-delay", -0.1)))
@@ -2343,6 +2345,84 @@ class MainWindow(QMainWindow):
             self._icona_preferito()
             self._aggiorna_mpris()
 
+    def dispositivi_uscita_audio(self):
+        player = self._attivo()
+        if player is None:
+            return []
+        try:
+            elenco = player.leggi_nodo("audio-device-list") or []
+        except Exception:
+            elenco = []
+        risultati = []
+        for voce in elenco:
+            if not isinstance(voce, dict):
+                continue
+            nome = voce.get("name")
+            descrizione = voce.get("description") or nome
+            if nome and str(nome) != "auto":
+                risultati.append((str(nome), str(descrizione)))
+        return risultati
+
+    def applica_uscita_audio(self, nome=None, silenzioso=False):
+        player = self._attivo()
+        if player is None:
+            return False
+        if nome is None:
+            nome = self.sessione.config.get("audio_device", "auto")
+        nome = str(nome or "auto")
+        try:
+            player.imposta("audio-device", nome)
+            attuale = player.leggi("audio-device")
+            if nome != "auto" and attuale and str(attuale) != nome:
+                raise RuntimeError(str(attuale))
+            return True
+        except Exception as errore:
+            if nome != "auto":
+                try:
+                    player.imposta("audio-device", "auto")
+                except Exception:
+                    pass
+            if not silenzioso:
+                self._messaggio_temporaneo(_("cannot set audio output: %s") % errore)
+            return False
+
+    def scegli_uscita_audio(self):
+        dispositivi = [("auto", _("Auto (system default)"))]
+        dispositivi.extend(self.dispositivi_uscita_audio())
+        finestra = Finestrella(
+            self, _("Audio output device"),
+            lambda dialogo: self._corpo_uscita_audio(dialogo, dispositivi),
+            domanda=True, larga=520)
+        if finestra.exec() != QDialog.Accepted:
+            return
+        indice = self.lista_uscita_audio.currentRow()
+        if not 0 <= indice < len(dispositivi):
+            return
+        nome, descrizione = dispositivi[indice]
+        if self.applica_uscita_audio(nome):
+            self.sessione.config["audio_device"] = nome
+            scrivi_config(self.sessione.config)
+            self._messaggio_temporaneo(_("audio output: %s") % descrizione)
+
+    def _corpo_uscita_audio(self, dialogo, dispositivi):
+        dialogo.contenuto.addWidget(QLabel(_("Choose the audio output device:"), dialogo))
+        self.lista_uscita_audio = QListWidget(dialogo)
+        self.lista_uscita_audio.setMinimumHeight(180)
+        self.lista_uscita_audio.setStyleSheet(
+            "QListWidget{background:%s;color:%s;border:0}"
+            "QListWidget::item:selected{background:%s;color:#17121f}" %
+            (IN_ONDA, TESTO, ACCENTO))
+        for nome, descrizione in dispositivi:
+            item = QListWidgetItem(descrizione)
+            item.setData(Qt.UserRole, nome)
+            self.lista_uscita_audio.addItem(item)
+        corrente = str(self.sessione.config.get("audio_device", "auto"))
+        indice = next((i for i, voce in enumerate(dispositivi) if voce[0] == corrente), 0)
+        self.lista_uscita_audio.setCurrentRow(indice)
+        if len(dispositivi) == 1:
+            dialogo.contenuto.addWidget(QLabel(_("No audio devices were reported by mpv."), dialogo))
+        dialogo.contenuto.addWidget(self.lista_uscita_audio)
+
     def _messaggio_temporaneo(self, testo):
         self.riga_stato.setText(testo)
         QTimer.singleShot(2500, self.aggiorna_info_canale)
@@ -2511,6 +2591,7 @@ class MainWindow(QMainWindow):
             return
         try:
             self.player2 = MpvVideo(self.video, options={"mute": "yes"})
+            self.player2.imposta("audio-device", self.sessione.config.get("audio_device", "auto"))
             self.player2.installEventFilter(self)
             self.video_layout.addWidget(self.player2, 1)
             self.split = True
