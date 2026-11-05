@@ -535,3 +535,12 @@ Commit: `c868b66`, `9fe7995`, `7493e57`, `94586e1`, `b55c041`.
 - Gli eventi della barra comandi restano esclusi dal toggle Play/Pause; il clic sul video continua a mostrare l'overlay.
 - Aggiunti due test Qt per clic e doppio clic. Commit implementazione: `74ba0b5`. Commit test: `0a06081`.
 - Verifica CI e prova interattiva reale ancora da eseguire.
+
+
+## Diagnostica avvio e istanza separata
+
+- Aggiunta l'opzione `--nuova-istanza` per avviare una finestra di prova con un socket dedicato al processo, senza inoltrare la richiesta a un'eventuale istanza già attiva.
+- L'avvio normale ora stampa un messaggio esplicito quando rileva un'istanza già in esecuzione, invece di terminare senza indicazioni.
+- Aggiunti test per il parsing degli argomenti e per la separazione del socket.
+- Commit: `b082d01`, `3b8237f`.
+- La prova grafica reale resta necessaria: il nuovo comando serve a distinguere un inoltro a un processo già attivo da un problema di avvio della finestra.
