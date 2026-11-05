@@ -3245,7 +3245,7 @@ class MainWindow(QMainWindow):
             self._segna_in_onda()
             self.nome_in_onda = ""
             self.play_button.setIcon(QIcon(os.path.join(QUI, "icone", "play.png")))
-            self.play_button.setToolTip(_("Play"))
+            self.play_button.setToolTip(_("Resume"))
             self.riga_stato.setText("XVB")
             self.colora_stato(None)
             self._icona_preferito()
