@@ -542,6 +542,8 @@ class MainWindow(QMainWindow):
         self._aggiorna_recenti()
         self.applica_filtri_audio()
         self._volume(self.volume.value())
+        self._icona_volume()
+        self._aggiorna_icone_ripeti()
         self.applica_uscita_audio(silenzioso=True)
         self.applica_video()
         self.aggiorna_periodico()
@@ -865,15 +867,33 @@ class MainWindow(QMainWindow):
         if 0 < largo < self.volume.larga:
             QTimer.singleShot(15, lambda: self.anima_volume(verso))
 
+    def _icona_volume(self):
+        pulsante = self._pulsanti.get("mute")
+        if pulsante is None:
+            return
+        muto = bool(getattr(self, "_muto_attivo", False))
+        valore = self.volume.get()
+        if muto:
+            nome, suggerimento = "muto", _("Unmute")
+        elif valore == 0:
+            nome, suggerimento = "volume_off", _("Mute")
+        elif valore < 34:
+            nome, suggerimento = "volume_low", _("Mute")
+        elif valore < 67:
+            nome, suggerimento = "volume", _("Mute")
+        else:
+            nome, suggerimento = "volume_high", _("Mute")
+        percorso = os.path.join(QUI, "icone", nome + ".png")
+        if not os.path.isfile(percorso):
+            percorso = os.path.join(QUI, "icone", "volume.png")
+        if os.path.isfile(percorso):
+            pulsante.setIcon(QIcon(percorso))
+        pulsante.setToolTip(suggerimento)
+
     def _muto(self):
         self._muto_attivo = not getattr(self, "_muto_attivo", False)
         self._imposta("mute", "yes" if self._muto_attivo else "no")
-        pulsante = self._pulsanti.get("mute")
-        if pulsante:
-            nome = "volume_off" if self._muto_attivo else "volume"
-            percorso = os.path.join(QUI, "icone", nome + ".png")
-            if os.path.isfile(percorso):
-                pulsante.setIcon(QIcon(percorso))
+        self._icona_volume()
 
     def metti_buffer(self, chiave):
         voce = next((v for v in BUFFER if v[0] == chiave), None)
@@ -2631,6 +2651,18 @@ class MainWindow(QMainWindow):
         for chiave, azione in getattr(self, "azioni_ripeti", {}).items():
             azione.setChecked(chiave == self.ripeti)
 
+    def _aggiorna_icone_ripeti(self):
+        pulsante = self._pulsanti.get("repeat")
+        if pulsante is None:
+            return
+        nome = "repeat_one" if self.ripeti == "uno" else "repeat"
+        percorso = os.path.join(QUI, "icone", nome + ".png")
+        if os.path.isfile(percorso):
+            pulsante.setIcon(QIcon(percorso))
+        etichetta = {"": _("Repeat off"), "uno": _("Repeat file"),
+                     "tutti": _("Repeat playlist")}.get(self.ripeti, _("Repeat off"))
+        pulsante.setToolTip(etichetta)
+
     def metti_ripeti(self, modalita):
         self.ripeti = modalita or ""
         self.sessione.config["ripeti"] = self.ripeti
@@ -2640,6 +2672,7 @@ class MainWindow(QMainWindow):
             player.imposta("loop-file", "inf" if self.ripeti == "uno" else "no")
             player.imposta("loop-playlist", "inf" if self.ripeti == "tutti" else "no")
         self._aggiorna_azioni_ripeti()
+        self._aggiorna_icone_ripeti()
         self._aggiorna_mpris()
 
 
@@ -3415,6 +3448,7 @@ class MainWindow(QMainWindow):
             player.volume(float(valore) * (1.5 if self.sessione.config.get("boost") else 1.0))
         self.sessione.config["volume"] = int(valore)
         scrivi_config(self.sessione.config)
+        self._icona_volume()
         self._aggiorna_mpris()
 
     def _seek(self):
