@@ -873,6 +873,18 @@ class MainWindow(QMainWindow):
                     nodo, "end", iid="%s:cat:%d" % (iid, j),
                     text=" " + categoria)
                 self.el_liste.item(figlio, valore=(lista["percorso"], categoria))
+        if self.sessione.preferiti_musica:
+            nodo = self.el_liste.insert(locale, "end", iid="preferiti:music", text=" " + _("Music favorites"), open=True)
+            for i, (nome, url, ide, categoria) in enumerate(self.sessione.preferiti_musica):
+                iid = "preferiti:music:%d" % i
+                self.el_liste.insert(nodo, "end", iid=iid, text=" " + nome)
+                self.el_liste.item(iid, valore=("__favorite_music__", categoria))
+        if self.sessione.preferiti_video:
+            nodo = self.el_liste.insert(locale, "end", iid="preferiti:video", text=" " + _("Video favorites"), open=True)
+            for i, (nome, url, ide, categoria) in enumerate(self.sessione.preferiti_video):
+                iid = "preferiti:video:%d" % i
+                self.el_liste.insert(nodo, "end", iid=iid, text=" " + nome)
+                self.el_liste.item(iid, valore=("__favorite_video__", categoria))
         if self.sessione.preferiti:
             preferiti = self.el_liste.insert(
                 "", "end", iid="preferiti", text=" " + _("Favorites"), open=True)
@@ -1022,6 +1034,12 @@ class MainWindow(QMainWindow):
             self._finestra_guida.ridisegna()
 
 
+    def _tipo_preferito(self, voce):
+        url = voce[1]
+        if url.startswith(("http://", "https://")):
+            return PREF_IPTV
+        return PREF_MUSICA if os.path.splitext(url)[1][1:].lower() in AUDIO else PREF_VIDEO
+
     def _menu_canale(self, posizione):
         item = self.elenco.itemAt(posizione)
         if item is None:
@@ -1031,40 +1049,57 @@ class MainWindow(QMainWindow):
         if not 0 <= indice < len(self._canali_visibili):
             return
         voce = self._canali_visibili[indice]
-        preferiti = self.sessione.preferiti
+        tipo = self._tipo_preferito(voce)
+        if tipo == PREF_IPTV:
+            preferiti = self.sessione.preferiti
+        elif tipo == PREF_MUSICA:
+            preferiti = self.sessione.preferiti_musica
+        else:
+            preferiti = self.sessione.preferiti_video
         gia = any(v[1] == voce[1] for v in preferiti)
         menu = QMenu(self)
         if gia:
-            menu.addAction(_("Remove from favorites"), lambda: self.rimuovi_preferito(voce[1]))
+            menu.addAction(_("Remove from favorites"), lambda: self.rimuovi_preferito(voce[1], tipo))
         else:
-            menu.addAction(_("Add to favorites"), lambda: self.aggiungi_preferito(voce))
+            menu.addAction(_("Add to favorites"), lambda: self.aggiungi_preferito(voce, tipo))
         menu.exec(self.elenco.mapToGlobal(posizione))
 
-    def aggiungi_preferito(self, voce):
+    def aggiungi_preferito(self, voce, tipo=None):
         nome, url, ide, categoria, _lista = voce
-        preferiti = leggi_preferiti()
+        tipo = tipo or self._tipo_preferito(voce)
+        preferiti = leggi_preferiti(tipo)
         if any(v[1] == url for v in preferiti):
             return
         preferiti.append((nome, url, ide, categoria))
-        scrivi_preferiti(preferiti)
-        self.sessione.preferiti = leggi_preferiti_cat()
-        self._ricostruisci_canali_preferiti()
-        self._riempi_liste()
+        scrivi_preferiti(preferiti, tipo)
+        self._ricarica_preferiti()
         self.riga_stato.setText(_("Added to favorites"))
 
-    def rimuovi_preferito(self, url):
-        preferiti = [v for v in leggi_preferiti() if v[1] != url]
-        scrivi_preferiti(preferiti)
-        self.sessione.preferiti = leggi_preferiti_cat()
+    def rimuovi_preferito(self, url, tipo=None):
+        tipi = [tipo] if tipo else [PREF_IPTV, PREF_MUSICA, PREF_VIDEO]
+        for t in tipi:
+            preferiti = [v for v in leggi_preferiti(t) if v[1] != url]
+            scrivi_preferiti(preferiti, t)
+        self._ricarica_preferiti()
+        self.riga_stato.setText(_("Removed from favorites"))
+
+    def _ricarica_preferiti(self):
+        self.sessione.preferiti = leggi_preferiti_cat(PREF_IPTV)
+        self.sessione.preferiti_musica = leggi_preferiti_cat(PREF_MUSICA)
+        self.sessione.preferiti_video = leggi_preferiti_cat(PREF_VIDEO)
         self._ricostruisci_canali_preferiti()
         self._riempi_liste()
         self._riempi_elenco()
-        self.riga_stato.setText(_("Removed from favorites"))
 
     def _ricostruisci_canali_preferiti(self):
-        self.sessione.canali = [v for v in self.sessione.canali if v[4] != "__favorite__"]
+        self.sessione.canali = [v for v in self.sessione.canali
+                                if v[4] not in ("__favorite__", "__favorite_music__", "__favorite_video__")]
         for nome, url, ide, categoria in self.sessione.preferiti:
             self.sessione.canali.append((nome, url, ide, categoria or "MyPlaylist", "__favorite__"))
+        for nome, url, ide, categoria in self.sessione.preferiti_musica:
+            self.sessione.canali.append((nome, url, ide, categoria or "Music", "__favorite_music__"))
+        for nome, url, ide, categoria in self.sessione.preferiti_video:
+            self.sessione.canali.append((nome, url, ide, categoria or "Video", "__favorite_video__"))
         self.canali = [(n, u, ide) for n, u, ide, _cat, _lista in self.sessione.canali]
 
     def _progresso_di(self, iid):
