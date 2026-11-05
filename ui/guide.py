@@ -122,6 +122,18 @@ class Guida(QDialog):
 
 
 class _TelaGuida(QWidget):
+    def wheelEvent(self, evento):
+        g = self.guida
+        if evento.modifiers() & Qt.ShiftModifier:
+            barra = g.area_tela.horizontalScrollBar()
+            delta = evento.angleDelta().y() or evento.angleDelta().x()
+            barra.setValue(barra.value() - (120 if delta > 0 else -120))
+        else:
+            barra = g.area_tela.verticalScrollBar()
+            delta = evento.angleDelta().y()
+            barra.setValue(barra.value() - (g.RIGA * 2 if delta > 0 else -g.RIGA * 2))
+        evento.accept()
+
     def __init__(self, guida):
         super().__init__()
         self.guida = guida
@@ -169,6 +181,13 @@ class _TelaGuida(QWidget):
 
 
 class _TestaGuida(QWidget):
+    def wheelEvent(self, evento):
+        g = self.guida
+        barra = g.area_tela.horizontalScrollBar()
+        delta = evento.angleDelta().y() or evento.angleDelta().x()
+        barra.setValue(barra.value() - (120 if delta > 0 else -120))
+        evento.accept()
+
     def __init__(self, guida):
         super().__init__()
         self.guida = guida
