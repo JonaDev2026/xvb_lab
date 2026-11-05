@@ -1,4 +1,5 @@
 import bisect
+import hashlib
 import calendar
 import gzip
 import os
@@ -37,7 +38,7 @@ def prendi_epg(dove):
     if os.path.isfile(dove):
         return dove
     os.makedirs(CACHE_EPG, exist_ok=True)
-    f = os.path.join(CACHE_EPG, __import__("hashlib").md5(dove.encode()).hexdigest())
+    f = os.path.join(CACHE_EPG, hashlib.md5(dove.encode()).hexdigest())
     if os.path.isfile(f) and time.time() - os.path.getmtime(f) < EPG_VECCHIA:
         return f
     try:
