@@ -411,38 +411,24 @@ XVB Lab potrà essere considerata equivalente alla Stable solo quando:
 
 ## 8. Stato attuale
 
-**Stato: base Qt/libmpv verificata sul computer di sviluppo per apertura e riproduzione di un file MKV; prima struttura della finestra Stable 4.4.4 scritta nel repository, ancora da collaudare. Compatibilità X11 e Wayland non ancora verificata separatamente.**
+**Stato reale verificato sul repository il 2026-11-05: sono presenti l'inventario della Stable, i moduli di logica condivisa e i test di regressione. Non è ancora presente una build Qt6 avviabile nel branch main.**
 
-- [x] Repository Stable individuato: `JonaDev2026/xvb`.
-- [x] Tag di riferimento confermato: `v4.4.4`.
-- [x] File principale analizzato: `xvb.py` (11.823 righe circa).
-- [x] Traduzioni e risorse individuate.
-- [x] Dipendenze e packaging Debian esaminati in `crea_deb.sh`.
-- [x] Inventario iniziale delle aree funzionali ricavato da classi e metodi.
-- [x] Prima struttura modulare creata nel repository Lab.
-- [x] Creati `main.py` e `requirements.txt` con la dipendenza iniziale PySide6.
-- [x] Creato il primo controller libmpv indipendente in `engine/mpv.py`, basato sull'API C di libmpv.
-- [x] Creati i package iniziali `engine/`, `core/`, `ui/`, `features/`, `integrations/`, `translations/` e `tests/`.
-- [ ] Verificare installazione e caricamento di libmpv sul sistema di sviluppo.
-- [x] Prima implementazione del rendering OpenGL tramite libmpv Render API in un widget QOpenGLWidget.
-- [x] Collegati i comandi minimi Apri file e Stop al motore.
-- [x] Verificare caricamento del widget e rendering su una macchina reale: apertura e riproduzione di un file MKV confermate sul computer di sviluppo.
-- [ ] Verificare riproduzione reale in X11 e Wayland.
-- [ ] Trasferire e collaudare le funzioni della Stable. La prima struttura grafica è stata scritta, ma non costituisce ancora il trasferimento delle funzioni applicative.
+- [x] Repository Stable individuato: JonaDev2026/xvb.
+- [x] Tag di riferimento confermato: v4.4.4.
+- [x] File principale analizzato: xvb.py (11.823 righe circa).
+- [x] Traduzioni originali trasferite.
+- [x] Inventario di classi, metodi e funzioni completato.
+- [x] Moduli condivisi trasferiti in core/: media, configurazione, playlist, EPG, preferiti, metadati, tag, colori, artwork, dischi, anteprime, registrazioni, stream e rilevamento font.
+- [x] Integrazione MPRIS separata in integrations/mpris.py.
+- [x] Test di regressione aggiunti in tests/.
+- [ ] Creare main.py, requirements.txt e avvio applicazione.
+- [ ] Creare il motore autonomo in engine/ con libmpv Render API Qt.
+- [ ] Creare la finestra e i widget Qt6 in ui/, riproducendo fedelmente la Stable.
+- [ ] Collegare tutte le funzioni originali ai componenti Qt.
+- [ ] Verificare il rendering e la riproduzione su X11 e Wayland.
+- [ ] Eseguire i test automatici dopo il pull nel sistema di sviluppo.
 
-### Avvio attuale della finestra di base
-
-In ambiente con Python e PySide6 installati:
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-python main.py
-```
-
-La finestra attuale è soltanto uno scheletro Qt per verificare l'avvio dell'applicazione. Non è ancora il player e non avvia libmpv.
-
+La presenza di funzioni trasferite o di test scritti non equivale a una migrazione completa né a test eseguiti. Non chiedere il pull finché non esiste una versione Qt6 completa e avviabile, pronta per il collaudo complessivo.
 
 ## 9. Riferimenti
 
