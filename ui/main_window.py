@@ -344,7 +344,7 @@ class MainWindow(QMainWindow):
         self.volume.valore = int(self.sessione.config.get("volume", 85))
         controlli.addWidget(self.volume)
         comandi.addLayout(controlli)
-
+        root.addWidget(self.barra)
 
         stato = QWidget(centrale)
         stato.setFixedHeight(28)
