@@ -340,3 +340,13 @@ Commit: `6263f41`.
 - Questo rende effettiva la consegna degli eventi usati per avanzamento automatico, ripresa della posizione, aggiornamento del playback e chiusura del motore.
 
 Commit: `a11fdc2`. La verifica runtime resta rinviata al pull concordato.
+
+
+## Shuffle conforme alla Stable
+
+- Lo shuffle ora riguarda soltanto gli elenchi di file locali, non i canali IPTV.
+- Attivandolo, la lista locale viene mescolata una volta e il file in riproduzione resta in cima; navigazione successiva e riproduzione in sequenza seguono quell'ordine.
+- Disattivandolo si torna all'ordine alfabetico originale. Il comportamento viene applicato anche quando la preferenza Shuffle era già attiva all'avvio e si apre una cartella locale.
+- La navigazione IPTV resta sequenziale, come nella Stable.
+
+Commit: `b799089`, `39cca51`. Nessun test runtime eseguito.
