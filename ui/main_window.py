@@ -423,6 +423,8 @@ class _ScaricaCopertine(QThread):
         scrivi_json(FILE_PROVATI, provati)
         if nuove:
             scrivi_json(FILE_INFO, self.info)
+        self.fatti = fatti
+        self.nuove = nuove
         self.completato.emit(fatti, nuove, self.info, self.chiave)
 
 
