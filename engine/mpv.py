@@ -235,6 +235,21 @@ class MpvVideo(QOpenGLWidget):
                 break
 
 
+
+    @property
+    def time_pos(self):
+        try:
+            return float(self.leggi("time-pos") or 0)
+        except (TypeError, ValueError):
+            return 0.0
+
+    @property
+    def duration(self):
+        try:
+            return float(self.leggi("duration") or 0)
+        except (TypeError, ValueError):
+            return 0.0
+
     def comando(self, *argomenti):
         return self._comando(*argomenti)
 
