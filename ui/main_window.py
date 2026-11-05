@@ -1746,9 +1746,17 @@ class MainWindow(QMainWindow):
     def _riempi_menu_tracce(self, menu, tipo):
         menu.clear()
         tracce = self.tracce(tipo)
+        if tipo == "sub":
+            attiva = any(traccia.get("selected") for traccia in tracce)
+            menu.addAction(self._azione(
+                ("   " if attiva else "✓  ") + _("Subtitles off"),
+                lambda: self.metti_traccia("sid", "no")))
+            if tracce:
+                menu.addSeparator()
         if not tracce:
-            azione = menu.addAction(_("No tracks available"))
-            azione.setEnabled(False)
+            if tipo == "audio":
+                azione = menu.addAction(_("No tracks available"))
+                azione.setEnabled(False)
             return
         proprieta = "aid" if tipo == "audio" else "sid"
         for traccia in tracce:
