@@ -1069,7 +1069,7 @@ class MainWindow(QMainWindow):
             self.apri(self._categoria_attiva, nome=os.path.basename(self._categoria_attiva))
             return
         if self._percorso_attivo == "__url_cat__":
-            self._categoria_attiva = self._categoria_attiva
+            self._percorso_attivo = "__url__"
             self._riempi_elenco()
             return
         if self._percorso_attivo == "__url__":
@@ -1116,7 +1116,10 @@ class MainWindow(QMainWindow):
         categoria = self._categoria_attiva
         ricerca = self.cerca.get() if hasattr(self, "cerca") else ""
         self.elenco.delete(*self.elenco.get_children())
-        if percorso == "__importati__":
+        if percorso == "__url__":
+            base = [(self.nome_di_url(url), url, None, categoria or "Temporary", "__url__")
+                    for url in self.url_di(categoria)]
+        elif percorso == "__importati__":
             base = [voce for voce in self.sessione.canali if voce[4] == "__importati__"]
         elif percorso == "__media_folder__":
             cartella = getattr(self, "_cartella_media_attiva", "")
@@ -1125,7 +1128,7 @@ class MainWindow(QMainWindow):
         else:
             base = self.sessione.canali
         self._canali_visibili = [voce for voce in base
-                                 if (percorso is None or percorso == "__media_folder__"
+                                 if (percorso is None or percorso in ("__media_folder__", "__url__")
                                      or voce[4] == percorso
                                      or (percorso == "__local__" and os.path.isdir(voce[4]))
                                      or (percorso in ("__iptv__", "__m3u__")
