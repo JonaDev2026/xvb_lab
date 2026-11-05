@@ -507,7 +507,7 @@ Commit: `c868b66`, `9fe7995`, `7493e57`, `94586e1`, `b55c041`.
 - Per i file locali sono disponibili assegnazione/rimozione copertina; le azioni Preferiti già presenti restano disponibili.
 - Il nome personalizzato viene applicato alla lista e alla barra di stato senza sostituire il nome originale usato per identificare il canale e associare l'EPG.
 - Ripristinata anche la rinomina delle guide EPG dal menu contestuale della sidebar; il nome utente viene mostrato nell'albero e resta separato dal nome sorgente.
-- Aggiunti quattordici test Qt per menu IPTV, menu file locali, persistenza/ripristino dei nomi, colore manuale, rinomina delle guide, gestione delle copertine locali e navigazione URL.
+- Aggiunti sedici test Qt per menu IPTV, menu file locali, persistenza/ripristino dei nomi, colore manuale, rinomina delle guide, gestione delle copertine locali e navigazione URL.
 - Commit implementazione: `ef77c63`, `8819662`. Commit test: `1e1ee10`, `6db5b0f`.
 - Ripristinato il percorso copertina della Stable per i media locali: immagine accanto al file con nome base `.jpg`, conversione JPEG e priorità della copertina locale nella lista; le URL continuano a usare la cache dedicata.
 - Aggiunti due test per il percorso locale/remoto e il salvataggio/lettura effettiva della copertina. Commit implementazione: `75fe379`, `8758cfa`. Commit test: `ff42e48`.
@@ -526,3 +526,12 @@ Commit: `c868b66`, `9fe7995`, `7493e57`, `94586e1`, `b55c041`.
 - Aggiunti due test Qt per disegno/posizione, visibilità e aggiornamento dello stato timer/REC.
 - Commit widget e integrazione: `2532e0a`, `137fa33`, `bd4cf71`, `5a1e1f2`. Commit test: `cdba9e0`, `20c64bd`. Rifinitura pulsazione REC: `dcc4d55`.
 - Verifica CI e prova visiva reale ancora da eseguire.
+
+
+## Interazione diretta sul video
+
+- Ripristinato il clic sinistro sul video per Play/Pause e il doppio clic per entrare/uscire dal fullscreen.
+- Il clic sul secondo player aggiorna prima lo schermo attivo, così i comandi continuano ad agire sul player corretto nello split screen.
+- Gli eventi della barra comandi restano esclusi dal toggle Play/Pause; il clic sul video continua a mostrare l'overlay.
+- Aggiunti due test Qt per clic e doppio clic. Commit implementazione: `74ba0b5`. Commit test: `0a06081`.
+- Verifica CI e prova interattiva reale ancora da eseguire.
