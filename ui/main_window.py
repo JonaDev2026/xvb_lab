@@ -17,7 +17,7 @@ from i18n import _, imposta_lingua, LINGUE
 from core.playlists import liste_in_cartella, BUFFER, LOGHI, NOMI_URL, CACHE_LISTE, CHIAVI, copia_lista_url
 from core.colors import CACHE_LOGHI, leggi_colori, scrivi_colori, colore_di, colore_dal_logo
 from core.stream import varianti, chiave_clearkey, server_mpd, CACHE_VARIANTE
-from core.constants import SCALA_FILE, VERSIONE
+from core.constants import SCALA_FILE, CATEGORIE_URL, VERSIONE
 from core.discs import dischi, cd_audio, dvd_cifrato, e_dvd, titolo_da_etichetta
 from core.recordings import registrazioni
 from core.favorites import leggi_preferiti, leggi_preferiti_cat, scrivi_preferiti
@@ -1068,6 +1068,18 @@ class MainWindow(QMainWindow):
         if self._percorso_attivo == "__imported_file__":
             self.apri(self._categoria_attiva, nome=os.path.basename(self._categoria_attiva))
             return
+        if self._percorso_attivo == "__url_cat__":
+            self._categoria_attiva = self._categoria_attiva
+            self._riempi_elenco()
+            return
+        if self._percorso_attivo == "__url__":
+            self.apri_url_da(self._categoria_attiva)
+            return
+        if self._percorso_attivo == "__url_root__":
+            self._percorso_attivo = "__url__"
+            self._categoria_attiva = None
+            self._riempi_elenco()
+            return
         if self._percorso_attivo == "__epg_folder__":
             self.apri_guida()
             return
@@ -1805,6 +1817,30 @@ class MainWindow(QMainWindow):
         percorso, _ = QFileDialog.getOpenFileName(self, _("Open file"))
         if percorso:
             self.apri(percorso)
+
+
+    def url_di(self, categoria=None):
+        if categoria is None:
+            return self.sessione.config.get("url_aperti", [])
+        return self.sessione.config.get("url_salvati", {}).get(categoria, [])
+
+    def nome_di_url(self, url):
+        return self.sessione.config.get("nomi_url", {}).get(url) or os.path.basename(urlparse(url).path) or url
+
+    def metti_url(self, categoria, url):
+        salvati = self.sessione.config.setdefault("url_salvati", {})
+        for chiave, _nome in CATEGORIE_URL:
+            salvati[chiave] = [u for u in salvati.get(chiave, []) if u != url]
+        self.sessione.config["url_aperti"] = [
+            u for u in self.sessione.config.get("url_aperti", []) if u != url]
+        if categoria is None:
+            self.sessione.config["url_aperti"] = ([url] + self.sessione.config["url_aperti"])[:20]
+        else:
+            salvati[categoria] = [url] + salvati.get(categoria, [])
+
+    def apri_url_da(self, url):
+        self.apri(url, nome=self.nome_di_url(url))
+        self._url_al_volo = url
 
     def apri_url(self):
         url = self._chiedi_testo(_("Open URL"), "URL")
