@@ -72,6 +72,16 @@ class MainWindow(QMainWindow):
         self.sessione = Sessione()
         self.tag_cache = leggi_tag()
         self.sottotitoli = {}
+        for cartella in self.sessione.config.get("cartelle", []):
+            if os.path.isdir(cartella):
+                locali = self._media_locale(cartella)
+                if locali:
+                    self.sessione.canali.extend(locali)
+                    self.sessione.liste.append({
+                        "percorso": cartella, "nome": os.path.basename(cartella),
+                        "canali": [(n, p, ide) for n, p, ide, _cat, _path in locali],
+                        "categorie": {p: cat for _n, p, _ide, cat, _path in locali},
+                    })
         self.canali = [(n, u, ide) for n, u, ide, _cat, _lista in self.sessione.canali]
         self.epg = self.sessione.epg
         self.epg_nomi = self.sessione.epg_nomi
@@ -518,6 +528,10 @@ class MainWindow(QMainWindow):
             self.riga_stato.setText("No media files found")
             return
         self.sessione.canali.extend(nuovi)
+        cartelle = self.sessione.config.setdefault("cartelle", [])
+        if cartella not in cartelle:
+            cartelle.append(cartella)
+            scrivi_config(self.sessione.config)
         self.canali.extend((n, p, i) for n, p, i, _c, _l in nuovi)
         self.sessione.liste.append({
             "percorso": cartella, "nome": os.path.basename(cartella),
