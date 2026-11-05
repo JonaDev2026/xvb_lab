@@ -98,7 +98,7 @@ class Sessione:
         for nome, url, ide, categoria in self.preferiti_video:
             self.canali.append((nome, url, ide, categoria or "Video", "__favorite_video__"))
 
-    def carica_guide(self):
+    def carica_guide(self, silenzioso=False):
         EPG_ICONE.clear()
         EPG_ICONE_NOME.clear()
         guide = []
@@ -115,7 +115,8 @@ class Sessione:
                 guide.append(leggi_epg(file_epg))
             except Exception:
                 continue
-        self.epg_nomi, self.epg = unisci_guide(guide)
+        if guide or not silenzioso:
+            self.epg_nomi, self.epg = unisci_guide(guide)
 
     def categorie(self, percorso=None):
         nomi = set()
