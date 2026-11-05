@@ -4,10 +4,9 @@ import shutil
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QTimer, QDateTime, QThread, QObject, Signal, QSize
-from PySide6.QtGui import QAction, QBrush, QColor, QIcon, QPainter, QPen, QPixmap
+from PySide6.QtGui import QAction, QActionGroup, QBrush, QColor, QIcon, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (
     QFileDialog,
-    QActionGroup,
     QFrame,
     QHBoxLayout,
     QLabel,
