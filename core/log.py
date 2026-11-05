@@ -15,17 +15,17 @@ _XVB_LOGGER = logging.getLogger("xvb")
 class _XVBFiltroSicurezza(logging.Filter):
     _parametri = re.compile(
         r"(?i)(password|passwd|username|user|token|"
-        r"api[_-]?key|authorization|secret)=([^&\\s]+)"
+        r"api[_-]?key|authorization|secret)=([^&\s]+)"
     )
-    _autenticazione = __import__("re").compile(
-        r"(?i)(https?://)[^/@\\s:]+:[^/@\\s]+@"
+    _autenticazione = re.compile(
+        r"(?i)(https?://)[^/@\s:]+:[^/@\s]+@"
     )
 
     def filter(self, record):
         try:
             testo = record.getMessage()
-            testo = self._parametri.sub(r"\\1=[REDACTED]", testo)
-            testo = self._autenticazione.sub(r"\\1[REDACTED]@", testo)
+            testo = self._parametri.sub(r"\1=[REDACTED]", testo)
+            testo = self._autenticazione.sub(r"\1[REDACTED]@", testo)
             record.msg = testo
             record.args = ()
         except Exception:
