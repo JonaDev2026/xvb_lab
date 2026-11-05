@@ -253,6 +253,8 @@ class MainWindow(QMainWindow):
         self._timer_player.timeout.connect(self._aggiorna_player)
         self._timer_player.start(500)
         self._aggiorna_recenti()
+        self.applica_filtri_audio()
+        self._volume(self.volume.value())
 
 
     def _aggiorna_player(self):
