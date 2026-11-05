@@ -512,8 +512,20 @@ class MainWindow(QMainWindow):
         for velocita in (0.5, 0.75, 1, 1.25, 1.5, 2):
             playback.addAction(self._azione("Speed x%g" % velocita,
                                             lambda _=False, v=velocita: self._imposta("speed", v)))
-        playback.addAction(self._azione("Repeat file", lambda: self._ciclo_valori("loop-file", "no", "inf")))
-        playback.addAction(self._azione("Repeat playlist", lambda: self._ciclo_valori("loop-playlist", "no", "inf")))
+        self.azione_shuffle = QAction(_("Shuffle"), self)
+        self.azione_shuffle.setCheckable(True)
+        self.azione_shuffle.setChecked(self.shuffle_attivo)
+        self.azione_shuffle.triggered.connect(self.mpris_shuffle)
+        playback.addAction(self.azione_shuffle)
+        self.menu_ripeti = playback.addMenu(_("Repeat"))
+        self.azioni_ripeti = {}
+        for chiave, etichetta in (("", _("Off")), ("uno", _("One")), ("tutti", _("All"))):
+            azione = QAction(etichetta, self)
+            azione.setCheckable(True)
+            azione.triggered.connect(lambda _=False, k=chiave: self.metti_ripeti(k))
+            self.menu_ripeti.addAction(azione)
+            self.azioni_ripeti[chiave] = azione
+        self._aggiorna_azioni_ripeti()
         video = self.menuBar().addMenu(_("Video"))
         for nome, valore in (("Auto", "-1"), ("16:9", "16:9"), ("4:3", "4:3"), ("21:9", "21:9")):
             video.addAction(self._azione("Aspect " + nome,
