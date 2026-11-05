@@ -115,3 +115,19 @@ La prima integrazione Qt6 esiste nel branch, ma non è ancora una migrazione com
 - [ ] Collaudo completo e test di parità funzionale con la Stable.
 
 Questi trasferimenti sono presenti nel branch, ma non sono stati eseguiti test in questa fase. Non è ancora la build da sottoporre al pull di collaudo.
+
+## Migrazione Qt6 — aggiornamento
+
+La struttura Qt6 è ora presente nel repository e non va più descritta come assente: `main.py`, `engine/mpv.py`, `ui/main_window.py`, `ui/sidebar.py`, `ui/search.py`, `ui/list.py`, `ui/guide.py` e `ui/dialogs.py` sono già stati creati. Questo non equivale ancora a una migrazione completa o a una parità verificata.
+
+- Il motore `engine/mpv.py` usa `QOpenGLWidget` e libmpv Render API. Il rendering ora interroga `mpv_render_context_update` prima di disegnare il frame; restano da verificare inizializzazione e riproduzione su X11 e Wayland.
+- La finestra principale Qt6 dispone già dei pannelli laterali da 300 e 220 px, area video, barra comandi da 96 px, barra di stato da 28 px e menu Media/Playback/Video/Audio/IPTV/View/Help. La disposizione e tutti i flussi devono ancora essere confrontati con la Stable.
+- I widget `Ricerca`, `Cursore`, `Guida`, `Tendina`, `Elenco` e `Finestrella` hanno implementazioni Qt6. Sono stati riallineati alcuni colori della guida, della lista, dei menu popup e della finestra principale alla palette originale.
+- La guida mantiene la finestra temporale di sei ore, righe da 64 px, colonna nomi da 250 px, intestazione da 28 px, sincronizzazione degli scorrimenti e aggiornamento ogni 30 secondi. Sono stati ripristinati scorrimento orizzontale con Shift e apertura del canale solo cliccando su un programma.
+- La lista Qt6 mantiene l'API di compatibilità usata dalla finestra principale, la selezione singola, loghi/pallini, sottotitoli, poster e barre di avanzamento. Corretta la cancellazione multipla per non usare indici obsoleti.
+- La finestra `Finestrella` ora dimensiona l'altezza sul contenuto; il tema dei dialoghi e della tendina usa i colori definiti dalla Stable.
+- Aggiunti test di regressione per la cancellazione multipla della lista e per l'altezza del dialogo. Non eseguiti: il primo collaudo completo resta rinviato al pull concordato.
+
+Commit di questo avanzamento: `1a9b18f`, `a665183`, `203f289`, `b2aee4c`, `7adaee1`, `28c5594`, `505c33b`, `4fb96d9`, `f5ab422`, `55ebe0f`.
+
+Restano aperti il confronto puntuale con i widget originali, l'integrazione completa dei flussi applicativi, la verifica del motore video e la parità funzionale dell'intera Stable.
