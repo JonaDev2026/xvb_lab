@@ -365,6 +365,7 @@ class MainWindow(QMainWindow):
         left_layout.addWidget(self.search)
         self.media_tree = QTreeWidget()
         self.media_tree.setHeaderHidden(True)
+        self.media_tree.setIconSize(QSize(48, 48))
         self.media_tree.setIndentation(16)
         self.media_tree.setAlternatingRowColors(False)
         self.media_tree.itemDoubleClicked.connect(self.play_selected_media)
