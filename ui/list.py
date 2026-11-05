@@ -38,7 +38,7 @@ class _VoceDelegate(QStyledItemDelegate):
                 elif titolo:
                     painter.setPen(QColor(e.grigio))
                     painter.drawText(r.adjusted(8, 0, -8, -e.altezza_riga),
-                                     Qt.AlignVCenter | Qt.AlignLeft, titulo)
+                                     Qt.AlignVCenter | Qt.AlignLeft, titolo)
             except Exception:
                 pass
         logo = d.get("logo") or d.get("image")
@@ -112,13 +112,13 @@ class Elenco(QListWidget):
         self.segno = "logo"
         self.tinte = set()
         self.corti = {}
-        self.pannello = kw.pop("pannello", "#1b1b1f")
+        self.pannello = kw.pop("pannello", "#1c1b22")
         self.fondo = kw.pop("fondo", "#121212")
-        self.testo = kw.pop("testo", "#f2f2f2")
-        self.grigio = kw.pop("grigio", "#92929a")
-        self.scelto = kw.pop("scelto", "#393044")
-        self.zebra = kw.pop("zebra", "#202024")
-        self.onda = kw.pop("onda", "#30283d")
+        self.testo = kw.pop("testo", "#e0e0e0")
+        self.grigio = kw.pop("grigio", "#9e9e9e")
+        self.scelto = kw.pop("scelto", "#0071e3")
+        self.zebra = kw.pop("zebra", "#2b2a33")
+        self.onda = kw.pop("onda", "#42414d")
         self.colonna = kw.pop("colonna", 44)
         self.punto = kw.pop("punto", 12)
         self.nome_px = kw.pop("nome_px", 14)
