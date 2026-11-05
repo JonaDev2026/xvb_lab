@@ -2,10 +2,11 @@ from PySide6.QtCore import Qt, QUrl
 from PySide6.QtGui import QAction, QKeySequence, QIcon
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QFrame, QVBoxLayout, QHBoxLayout, QLabel,
-    QPushButton, QFileDialog, QInputDialog, QMessageBox, QSlider
+    QPushButton, QFileDialog, QInputDialog, QMessageBox, QSlider, QComboBox
 )
 from engine.mpv import MpvVideo
-from ui.widgets import Elenco
+from ui.widgets import Elenco, Ricerca
+from core.session import Sessione
 
 
 class MainWindow(QMainWindow):
@@ -43,8 +44,24 @@ class MainWindow(QMainWindow):
         sx = QVBoxLayout(self.sinistra)
         sx.setContentsMargins(8, 8, 8, 8)
         sx.setSpacing(6)
+        self.sessione = Sessione()
+        self.selettore_lista = QComboBox(self.sinistra)
+        self.selettore_lista.addItem("All playlists", None)
+        for lista in self.sessione.liste:
+            self.selettore_lista.addItem(lista["nome"], lista["percorso"])
+        sx.addWidget(self.selettore_lista)
+        self.selettore_categoria = QComboBox(self.sinistra)
+        self.selettore_categoria.addItem("All categories", None)
+        sx.addWidget(self.selettore_categoria)
+        self.cerca = Ricerca(self.sinistra, self._filtra, vuota="Search")
+        sx.addWidget(self.cerca)
         self.elenco = Elenco(self.sinistra)
+        self.elenco.singolo = self._seleziona_canale
+        self.elenco.itemDoubleClicked.connect(self._apri_selezionato)
         sx.addWidget(self.elenco, 1)
+        self.selettore_lista.currentIndexChanged.connect(self._cambia_lista)
+        self.selettore_categoria.currentIndexChanged.connect(self._filtra)
+        self._riempi_elenco()
 
         self.video = QWidget(self.contenuto)
         self.video_layout = QVBoxLayout(self.video)
@@ -64,7 +81,9 @@ class MainWindow(QMainWindow):
         self.destra.setFixedWidth(220)
         dx = QVBoxLayout(self.destra)
         dx.setContentsMargins(8, 8, 8, 8)
-        dx.addWidget(QLabel("XVB", self.destra))
+        self.info_canale = QLabel("XVB", self.destra)
+        self.info_canale.setWordWrap(True)
+        dx.addWidget(self.info_canale)
         dx.addStretch(1)
 
         riga.addWidget(self.sinistra)
@@ -128,6 +147,47 @@ class MainWindow(QMainWindow):
         playback.addAction(self._azione("Stop", self.ferma, "S"))
         view = self.menuBar().addMenu("View")
         view.addAction(self._azione("Fullscreen", self.schermo_intero, "F"))
+
+
+    def _cambia_lista(self, _indice=None):
+        percorso = self.selettore_lista.currentData()
+        self.selettore_categoria.blockSignals(True)
+        self.selettore_categoria.clear()
+        self.selettore_categoria.addItem("All categories", None)
+        for categoria in self.sessione.categorie(percorso):
+            self.selettore_categoria.addItem(categoria, categoria)
+        self.selettore_categoria.blockSignals(False)
+        self._riempi_elenco()
+
+    def _filtra(self, *_):
+        self._riempi_elenco()
+
+    def _riempi_elenco(self):
+        if not hasattr(self, "elenco"):
+            return
+        percorso = self.selettore_lista.currentData()
+        categoria = self.selettore_categoria.currentData()
+        ricerca = self.cerca.get() if hasattr(self, "cerca") else ""
+        self.elenco.delete(*self.elenco.get_children())
+        self._canali_visibili = self.sessione.canali_per(percorso, categoria, ricerca)
+        for i, voce in enumerate(self._canali_visibili):
+            nome, url, ide, gruppo, _lista = voce
+            self.elenco.insert("", "end", iid=str(i), text=nome + "\n" + gruppo,
+                               colore="#9e9e9e")
+
+    def _seleziona_canale(self):
+        selezione = self.elenco.selection()
+        if not selezione:
+            return
+        voce = self._canali_visibili[int(selezione[0])]
+        self.info_canale.setText("%s\n%s" % (voce[0], voce[3]))
+        self.riga_stato.setText(voce[0])
+
+    def _apri_selezionato(self, _item=None):
+        selezione = self.elenco.selection()
+        if selezione:
+            voce = self._canali_visibili[int(selezione[0])]
+            self.apri(voce[1])
 
     def apri_file(self):
         percorso, _ = QFileDialog.getOpenFileName(self, "Open file")
