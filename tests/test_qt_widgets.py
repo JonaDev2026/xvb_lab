@@ -49,12 +49,22 @@ class QtWidgetTests(unittest.TestCase):
         widget.delete(iid)
         self.assertFalse(widget.exists(iid))
 
+    def test_list_multi_delete_preserves_remaining_items(self):
+        widget = Elenco(None)
+        for iid in ("one", "two", "three", "four"):
+            widget.insert("", "end", iid=iid, text=iid)
+        widget.delete("one", "three")
+        self.assertEqual(widget.get_children(), ("two", "four"))
+        self.assertTrue(widget.exists("two"))
+        self.assertTrue(widget.exists("four"))
+
     def test_dialog_and_popup_construction(self):
         def corpo(parent):
             layout = QVBoxLayout(parent)
             layout.addWidget(QLabel("Body"))
         dialog = Finestrella(None, "Title", corpo)
         self.assertEqual(dialog.windowTitle(), "Title")
+        self.assertGreater(dialog.sizeHint().height(), 0)
         popup = Tendina(None)
         self.assertFalse(popup.aperta())
 
