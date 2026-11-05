@@ -21,6 +21,7 @@ class QtWidgetTests(unittest.TestCase):
         with patch("ui.main_window.MpvVideo", side_effect=RuntimeError("libmpv unavailable")):
             window = MainWindow()
             self.assertIsNone(window.player)
+            self.assertGreaterEqual(window._layout_principale.indexOf(window.barra), 0)
             window.close()
             self.app.processEvents()
 
