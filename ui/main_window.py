@@ -20,6 +20,7 @@ import os
 import re
 import time
 import random
+import json
 
 
 class _CaricaGuide(QThread):
@@ -197,8 +198,8 @@ class MainWindow(QMainWindow):
             controlli.addWidget(b)
         controlli.addStretch(1)
         self.volume = QSlider(Qt.Horizontal, self.barra)
-        self.volume.setRange(0, 150)
-        self.volume.setValue(100)
+        self.volume.setRange(0, 100)
+        self.volume.setValue(int(self.sessione.config.get("volume", 100)))
         self.volume.setFixedWidth(120)
         controlli.addWidget(QLabel("Volume", self.barra))
         controlli.addWidget(self.volume)
@@ -354,11 +355,20 @@ class MainWindow(QMainWindow):
         audio = self.menuBar().addMenu(_("Audio"))
         audio.addAction(self._azione(_("Next audio track"), lambda: self._ciclo("aid")))
         audio.addAction(self._azione(_("Next subtitle track"), lambda: self._ciclo("sid")))
+        self.menu_tracce_audio = audio.addMenu(_("Audio tracks"))
+        self.menu_tracce_sub = audio.addMenu(_("Subtitles"))
+        self.menu_tracce_audio.aboutToShow.connect(lambda: self._riempi_menu_tracce(self.menu_tracce_audio, "audio"))
+        self.menu_tracce_sub.aboutToShow.connect(lambda: self._riempi_menu_tracce(self.menu_tracce_sub, "sub"))
+        audio.addAction(self._azione(_("Load subtitles..."), self.carica_sottotitoli))
         audio.addAction(self._azione(_("Subtitles on/off"), lambda: self._ciclo("sub-visibility")))
         audio.addAction(self._azione("Subtitle delay +100 ms", lambda: self._regola("sub-delay", 0.1)))
         audio.addAction(self._azione("Subtitle delay -100 ms", lambda: self._regola("sub-delay", -0.1)))
         audio.addAction(self._azione("Audio delay +100 ms", lambda: self._regola("audio-delay", 0.1)))
         audio.addAction(self._azione("Audio delay -100 ms", lambda: self._regola("audio-delay", -0.1)))
+        audio.addSeparator()
+        audio.addAction(self._azione(_("Volume boost +50%"), self.boost))
+        audio.addAction(self._azione(_("Normalize loudness"), self.normalizza))
+        audio.addAction(self._azione(_("Audio equalizer..."), self.equalizzatore_audio))
         iptv = self.menuBar().addMenu(_("IPTV"))
         iptv.addAction(self._azione(_("Add playlist URL"), self.aggiungi_lista_url))
         iptv.addAction(self._azione(_("Open playlists folder"), self.apri_cartella_liste))
@@ -734,6 +744,125 @@ class MainWindow(QMainWindow):
 
 
 
+
+    def tracce(self, tipo):
+        player = self._attivo()
+        if not player:
+            return []
+        try:
+            valore = player.leggi("track-list")
+            elenco = json.loads(valore) if valore else []
+            return [traccia for traccia in elenco if traccia.get("type") == tipo]
+        except Exception:
+            return []
+
+    @staticmethod
+    def nome_traccia(traccia):
+        nome = traccia.get("title") or traccia.get("lang") or ""
+        codec = traccia.get("codec") or ""
+        return ("%s (%s)" % (nome, codec) if nome and codec
+                else nome or codec or str(traccia.get("id")))
+
+    def _riempi_menu_tracce(self, menu, tipo):
+        menu.clear()
+        tracce = self.tracce(tipo)
+        if not tracce:
+            azione = menu.addAction(_("No tracks available"))
+            azione.setEnabled(False)
+            return
+        proprieta = "aid" if tipo == "audio" else "sid"
+        for traccia in tracce:
+            testo = self.nome_traccia(traccia)
+            if traccia.get("selected"):
+                testo = "✓  " + testo
+            menu.addAction(self._azione(
+                testo, lambda _=False, i=traccia.get("id"): self.metti_traccia(proprieta, i)))
+
+    def metti_traccia(self, proprieta, identificativo):
+        player = self._attivo()
+        if player:
+            player.imposta(proprieta, identificativo)
+
+    def carica_sottotitoli(self):
+        percorso, _ = QFileDialog.getOpenFileName(
+            self, _("Load subtitles"), "", "Subtitles (*.srt *.ass *.ssa *.sub *.vtt *.idx *.sup)")
+        if percorso:
+            self._comando("sub-add", percorso, "select")
+
+    def boost(self):
+        attivo = not bool(self.sessione.config.get("boost"))
+        self.sessione.config["boost"] = attivo
+        scrivi_config(self.sessione.config)
+        self._volume(self.volume.value())
+
+    def normalizza(self):
+        attivo = not bool(self.sessione.config.get("normalizza"))
+        self.sessione.config["normalizza"] = attivo
+        scrivi_config(self.sessione.config)
+        self.applica_filtri_audio()
+
+    def applica_filtri_audio(self):
+        filtri = []
+        if self.sessione.config.get("normalizza"):
+            filtri.append("dynaudnorm=f=150:g=15")
+        bande = self.sessione.config.get("eq_bande", [0] * 10)
+        if not isinstance(bande, list) or len(bande) != 10:
+            bande = [0] * 10
+        for frequenza, guadagno in zip((31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000), bande):
+            guadagno = max(-12, min(12, int(guadagno)))
+            if guadagno:
+                filtri.append("equalizer=f=%d:width_type=o:width=1:g=%d" % (frequenza, guadagno))
+        player = self._attivo()
+        if player:
+            player.imposta("af", "lavfi=[" + ",".join(filtri) + "]" if filtri else "")
+
+    def equalizzatore_audio(self):
+        originali = list(self.sessione.config.get("eq_bande", [0] * 10))
+        if len(originali) != 10:
+            originali = [0] * 10
+        finestra = QDialog(self)
+        finestra.setWindowTitle(_("Audio equalizer"))
+        finestra.setModal(True)
+        finestra.setStyleSheet("QDialog{background:#1c1b22;color:#e0e0e0}")
+        col = QHBoxLayout(finestra)
+        slider = []
+        for frequenza, valore in zip(("31", "62", "125", "250", "500", "1k", "2k", "4k", "8k", "16k"), originali):
+            cella = QVBoxLayout()
+            cella.addWidget(QLabel(frequenza))
+            s = QSlider(Qt.Vertical)
+            s.setRange(-12, 12)
+            s.setValue(int(valore))
+            s.valueChanged.connect(lambda _v: self._eq_anteprima(slider))
+            slider.append(s)
+            cella.addWidget(s)
+            col.addLayout(cella)
+        comandi = QHBoxLayout()
+        flat = QPushButton(_("Flat"))
+        cancel = QPushButton(_("Cancel"))
+        ok = QPushButton(_("OK"))
+        comandi.addWidget(flat)
+        comandi.addStretch(1)
+        comandi.addWidget(cancel)
+        comandi.addWidget(ok)
+        layout = QVBoxLayout(finestra)
+        layout.addLayout(col)
+        layout.addLayout(comandi)
+        flat.clicked.connect(lambda: [s.setValue(0) for s in slider])
+        cancel.clicked.connect(finestra.reject)
+        ok.clicked.connect(finestra.accept)
+        finestra.resize(620, 290)
+        risultato = finestra.exec()
+        if risultato:
+            self.sessione.config["eq_bande"] = [s.value() for s in slider]
+            scrivi_config(self.sessione.config)
+        else:
+            self.sessione.config["eq_bande"] = originali
+        self.applica_filtri_audio()
+
+    def _eq_anteprima(self, slider):
+        self.sessione.config["eq_bande"] = [s.value() for s in slider]
+        self.applica_filtri_audio()
+
     def _aggiorna_mpris(self):
         self.mpv = self._attivo()
         if not self._mpris:
@@ -1030,7 +1159,9 @@ class MainWindow(QMainWindow):
     def _volume(self, valore):
         player = self._attivo()
         if player:
-            player.volume(valore)
+            player.volume(float(valore) * (1.5 if self.sessione.config.get("boost") else 1.0))
+        self.sessione.config["volume"] = int(valore)
+        scrivi_config(self.sessione.config)
         self._aggiorna_mpris()
 
     def _seek(self):
