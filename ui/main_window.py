@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QTimer, QDateTime, QThread, QObject, Signal
-from PySide6.QtGui import QAction, QIcon
+from PySide6.QtGui import QAction, QBrush, QColor, QIcon
 from PySide6.QtWidgets import (
     QFileDialog,
     QFrame,
@@ -568,12 +568,25 @@ class MainWindow(QMainWindow):
     def select_local_source(self, item, _column):
         source = item.data(0, Qt.ItemDataRole.UserRole)
         if source:
+            self._update_local_selection(source)
             self._scan_source(source[0], source[1])
+
+    def _update_local_selection(self, source):
+        active = (source[0], tuple(source[1]) if source[0] == "imported" else str(source[1]))
+        for key, item in getattr(self, "_source_tree_items", {}).items():
+            current = (key[0], tuple(key[1]) if key[0] == "imported" else str(key[1]))
+            if current == active:
+                item.setBackground(0, QColor(IN_ONDA))
+                item.setForeground(0, QColor(TESTO_ONDA))
+            else:
+                item.setBackground(0, QBrush())
+                item.setForeground(0, QBrush())
 
     def _scan_source(self, source, value):
         self._scan_token = getattr(self, "_scan_token", 0) + 1
         token = self._scan_token
         self._active_source = (source, value)
+        self._update_local_selection((source, value))
         self.media_tree.clear()
         self.notification.hide()
         self.playback_status.setText("Loading...")
