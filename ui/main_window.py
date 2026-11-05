@@ -228,8 +228,8 @@ class MainWindow(QMainWindow):
         self._action(view, "Split screen  F2", enabled=False)
         self._action(view, "Always on top", enabled=False)
         view.addSeparator()
-        self._action(view, "Hide list", self.toggle_left_panel)
-        self._action(view, "Hide sidebar", self.toggle_right_panel)
+        self.left_toggle_action = self._action(view, "Hide list", self.toggle_left_panel)
+        self.right_toggle_action = self._action(view, "Hide sidebar", self.toggle_right_panel)
         view.addSeparator()
         language = view.addMenu("Language")
         for label in ("English", "Italiano", "Español", "Français", "Deutsch",
@@ -258,7 +258,7 @@ class MainWindow(QMainWindow):
         splitter.setChildrenCollapsible(False)
 
         self.left_panel = QFrame()
-        self.left_panel.setFixedWidth(300)
+        self.left_panel.setMinimumWidth(180)
         left_layout = QVBoxLayout(self.left_panel)
         left_layout.setContentsMargins(10, 10, 8, 8)
         left_layout.setSpacing(8)
@@ -276,7 +276,7 @@ class MainWindow(QMainWindow):
         self.video.setStyleSheet("background: #000000;")
 
         self.right_panel = QFrame()
-        self.right_panel.setFixedWidth(220)
+        self.right_panel.setMinimumWidth(150)
         right_layout = QVBoxLayout(self.right_panel)
         right_layout.setContentsMargins(8, 10, 8, 8)
         right_layout.setSpacing(5)
@@ -293,6 +293,7 @@ class MainWindow(QMainWindow):
         splitter.addWidget(self.video)
         splitter.addWidget(self.right_panel)
         splitter.setSizes([300, 760, 220])
+        splitter.setStretchFactor(1, 1)
         outer.addWidget(splitter, 1)
 
         self.notification = QFrame()
@@ -315,8 +316,6 @@ class MainWindow(QMainWindow):
         controls.setContentsMargins(8, 5, 8, 5)
         controls.setSpacing(2)
 
-        self.playlist_button = self._tool_button("playlist", "Playlists", self.toggle_right_panel)
-        controls.addWidget(self.playlist_button)
         controls.addSpacing(12)
         controls.addWidget(self._tool_button("prima", "Previous", enabled=False))
         controls.addWidget(self._text_button("-10", "Back 10 seconds", lambda: self.seek(-10)))
@@ -331,17 +330,19 @@ class MainWindow(QMainWindow):
         controls.addWidget(self._tool_button("shuffle", "Shuffle", enabled=False))
         controls.addStretch(1)
         controls.addWidget(self._tool_button("favorite_off", "Favorite", enabled=False))
+        self.playlist_button = self._tool_button("playlist", "Playlists", self.toggle_right_panel)
+        controls.addWidget(self.playlist_button)
         controls.addWidget(self._tool_button("pieno", "Fullscreen", self.toggle_fullscreen))
         controls.addWidget(self._tool_button("pip", "Picture in picture", enabled=False))
         controls.addWidget(self._tool_button("setting", "Quality", enabled=False))
-        self.volume_button = self._tool_button("volume", "Mute", self.toggle_mute)
-        controls.addWidget(self.volume_button)
         self.volume_slider = QSlider(Qt.Orientation.Horizontal)
         self.volume_slider.setRange(0, 100)
         self.volume_slider.setValue(100)
         self.volume_slider.setFixedWidth(85)
         self.volume_slider.valueChanged.connect(self.set_volume)
         controls.addWidget(self.volume_slider)
+        self.volume_button = self._tool_button("volume", "Mute", self.toggle_mute)
+        controls.addWidget(self.volume_button)
         outer.addWidget(self.control_bar)
 
         self.status_bar = QFrame()
@@ -418,10 +419,14 @@ class MainWindow(QMainWindow):
         self.showNormal() if self.isFullScreen() else self.showFullScreen()
 
     def toggle_left_panel(self):
-        self.left_panel.setVisible(not self.left_panel.isVisible())
+        visible = not self.left_panel.isVisible()
+        self.left_panel.setVisible(visible)
+        self.left_toggle_action.setText("Hide list" if visible else "Show list")
 
     def toggle_right_panel(self):
-        self.right_panel.setVisible(not self.right_panel.isVisible())
+        visible = not self.right_panel.isVisible()
+        self.right_panel.setVisible(visible)
+        self.right_toggle_action.setText("Hide sidebar" if visible else "Show sidebar")
 
     def _update_clock(self):
         self.clock_status.setText(QDateTime.currentDateTime().toString("ddd dd MMM  HH:mm"))
