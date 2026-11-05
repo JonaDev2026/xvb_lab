@@ -1789,12 +1789,13 @@ class MainWindow(QMainWindow):
             self.riga_stato.setText("Cannot record: " + str(errore))
             return
         self.registrando = destinazione
+        self._player_rec = player
         self.fine_rec = fine
         self.inizio_rec = time.time()
         self._mostra_rec()
 
     def ferma_registrazione(self):
-        player = self._attivo()
+        player = self._player_rec or self._attivo()
         if player:
             try:
                 player.imposta("stream-record", "")
@@ -1802,6 +1803,7 @@ class MainWindow(QMainWindow):
                 pass
         destinazione = self.registrando
         self.registrando = ""
+        self._player_rec = None
         self.fine_rec = 0.0
         if destinazione:
             self.riga_stato.setText("Saved " + os.path.basename(destinazione))
@@ -2351,6 +2353,8 @@ class MainWindow(QMainWindow):
         self._timer_rec.stop()
         self._timer_dischi.stop()
         self._timer_info.stop()
+        if self.registrando:
+            self.ferma_registrazione()
         self._timer_refresh.stop()
         if self._worker_liste and self._worker_liste.isRunning():
             self._worker_liste.wait(35000)
