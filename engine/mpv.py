@@ -151,6 +151,11 @@ class MpvVideo(QOpenGLWidget):
         return lib
 
     def _crea(self):
+        cartella_screenshot = os.path.join(os.path.expanduser("~"), "Pictures", "xvb")
+        try:
+            os.makedirs(cartella_screenshot, exist_ok=True)
+        except OSError:
+            cartella_screenshot = os.path.expanduser("~")
         self._mpv = self._lib.mpv_create()
         if not self._mpv:
             raise MpvError("mpv_create non riuscita")
@@ -166,7 +171,7 @@ class MpvVideo(QOpenGLWidget):
             "ytdl": "no",
             "user-agent": UA,
             "volume-max": "150",
-            "screenshot-directory": os.path.join(os.path.expanduser("~"), "Pictures", "xvb"),
+            "screenshot-directory": cartella_screenshot,
             "screenshot-template": "xvb-%tY-%tm-%td_%tH-%tM-%tS",
             "cursor-autohide": "3000",
             "stream-lavf-o": "reconnect=1,reconnect_streamed=1,reconnect_on_network_error=1,reconnect_delay_max=10",
