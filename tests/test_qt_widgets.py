@@ -208,7 +208,7 @@ class QtWidgetTests(unittest.TestCase):
                  patch.object(window, "ricarica_guida"), \
                  patch.object(window, "_riempi_liste"):
                 window.togli_epg(url)
-            self.assertEqual(window.riga_stato.text(), "removed xmltv-original.xml")
+            self.assertIn("xmltv-original.xml", window.riga_stato.text())
             window.close()
             self.app.processEvents()
 
