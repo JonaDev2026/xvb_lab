@@ -28,6 +28,7 @@ from core.constants import (SCALA_FILE, CATEGORIE_URL, VERSIONE, DONA, REPO, UA,
                             CERCA, IN_ONDA, TESTO_ONDA)
 from core.discs import dischi, cd_audio, dvd_cifrato, e_dvd, titolo_da_etichetta
 from core.recordings import registrazioni, piu_nuova
+from core.epg import guide_da_aggiornare
 from core.favorites import leggi_preferiti, leggi_preferiti_cat, scrivi_preferiti
 import os
 import re
@@ -558,6 +559,11 @@ class MainWindow(QMainWindow):
         self._timer_refresh = QTimer(self)
         self._timer_refresh.timeout.connect(self.aggiorna_periodico)
         self._timer_refresh.start(1800000)
+        self._epg_ultima_tentata = time.time()
+        self._epg_caricata_il = 0.0
+        self._timer_epg = QTimer(self)
+        self._timer_epg.timeout.connect(self.controlla_aggiornamento_epg)
+        self._timer_epg.start(1800000)
         self._worker_liste = None
         self.mpv = self.player
         self._mpris = avvia_mpris(self)
@@ -1472,6 +1478,7 @@ class MainWindow(QMainWindow):
         self.epg = self.sessione.epg
         self.epg_nomi = self.sessione.epg_nomi
         self.riga_stato.setText("EPG ready")
+        self._epg_caricata_il = time.time()
         self.aggiorna_info_canale()
         if self._epg_rifare:
             self._epg_rifare = False
@@ -1512,7 +1519,17 @@ class MainWindow(QMainWindow):
                 pass
         self.ricarica_guida()
 
+    def controlla_aggiornamento_epg(self):
+        percorsi = self.sessione.config.get("epg", [])
+        if isinstance(percorsi, str):
+            percorsi = [percorsi] if percorsi else []
+        if self._thread_epg.isRunning():
+            return
+        if guide_da_aggiornare(percorsi, self._epg_caricata_il, self._epg_ultima_tentata):
+            self.ricarica_guida()
+
     def ricarica_guida(self):
+        self._epg_ultima_tentata = time.time()
         if self._thread_epg.isRunning():
             self._epg_rifare = True
             return
@@ -3885,6 +3902,7 @@ class MainWindow(QMainWindow):
         if self.registrando:
             self.ferma_registrazione()
         self._timer_refresh.stop()
+        self._timer_epg.stop()
         if self._worker_liste and self._worker_liste.isRunning():
             self._worker_liste.wait(35000)
         for worker in self._stream_workers:
