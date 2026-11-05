@@ -33,7 +33,7 @@ class MediaLogicTests(unittest.TestCase):
                 with open(target, "wb") as stream:
                     stream.write(b"")
             result = media_in(root)
-            self.assertEqual([os.path.basename(item[1]) for item in result], ["a.flac", "b.mp3"])
+            self.assertEqual([os.path.basename(item[1]) for item in result], ["b.mp3", "a.flac"])
 
     def test_time_format(self):
         self.assertEqual(ore_min_sec(125), "02:05")
