@@ -478,3 +478,13 @@ Commit: `6998665`, `beb8a9f`, `572e42a`, `57b66f8`.
 - Aggiunto test Qt sul cambio e ripristino dello stato del pulsante. GitHub Actions sul commit `b37b04e` ha superato compilazione e suite di regressione/Qt.
 
 Commit: `ad03baa`, `b37b04e`.
+
+
+## Navigazione tracce e capitoli nel menu Playback
+
+- Ripristinate nel menu Playback le azioni Previous e Next, oltre ai comandi Previous chapter e Next chapter.
+- Aggiunto il sottomenu Chapters, popolato dinamicamente dai capitoli esposti da libmpv e nascosto quando il contenuto non ne dispone.
+- Il menu viene aggiornato all'evento FILE_LOADED; la lettura dell'indice corrente conserva correttamente il capitolo zero.
+- Aggiunto test Qt per visibilità, popolamento e selezione del capitolo corrente. GitHub Actions sul commit `f18d97b` ha superato compilazione e suite di regressione/Qt.
+
+Commit: `c01cd46`, `48dd002`, `f18d97b`.
