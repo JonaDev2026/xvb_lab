@@ -174,9 +174,9 @@ class QtWidgetTests(unittest.TestCase):
         with patch("ui.main_window.MpvVideo", side_effect=RuntimeError("libmpv unavailable")):
             window = MainWindow()
             with tempfile.NamedTemporaryFile(suffix=".m3u") as stream:
-                with patch("ui.main_window.e_una_lista", return_value=True), \\
-                     patch("ui.main_window.scrivi_config"), \\
-                     patch.object(window, "ricarica_liste") as ricarica, \\
+                with patch("ui.main_window.e_una_lista", return_value=True), \
+                     patch("ui.main_window.scrivi_config"), \
+                     patch.object(window, "ricarica_liste") as ricarica, \
                      patch.object(window, "_completa_apri_da_fuori"):
                     window.apri_da_fuori([stream.name])
                 ricarica.assert_called_once_with(scegli=os.path.abspath(stream.name), forza=False)
