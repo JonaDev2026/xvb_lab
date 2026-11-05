@@ -1,10 +1,9 @@
 import ctypes
 import ctypes.util
-import threading
 
 from PySide6.QtCore import Qt, Signal, QTimer
 from PySide6.QtGui import QSurfaceFormat
-from PySide6.QtWidgets import QOpenGLWidget
+from PySide6.QtOpenGLWidgets import QOpenGLWidget
 
 
 class _RenderParam(ctypes.Structure):
