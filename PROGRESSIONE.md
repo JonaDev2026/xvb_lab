@@ -274,3 +274,5 @@ Non eseguiti test grafici o prove di rendering. La dissolvenza originale dello s
 
 - Ripristinato il comportamento Stop/Resume: Stop conserva tipo, nome, percorso e ID del contenuto corrente; Play dopo Stop riapre lo stesso contenuto dall'inizio, con tooltip Resume.
 - Stop annulla anche il timer di spegnimento e conclude un'eventuale registrazione attiva.
+
+- Il pulsante Shuffle ora riflette visivamente lo stato attivo e aggiorna tooltip e stato check anche quando il valore arriva da MPRIS.
