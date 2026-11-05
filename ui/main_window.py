@@ -5,7 +5,7 @@ from PySide6.QtWidgets import (
     QPushButton, QFileDialog, QInputDialog, QMessageBox, QSlider, QTreeWidget, QTreeWidgetItem
 )
 from engine.mpv import MpvVideo
-from ui.widgets import Cursore, Elenco, Finestrella, Ricerca, Guida
+from ui.widgets import Cursore, Elenco, Finestrella, Ricerca, Guida, Tendina
 from ui.sidebar import Sidebar
 from core.session import Sessione
 from core.media import media_in, AUDIO
@@ -242,6 +242,7 @@ class MainWindow(QMainWindow):
         controlli = QHBoxLayout()
         controlli.setSpacing(4)
         self._pulsanti = {}
+        self.tendina = Tendina(self)
 
         def pulsante(chiave, nome, callback, lato=24, etichetta=None):
             b = QPushButton(self.barra)
@@ -267,7 +268,7 @@ class MainWindow(QMainWindow):
         pulsante("avanti", "+10", lambda: self.avanza(10), 24, "+10")
         pulsante("successivo", "dopo", lambda: self.salta(1), 34, _("Next"))
         pulsante("rec", "rec", self.registra, 24, _("Record"))
-        pulsante("repeat", "repeat", self._ciclo_ripeti, 24, _("Repeat"))
+        pulsante("repeat", "repeat", self._menu_ripeti, 24, _("Repeat"))
         pulsante("shuffle", "shuffle", lambda: self.mpris_shuffle(not self.shuffle_attivo), 24, _("Shuffle"))
         controlli.addStretch(1)
         pulsante("pip", "pip", self.pip_si_no, 24, "PiP")
@@ -393,6 +394,21 @@ class MainWindow(QMainWindow):
         except ValueError:
             indice = 0
         self.metti_ripeti(modalita[(indice + 1) % len(modalita)])
+
+    def _menu_ripeti(self):
+        pulsante = self._pulsanti.get("repeat")
+        if pulsante is None:
+            return
+        posizione = pulsante.mapToGlobal(pulsante.rect().bottomLeft())
+        voci = []
+        for modalita, etichetta in (
+            ("", _("Repeat off")), ("uno", _("Repeat file")),
+            ("tutti", _("Repeat playlist"))
+        ):
+            testo = ("*  " if self.ripeti == modalita else "   ") + etichetta
+            voci.append((testo, lambda m=modalita: self.metti_ripeti(m)))
+        self.tendina.apri(posizione.x(), posizione.y(), voci,
+                          sopra=True, chi=pulsante)
 
     def _sidebar(self):
         self.destra.setVisible(not self.destra.isVisible())
