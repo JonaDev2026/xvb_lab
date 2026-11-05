@@ -565,6 +565,9 @@ class Guida(QDialog):
         self.nomi.clear()
         for nome, url, ide, prog in self.righe:
             voce = QListWidgetItem(nome)
+            logo = self.app.logo_di(url) if hasattr(self.app, "logo_di") else None
+            if logo is not None:
+                voce.setIcon(QIcon(logo))
             voce.setSizeHint(QSize(self.NOMI, self.RIGA))
             self.nomi.addItem(voce)
         self.tela.setMinimumSize(6 * self.ORA, max(1, len(self.righe)) * self.RIGA + 20)
