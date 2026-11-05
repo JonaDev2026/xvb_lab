@@ -329,6 +329,21 @@ class QtWidgetTests(unittest.TestCase):
             window.close()
             self.app.processEvents()
 
+    def test_url_rename_can_be_reset_to_derived_name(self):
+        with patch("ui.main_window.MpvVideo", side_effect=RuntimeError("libmpv unavailable")):
+            window = MainWindow()
+            url = "https://example.test/old-name.m3u8"
+            window.sessione.config.setdefault("nomi_url", {})[url] = "Old name"
+            with patch.object(window, "_chiedi_testo", return_value=""), \
+                    patch("ui.main_window.scrivi_config"), \
+                    patch.object(window, "_riempi_liste"), \
+                    patch.object(window, "_riempi_elenco"):
+                window.rinomina_url(url)
+            self.assertNotIn(url, window.sessione.config["nomi_url"])
+            self.assertNotEqual(window.nome_di_url(url), "Old name")
+            window.close()
+            self.app.processEvents()
+
     def test_main_window_module_imports(self):
         self.assertTrue(MainWindow)
 
