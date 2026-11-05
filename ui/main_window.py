@@ -265,8 +265,12 @@ class MainWindow(QMainWindow):
 
 
     def _attivo(self):
-        return self.player2 if self.split and self.schermo_attivo == 1 and self.player2 else self.player\n\n    def _comando(self, *argomenti):
-        player = self._attivo()\n        if player:\n            player.comando(*argomenti)
+        return self.player2 if self.split and self.schermo_attivo == 1 and self.player2 else self.player
+
+    def _comando(self, *argomenti):
+        player = self._attivo()
+        if player:
+            player.comando(*argomenti)
 
     def _imposta(self, nome, valore):
         player = self._attivo()
