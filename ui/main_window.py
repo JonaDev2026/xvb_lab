@@ -457,6 +457,7 @@ class MainWindow(QMainWindow):
             item.setData(0, Qt.ItemDataRole.UserRole, ("imported", imported))
             item.setIcon(0, self._icon("playlist"))
             root.addChild(item)
+            self._source_tree_items[("imported", tuple(imported))] = item
             for path in imported:
                 child = QTreeWidgetItem([Path(path).stem])
                 child.setData(0, Qt.ItemDataRole.UserRole, ("imported", [path]))
@@ -465,6 +466,7 @@ class MainWindow(QMainWindow):
                     "mid", "midi", "mp3", "mpc", "oga", "ogg", "opus", "wav", "wma", "wv"
                 } else "player"))
                 item.addChild(child)
+                self._source_tree_items[("imported", (path,))] = child
             item.setExpanded(False)
         root.setExpanded(True)
 
@@ -618,6 +620,14 @@ class MainWindow(QMainWindow):
             if source_item is not None:
                 total = len(items)
                 source_item.setText(0, f"{root_path.name or str(root_path)} ({total})")
+                for key in list(self._source_tree_items):
+                    if key[0] != "folder" or key[1] == str(root_path):
+                        continue
+                    try:
+                        Path(key[1]).relative_to(root_path)
+                        self._source_tree_items.pop(key, None)
+                    except ValueError:
+                        pass
                 source_item.takeChildren()
                 groups = {}
                 for media in items:
@@ -635,11 +645,14 @@ class MainWindow(QMainWindow):
                     icon = "music" if music_count > len(children) / 2 else "player"
                     child.setIcon(0, self._icon(icon))
                     source_item.addChild(child)
+                    self._source_tree_items[("folder", str(child_path.resolve()))] = child
                 source_item.setExpanded(True)
         elif source == "imported":
-            source_item = self.playlist_tree.currentItem()
-            if source_item is not None and source_item.data(0, Qt.ItemDataRole.UserRole):
-                source_item.setText(0, f"{source_item.text(0).split(' (')[0]} ({len(items)})")
+            paths = tuple(value) if isinstance(value, (list, tuple)) else (str(value),)
+            source_item = self._source_tree_items.get(("imported", paths))
+            if source_item is not None:
+                label = source_item.text(0).split(" (")[0]
+                source_item.setText(0, f"{label} ({len(items)})")
         self.playback_status.setText(f"{len(items)} files")
 
     def filter_media(self, text):
