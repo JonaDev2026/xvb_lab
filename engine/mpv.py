@@ -54,6 +54,7 @@ class MpvVideo(QOpenGLWidget):
         self._timer.timeout.connect(self._eventi)
         self._timer.start(15)
         self.aggiornato.connect(self.update, Qt.QueuedConnection)
+        self.frameSwapped.connect(self._report_swap)
         self._crea()
 
     @staticmethod
@@ -88,6 +89,7 @@ class MpvVideo(QOpenGLWidget):
             ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p]
         lib.mpv_render_context_update.argtypes = [ctypes.c_void_p]
         lib.mpv_render_context_free.argtypes = [ctypes.c_void_p]
+        lib.mpv_render_context_report_swap.argtypes = [ctypes.c_void_p]
         return lib
 
     def _crea(self):
@@ -162,6 +164,11 @@ class MpvVideo(QOpenGLWidget):
                              ctypes.cast(ctypes.pointer(flip), ctypes.c_void_p)),
             self.RenderParam(self.MPV_RENDER_PARAM_INVALID, None))
         self._lib.mpv_render_context_render(self._render, params)
+
+
+    def _report_swap(self):
+        if self._render:
+            self._lib.mpv_render_context_report_swap(self._render)
 
     def resizeGL(self, w, h):
         self.update()
@@ -240,7 +247,12 @@ class MpvVideo(QOpenGLWidget):
         self._chiuso = True
         self._timer.stop()
         if self._render:
-            self._lib.mpv_render_context_free(self._render)
+            try:
+                self.makeCurrent()
+                self._lib.mpv_render_context_free(self._render)
+                self.doneCurrent()
+            except Exception:
+                self._lib.mpv_render_context_free(self._render)
             self._render = ctypes.c_void_p()
         if self._mpv:
             self._lib.mpv_terminate_destroy(self._mpv)
