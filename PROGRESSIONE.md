@@ -20,7 +20,7 @@ Questo documento registra in ordine cronologico il lavoro effettivamente svolto 
 - **Branch di lavoro:** `main`
 - **Riferimento funzionale:** https://github.com/JonaDev2026/xvb/tree/v4.4.4
 - **Architettura:** Python, PySide6/Qt6, libmpv Render API; motore separato dalle funzioni.
-- **Ultimo commit noto:** `2747a8ba396f084188f185c1f165d24e3459aa03`
+- **Ultimo commit noto:** `ff4d16472974e820b92bcce75f923ac8b1dff128` (azioni contestuali Local)
 - **Stato tecnico:** base Qt e primo collegamento Qt/libmpv presenti nel repository; esecuzione e rendering non ancora verificati sul computer di sviluppo.
 - **Funzioni della Stable trasferite:** nessuna funzione completa risulta ancora trasferita e collaudata.
 
@@ -320,3 +320,27 @@ Avvicinare l'albero Local alla struttura della Stable 4.4.4, mantenendo la confi
 
 - UI: `ea322f9115d52bbee5a5cfc055dc3b21dc263036`
 - Verifica locale: in attesa del pull e del collaudo sul computer di sviluppo.
+
+
+### 2026-11-05 — Azioni contestuali della libreria Local
+
+**Modifiche**
+
+- Aggiunto il menu contestuale nell'albero Local.
+- Le cartelle importate possono essere rimosse dall'elenco con richiesta di conferma.
+- I singoli file importati possono essere rimossi dall'elenco senza cancellarli dal disco.
+- È possibile rimuovere in un'unica operazione l'elenco Imported media, sempre senza toccare i file originali.
+- La configurazione Lab viene aggiornata dopo la conferma.
+- Le scansioni in background ora restituiscono anche la propria sorgente; i risultati di una scansione precedente vengono ignorati se nel frattempo è stata selezionata un'altra sorgente. Questo evita che una scansione lenta sovrascriva la lista appena selezionata.
+
+**Verifica**
+
+- Codice pubblicato su GitHub.
+- Non ancora compilato o provato localmente dopo questo aggiornamento.
+- Da collaudare: menu contestuale, conferme, persistenza dopo riavvio e scansioni consecutive.
+- La rimozione riguarda esclusivamente l'elenco di XVB Lab: nessun file o cartella multimediale viene cancellato dal disco.
+
+**Commit**
+
+- UI: `ff4d16472974e820b92bcce75f923ac8b1dff128`
+- Test locale: in attesa del pull e della verifica sul computer di sviluppo.
