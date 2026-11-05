@@ -28,6 +28,10 @@ Audit strutturale della Stable 4.4.4 completato: sorgente `xvb.py` del tag `v4.4
 - [x] Trasferiti in `core/epg.py` parsing XMLTV e gzip, conversione orari/fusi, cache guide, unione programmi e guide, identificazione canali, icone programma e raggruppamento registrazioni.
 - [x] Trasferita in `core/favorites.py` la gestione originale dei preferiti IPTV/Music/Video, inclusa compatibilità con `favorite.m3u` precedente, categorie, ID e chiavi ClearKey.
 - [x] Aggiunti test di regressione per salvataggio, lettura, metadati e rinomina del vecchio file preferiti.
+- [x] Trasferiti in `core/constants.py` i metadati e i parametri originali della Stable 4.4.4.
+- [x] Trasferiti in `core/log.py` logging rotante, filtro per oscurare credenziali e token, gestione delle eccezioni globali e dei thread; il callback GUI è predisposto per Qt.
+- [x] Trasferita in `core/image.py` la premoltiplicazione alfa richiesta dalle sovrapposizioni mpv.
+- [x] Aggiunti test per il filtro di sicurezza dei log.
 - [x] Aggiunto workflow GitHub Actions per eseguire automaticamente i test core a ogni push e pull request.
 - [x] Aggiunti test di regressione per conversione XMLTV, fusione guide, confronto versioni e normalizzazione nomi.
 - [x] Aggiunti test di regressione per formati media, scansione file, categorie preferiti, rilevamento M3U e parsing dei metadati.
