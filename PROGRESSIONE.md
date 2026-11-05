@@ -17,7 +17,8 @@ Audit strutturale della Stable 4.4.4 completato: sorgente `xvb.py` del tag `v4.4
 - [x] Recuperato il sorgente ufficiale Stable 4.4.4.
 - [x] Inventariate le 8 classi top-level.
 - [x] Elencati i 400 metodi diretti con riga sorgente.
-- [x] Rilevato `traduzioni.py` e le sette lingue.
+- [x] Copiato `traduzioni.py` dalla Stable senza modifiche in `i18n/traduzioni.py` (1.418 righe, sette lingue).
+- [x] Aggiunta API `i18n` separata dal toolkit grafico, con inglese predefinito.
 - [x] Rilevati i punti originali di costruzione menu, pannelli, fullscreen e overlay.
 - [ ] Mappatura completa di ogni metodo e delle funzioni top-level.
 - [ ] Migrazione dei moduli applicativi in Qt6.
