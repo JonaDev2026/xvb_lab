@@ -154,7 +154,7 @@ def avvia_mpris(app, dispatcher=None):
         @dbus.service.method(MPRIS_PROP, in_signature="ssv")
         def Set(self, iface, prop, valore):
             if prop == "Volume":
-                self.qt(app.volume.set, int(max(0.0, min(1.5, float(valore))) * 100))
+                self.qt(app.volume.setValue, int(max(0.0, min(1.5, float(valore))) * 100))
             elif prop == "Shuffle":
                 self.qt(app.mpris_shuffle, bool(valore))
             elif prop == "LoopStatus":
