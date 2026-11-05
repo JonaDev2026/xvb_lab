@@ -27,7 +27,6 @@ class Finestrella(QDialog):
         self.setWindowTitle(titolo)
         self.setModal(True)
         self.setWindowFlag(Qt.WindowContextHelpButtonHint, False)
-        self.setFixedSize(larga, self.sizeHint().height())
         self.risposta = None
         self.setStyleSheet(
             (
