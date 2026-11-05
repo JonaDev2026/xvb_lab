@@ -11,7 +11,7 @@ from core.media import media_in, AUDIO
 from core.tags import leggi_tag, tag_di, scrivi_tag
 from core.metadata import titolo_anno, dal_percorso
 from core.config import scrivi_config, CARTELLE_LISTE, REGISTRAZIONI
-from core.playlists import liste_in_cartella
+from core.playlists import liste_in_cartella, BUFFER
 import os
 import re
 import time
@@ -101,7 +101,7 @@ class MainWindow(QMainWindow):
         self.video_layout.setContentsMargins(0, 0, 0, 0)
         self.video_layout.setSpacing(0)
         try:
-            self.player = MpvVideo(self.video)
+            self.player = MpvVideo(self.video, options=self._mpv_buffer_options())
             self.video_layout.addWidget(self.player, 1)
             self.player.installEventFilter(self)
         except Exception as errore:
@@ -211,6 +211,28 @@ class MainWindow(QMainWindow):
         except Exception:
             return
 
+
+    def buffer_attuale(self):
+        chiave = self.sessione.config.get("buffer", "standard")
+        return next((voce for voce in BUFFER if voce[0] == chiave), BUFFER[2])
+
+    def _mpv_buffer_options(self):
+        voce = self.buffer_attuale()
+        return {
+            "demuxer-max-bytes": str(voce[2] * 1048576),
+            "demuxer-max-back-bytes": str(voce[3] * 1048576),
+            "demuxer-readahead-secs": str(voce[4]),
+            "cache-pause-wait": str(voce[5]),
+        }
+
+    def metti_buffer(self, chiave):
+        voce = next((v for v in BUFFER if v[0] == chiave), None)
+        if voce is None:
+            return
+        self.sessione.config["buffer"] = chiave
+        scrivi_config(self.sessione.config)
+        self.riga_stato.setText("Buffer: " + voce[1])
+
     def _azione(self, nome, callback, scorciatoia=None):
         azione = QAction(nome, self)
         if scorciatoia:
@@ -274,6 +296,9 @@ class MainWindow(QMainWindow):
         view.addAction(self._azione("Fullscreen", self.schermo_intero, "F"))
         view.addAction(self._azione("Picture in picture", self.pip_si_no))
         view.addAction(self._azione("Split screen", self.split_si_no, "F2"))
+        buffer_menu = view.addMenu("Buffer")
+        for chiave, etichetta, *_resto in BUFFER:
+            buffer_menu.addAction(self._azione(etichetta, lambda _=False, k=chiave: self.metti_buffer(k)))
         help_menu = self.menuBar().addMenu("Help")
         help_menu.addAction(self._azione("About XVB", self.informazioni))
 
