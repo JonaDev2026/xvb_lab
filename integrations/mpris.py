@@ -41,7 +41,7 @@ def avvia_mpris(app, dispatcher=None):
         dbus.mainloop.glib.threads_init()
         dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
         bus = dbus.SessionBus()
-        nome = dbus.service.BusName(MPRIS_RADICE + ".xvb", bus, do_not_queue=True)
+        nome = dbus.service.BusName(MPRIS_RADICE + ".xvb5", bus, do_not_queue=True)
     except Exception:
         return None
 
@@ -108,14 +108,14 @@ def avvia_mpris(app, dispatcher=None):
             if iface == MPRIS_RADICE:
                 return dbus.Dictionary({
                     "CanQuit": True, "CanRaise": True, "HasTrackList": False,
-                    "Identity": "XVB Player", "DesktopEntry": "xvb",
+                    "Identity": "XVB5 Player", "DesktopEntry": "xvb5",
                     "SupportedUriSchemes": dbus.Array(["file", "http", "https", "rtsp", "rtmp"], signature="s"),
                     "SupportedMimeTypes": dbus.Array([], signature="s"),
                 }, signature="sv")
             if iface != MPRIS_PLAYER:
                 return dbus.Dictionary({}, signature="sv")
             stato = self.stato
-            meta = {"mpris:trackid": dbus.ObjectPath("/org/xvb/track/%d" % stato.get("giro", 0))}
+            meta = {"mpris:trackid": dbus.ObjectPath("/org/xvb5/track/%d" % stato.get("giro", 0))}
             if stato.get("titolo"):
                 meta["xesam:title"] = stato["titolo"]
             if stato.get("artista"):
