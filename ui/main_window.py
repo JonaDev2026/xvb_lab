@@ -10,6 +10,7 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QMainWindow,
     QMenu,
+    QMessageBox,
     QPushButton,
     QSlider,
     QSplitter,
@@ -26,7 +27,7 @@ from features.local_media import scan_folder, scan_imported
 
 
 class FolderScanWorker(QObject):
-    finished = Signal(object, object)
+    finished = Signal(object, object, str, object)
 
     def __init__(self, source, value):
         super().__init__()
@@ -36,9 +37,9 @@ class FolderScanWorker(QObject):
     def run(self):
         try:
             items = scan_folder(self.value) if self.source == "folder" else scan_imported(self.value)
-            self.finished.emit(items, None)
+            self.finished.emit(items, None, self.source, self.value)
         except Exception as error:
-            self.finished.emit([], str(error))
+            self.finished.emit([], str(error), self.source, self.value)
 
 
 FONDO = "#1c1b22"
@@ -310,6 +311,8 @@ class MainWindow(QMainWindow):
         self.playlist_tree.setHeaderHidden(True)
         self.playlist_tree.setIndentation(14)
         self.playlist_tree.setSelectionMode(QTreeWidget.SelectionMode.SingleSelection)
+        self.playlist_tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.playlist_tree.customContextMenuRequested.connect(self.local_tree_context_menu)
         self.playlist_tree.itemClicked.connect(self.select_local_source)
         right_layout.addWidget(self.playlist_tree, 1)
         self._populate_local_tree()
@@ -455,6 +458,89 @@ class MainWindow(QMainWindow):
             item.setExpanded(False)
         root.setExpanded(True)
 
+    def local_tree_context_menu(self, position):
+        item = self.playlist_tree.itemAt(position)
+        if item is None:
+            return
+        source = item.data(0, Qt.ItemDataRole.UserRole)
+        if not source:
+            return
+        kind, value = source
+        menu = QMenu(self)
+        if kind == "folder":
+            action = menu.addAction("Remove folder from list")
+            chosen = menu.exec(self.playlist_tree.viewport().mapToGlobal(position))
+            if chosen == action:
+                self.remove_local_source(item)
+            return
+        if kind == "imported":
+            paths = list(value) if isinstance(value, (list, tuple)) else [value]
+            if len(paths) == 1:
+                action = menu.addAction("Remove file from list")
+            else:
+                action = menu.addAction("Remove imported media")
+            chosen = menu.exec(self.playlist_tree.viewport().mapToGlobal(position))
+            if chosen == action:
+                self.remove_local_source(item)
+            return
+
+    def remove_local_source(self, item):
+        source = item.data(0, Qt.ItemDataRole.UserRole)
+        if not source:
+            return
+        kind, value = source
+        if kind == "folder":
+            answer = QMessageBox.question(
+                self,
+                "Remove folder",
+                "The folder will be removed from the list. Files on disk will not be touched.",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
+                QMessageBox.StandardButton.Cancel,
+            )
+            if answer != QMessageBox.StandardButton.Yes:
+                return
+            folder = str(Path(value).resolve())
+            self.config["folders"] = [
+                path for path in self.config.get("folders", [])
+                if str(Path(path).expanduser().resolve()) != folder
+            ]
+        elif kind == "imported":
+            paths = list(value) if isinstance(value, (list, tuple)) else [value]
+            if len(paths) == 1:
+                answer = QMessageBox.question(
+                    self,
+                    "Remove imported file",
+                    "The file will be removed from the list. The file on disk will not be touched.",
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
+                    QMessageBox.StandardButton.Cancel,
+                )
+                if answer != QMessageBox.StandardButton.Yes:
+                    return
+                target = str(Path(paths[0]).expanduser().resolve())
+                self.config["imported"] = [
+                    path for path in self.config.get("imported", [])
+                    if str(Path(path).expanduser().resolve()) != target
+                ]
+            else:
+                answer = QMessageBox.question(
+                    self,
+                    "Remove imported media",
+                    "All imported files will be removed from the list. Files on disk will not be touched.",
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
+                    QMessageBox.StandardButton.Cancel,
+                )
+                if answer != QMessageBox.StandardButton.Yes:
+                    return
+                self.config["imported"] = []
+        else:
+            return
+        save_config(self.config)
+        self._active_source = None
+        self.media_tree.clear()
+        self.title_status.setText("")
+        self.playback_status.setText("ready")
+        self._populate_local_tree()
+
     def open_folder(self):
         folder = QFileDialog.getExistingDirectory(self, "Open folder")
         if not folder:
@@ -487,7 +573,9 @@ class MainWindow(QMainWindow):
         self._scan_threads.append(thread)
         thread.start()
 
-    def _show_media_items(self, items, error):
+    def _show_media_items(self, items, error, source, value):
+        if getattr(self, "_active_source", None) != (source, value):
+            return
         self.media_tree.clear()
         if error:
             self.playback_status.setText("Library error")
