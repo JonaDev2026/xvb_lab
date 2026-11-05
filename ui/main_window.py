@@ -2625,7 +2625,7 @@ class MainWindow(QMainWindow):
                     durata = float(player.leggi("duration") or 0)
                     if posizione >= 10 and durata > posizione + 20:
                         player.seek(posizione)
-                except (TypeError, ValueError, Exception):
+                except Exception:
                     pass
             return
         if evento.get("id") != MpvVideo.MPV_EVENT_END_FILE:
