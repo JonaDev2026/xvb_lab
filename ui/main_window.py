@@ -111,19 +111,21 @@ class _ScansionaCartella(QThread):
 
 
 class _CaricaGuide(QThread):
-    completato = Signal()
+    completato = Signal(bool)
     errore = Signal(str)
 
-    def __init__(self, sessione):
+    def __init__(self, sessione, silenzioso=False):
         super().__init__()
         self.sessione = sessione
+        self.silenzioso = silenzioso
 
     def run(self):
         try:
-            self.sessione.carica_guide()
+            self.sessione.carica_guide(self.silenzioso)
         except Exception as errore:
-            self.errore.emit(str(errore))
-        self.completato.emit()
+            if not self.silenzioso:
+                self.errore.emit(str(errore))
+        self.completato.emit(self.silenzioso)
 
 
 
@@ -1491,12 +1493,13 @@ class MainWindow(QMainWindow):
         scrivi_config(cfg)
         self.ricarica_guida()
 
-    def _epg_pronto(self):
+    def _epg_pronto(self, silenzioso=False):
         self.sessione.epg = self._epg_sessione.epg
         self.sessione.epg_nomi = self._epg_sessione.epg_nomi
         self.epg = self.sessione.epg
         self.epg_nomi = self.sessione.epg_nomi
-        self.riga_stato.setText("EPG ready")
+        if not silenzioso:
+            self.riga_stato.setText("EPG ready")
         self._epg_caricata_il = time.time()
         self.aggiorna_info_canale()
         if self._epg_rifare:
@@ -1546,9 +1549,9 @@ class MainWindow(QMainWindow):
         if self._thread_epg.isRunning():
             return
         if guide_da_aggiornare(percorsi, self._epg_caricata_il, self._epg_ultima_tentata):
-            self.ricarica_guida()
+            self.ricarica_guida(silenzioso=True)
 
-    def ricarica_guida(self):
+    def ricarica_guida(self, silenzioso=False):
         self._epg_ultima_tentata = time.time()
         if self._thread_epg.isRunning():
             self._epg_rifare = True
