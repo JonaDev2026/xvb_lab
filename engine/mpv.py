@@ -13,15 +13,18 @@ class MPVEngine:
             raise MPVError("libmpv non trovato. Installare la libreria runtime di mpv.")
 
         self._lib = ctypes.CDLL(library)
+        self._handle = None
         self._configure_api()
         self._handle = self._lib.mpv_create()
         if not self._handle:
             raise MPVError("Impossibile creare l'istanza libmpv.")
 
+        configured = {"vo": "libmpv"}
+        configured.update(options or {})
         try:
-            for name, value in (options or {}).items():
+            for name, value in configured.items():
                 self._set_option(name, value)
-            self._check(self._lib.mpv_initialize(self._handle), "mpv_initialize")
+            self.check(self._lib.mpv_initialize(self._handle), "mpv_initialize")
         except Exception:
             self._lib.mpv_terminate_destroy(self._handle)
             self._handle = None
@@ -45,24 +48,34 @@ class MPVEngine:
         self._lib.mpv_error_string.restype = ctypes.c_char_p
         self._lib.mpv_error_string.argtypes = [ctypes.c_int]
 
-    def _check(self, code, operation):
+    @property
+    def library(self):
+        return self._lib
+
+    @property
+    def handle(self):
+        return self._handle
+
+    def check(self, code, operation):
         if code < 0:
             message = self._lib.mpv_error_string(code)
             detail = message.decode("utf-8", "replace") if message else str(code)
             raise MPVError(f"{operation}: {detail}")
 
     def _set_option(self, name, value):
-        key = str(name).encode("utf-8")
-        val = str(value).encode("utf-8")
-        result = self._lib.mpv_set_option_string(self._handle, key, val)
-        self._check(result, f"mpv_set_option_string({name})")
+        result = self._lib.mpv_set_option_string(
+            self._handle,
+            str(name).encode("utf-8"),
+            str(value).encode("utf-8"),
+        )
+        self.check(result, f"mpv_set_option_string({name})")
 
     def command(self, *args):
         if not self._handle:
             raise MPVError("Motore non inizializzato.")
         encoded = [str(arg).encode("utf-8") for arg in args]
         argv = (ctypes.c_char_p * (len(encoded) + 1))(*encoded, None)
-        self._check(self._lib.mpv_command(self._handle, argv), "mpv_command")
+        self.check(self._lib.mpv_command(self._handle, argv), "mpv_command")
 
     def load(self, path):
         self.command("loadfile", path, "replace")
