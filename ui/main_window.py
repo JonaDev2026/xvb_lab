@@ -191,8 +191,35 @@ class MainWindow(QMainWindow):
         playback = self.menuBar().addMenu("Playback")
         playback.addAction(self._azione("Play / Pause", self.pausa, "Space"))
         playback.addAction(self._azione("Stop", self.ferma, "S"))
-        self.menuBar().addMenu("Video")
-        self.menuBar().addMenu("Audio")
+        playback.addAction(self._azione("Back 10 s", lambda: self._comando("seek", "-10", "relative")))
+        playback.addAction(self._azione("Forward 10 s", lambda: self._comando("seek", "10", "relative")))
+        playback.addSeparator()
+        for velocita in (0.5, 0.75, 1, 1.25, 1.5, 2):
+            playback.addAction(self._azione("Speed x%g" % velocita,
+                                            lambda _=False, v=velocita: self._imposta("speed", v)))
+        playback.addAction(self._azione("Repeat file", lambda: self._ciclo_valori("loop-file", "no", "inf")))
+        playback.addAction(self._azione("Repeat playlist", lambda: self._ciclo_valori("loop-playlist", "no", "inf")))
+        video = self.menuBar().addMenu("Video")
+        for nome, valore in (("Auto", "-1"), ("16:9", "16:9"), ("4:3", "4:3"), ("21:9", "21:9")):
+            video.addAction(self._azione("Aspect " + nome,
+                                         lambda _=False, v=valore: self._imposta("video-aspect-override", v)))
+        video.addAction(self._azione("Deinterlace", lambda: self._ciclo("deinterlace")))
+        video.addAction(self._azione("Hardware decoding", lambda: self._ciclo_valori("hwdec", "no", "auto-safe")))
+        video.addSeparator()
+        for nome, valore in (("Brightness +", ("brightness", 10)), ("Brightness -", ("brightness", -10)),
+                             ("Contrast +", ("contrast", 10)), ("Contrast -", ("contrast", -10)),
+                             ("Saturation +", ("saturation", 10)), ("Saturation -", ("saturation", -10))):
+            video.addAction(self._azione(nome, lambda _=False, v=valore: self._regola(*v)))
+        video.addAction(self._azione("Reset picture", lambda: self._azzera_video()))
+        video.addAction(self._azione("Screenshot", lambda: self._comando("screenshot")))
+        audio = self.menuBar().addMenu("Audio")
+        audio.addAction(self._azione("Next audio track", lambda: self._ciclo("aid")))
+        audio.addAction(self._azione("Next subtitle track", lambda: self._ciclo("sid")))
+        audio.addAction(self._azione("Subtitles on/off", lambda: self._ciclo("sub-visibility")))
+        audio.addAction(self._azione("Subtitle delay +100 ms", lambda: self._regola("sub-delay", 0.1)))
+        audio.addAction(self._azione("Subtitle delay -100 ms", lambda: self._regola("sub-delay", -0.1)))
+        audio.addAction(self._azione("Audio delay +100 ms", lambda: self._regola("audio-delay", 0.1)))
+        audio.addAction(self._azione("Audio delay -100 ms", lambda: self._regola("audio-delay", -0.1)))
         iptv = self.menuBar().addMenu("IPTV")
         iptv.addAction(self._azione("Programme guide", self.apri_guida))
         iptv.addAction(self._azione("Reload guide", self.ricarica_guida))
@@ -202,6 +229,32 @@ class MainWindow(QMainWindow):
         help_menu.addAction(self._azione("About XVB", self.informazioni))
 
 
+
+
+    def _comando(self, *argomenti):
+        if self.player:
+            self.player.comando(*argomenti)
+
+    def _imposta(self, nome, valore):
+        if self.player:
+            self.player.imposta(nome, valore)
+
+    def _ciclo(self, nome):
+        if self.player:
+            self.player.ciclo(nome)
+
+    def _ciclo_valori(self, nome, *valori):
+        if self.player:
+            self.player.comando("cycle-values", nome, *valori)
+
+    def _regola(self, nome, valore):
+        if self.player:
+            self.player.regola(nome, valore)
+
+    def _azzera_video(self):
+        if self.player:
+            for nome in ("brightness", "contrast", "saturation", "gamma", "hue"):
+                self.player.imposta(nome, 0)
 
     def _epg_pronto(self):
         self.epg = self.sessione.epg
