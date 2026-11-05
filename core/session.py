@@ -5,6 +5,7 @@ from core.playlists import (
     categorie_m3u, leggi_lista, liste_in_cartella, nome_vista
 )
 from core.epg import leggi_epg, prendi_epg, unisci_guide
+from core.favorites import leggi_preferiti_cat
 
 
 class Sessione:
@@ -14,7 +15,9 @@ class Sessione:
         self.canali = []
         self.epg_nomi = {}
         self.epg = {}
+        self.preferiti = []
         self.carica_liste()
+        self.carica_preferiti()
 
     def carica_liste(self):
         configurate = self.config.get("liste", [])
@@ -60,6 +63,15 @@ class Sessione:
                 })
                 for nome, url, ide in canali:
                     self.canali.append((nome, url, ide, categorie.get(url, "Altri"), percorso))
+
+
+    def carica_preferiti(self):
+        try:
+            self.preferiti = leggi_preferiti_cat()
+        except Exception:
+            self.preferiti = []
+        for nome, url, ide, categoria in self.preferiti:
+            self.canali.append((nome, url, ide, categoria or "MyPlaylist", "__favorite__"))
 
     def carica_guide(self):
         guide = []
