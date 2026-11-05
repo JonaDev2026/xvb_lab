@@ -394,19 +394,20 @@ class MainWindow(QMainWindow):
         pulsante("shuffle", "shuffle", lambda: self.mpris_shuffle(not self.shuffle_attivo), 24, _("Shuffle"))
         controlli.addStretch(1)
         pulsante("favorite", "favorite_off", self._preferito_in_onda, 24, _("Favorite"))
+        pulsante("fullscreen", "pieno", self.schermo_intero, 24, _("Fullscreen"))
         pulsante("pip", "pip", self.pip_si_no, 24, "PiP")
         self.speed_button = pulsante("speed", "x1", self.gira_velocita, 24, _("Playback speed"))
         self.speed_button.hide()
-        pulsante("split", "setting", self.split_si_no, 24, _("Split screen"))
+        self.b_qualita = pulsante("quality", "setting", self._apri_menu_qualita, 24, _("Quality"))
+        self.b_qualita.hide()
         pulsante("sidebar", "playlist", self._sidebar, 24, _("Playlists"))
-        pulsante("fullscreen", "pieno", self.schermo_intero, 24, _("Fullscreen"))
-        pulsante("mute", "volume", self._muto, 24, _("Mute"))
         self.colore_barra = None
         self.volume = Cursore(
             self.barra, self._volume, larga=85, alta=26, barra=BARRA,
             traccia="#4a4a4a", pieno="#ffffff")
         self.volume.valore = int(self.sessione.config.get("volume", 85))
         controlli.addWidget(self.volume)
+        pulsante("mute", "volume", self._muto, 24, _("Mute"))
         comandi.addLayout(controlli)
         root.addWidget(self.barra)
 
@@ -2998,6 +2999,7 @@ class MainWindow(QMainWindow):
         self.varianti = []
         self.quale = -1
         self.menu_qualita.setEnabled(False)
+        self.b_qualita.hide()
         self.riga_stato.setText(self.nome_in_onda)
         self._icona_preferito()
         self._aggiorna_mpris()
@@ -3075,6 +3077,7 @@ class MainWindow(QMainWindow):
             return
         self.varianti = elenco or []
         self.menu_qualita.setEnabled(len(self.varianti) > 1)
+        self.b_qualita.setVisible(len(self.varianti) > 1)
         if errore:
             self.riga_stato.setText(_("Stream resolution failed: %s") % errore)
         if self.varianti:
@@ -3122,6 +3125,10 @@ class MainWindow(QMainWindow):
         elif indice != self.quale and self.varianti:
             self.suona(indice)
         self._aggiorna_mpris()
+
+    def _apri_menu_qualita(self):
+        punto = self.b_qualita.mapToGlobal(self.b_qualita.rect().bottomLeft())
+        self.menu_qualita.popup(punto)
 
     def _riempi_menu_qualita(self):
         self.menu_qualita.clear()
