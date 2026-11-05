@@ -9,7 +9,7 @@ import time
 from core.epg import nome_piatto
 from core.colors import colore_sfondo_guida
 from i18n import _
-from core.constants import FONDO, PANNELLO, TESTO, GRIGIO, SCELTO, ZEBRA, IN_ONDA2
+from core.constants import FONDO, PANNELLO, TESTO, TESTO_ONDA, GRIGIO, SCELTO, ZEBRA, IN_ONDA
 
 SCORRE = object()
 
@@ -293,7 +293,7 @@ class _ElencoDelegate(QStyledItemDelegate):
         rett = option.rect
         selezionato = iid == e.scelta and e.hasFocus()
         sfondo = QColor(SCELTO) if selezionato else (
-            QColor(IN_ONDA2) if "onda" in tags else
+            QColor(IN_ONDA) if "onda" in tags else
             QColor(ZEBRA) if index.row() % 2 else QColor(FONDO))
         painter.save()
         painter.fillRect(rett, sfondo)
@@ -318,7 +318,8 @@ class _ElencoDelegate(QStyledItemDelegate):
             x_testo = rett.left() + colonna + 18
         else:
             x_testo = rett.left() + 12
-        painter.setPen(QColor("#ffffff" if selezionato else TESTO))
+        colore_testo = "#ffffff" if selezionato else (TESTO_ONDA if "onda" in tags else colore.name())
+        painter.setPen(QColor(colore_testo))
         font = painter.font()
         font.setBold(True)
         painter.setFont(font)
@@ -327,7 +328,8 @@ class _ElencoDelegate(QStyledItemDelegate):
             font.setBold(False)
             font.setPointSizeF(max(7.0, font.pointSizeF() - 1.0))
             painter.setFont(font)
-            painter.setPen(colore)
+            painter.setPen(QColor("#ffffff" if selezionato else
+                                  TESTO_ONDA if "onda" in tags else colore.name()))
             painter.drawText(x_testo, y_testo + 36, sotto)
         parte = None
         if e.prog_di:
