@@ -996,9 +996,11 @@ class MainWindow(QMainWindow):
                 save_config(self.config)
             self._populate_local_tree()
             self.engine.load(path)
+            self._current_media_path = path
             self._add_recent(path)
             self.title_status.setText(Path(path).name)
             self.playback_status.setText("playing")
+            self._update_playback_navigation()
 
     def toggle_pause(self):
         self.engine.command("cycle", "pause")
