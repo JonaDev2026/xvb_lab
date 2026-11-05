@@ -574,6 +574,12 @@ class MainWindow(QMainWindow):
             if self.player2:
                 self.player2.show()
             return
+        if getattr(self, "_sfondo_forzato", False):
+            if self._sfondo_url != "__default__":
+                self.sfondo.imposta(dissolvi=True)
+                self._sfondo_url = "__default__"
+            self.player.hide()
+            return
         percorso = self.file_in_onda
         if not percorso:
             if self._sfondo_url != "__default__":
@@ -2364,6 +2370,8 @@ class MainWindow(QMainWindow):
                 player.ferma()
             except Exception:
                 pass
+        self._sfondo_forzato = True
+        self._aggiorna_sfondo()
         self._messaggio_temporaneo(_("This DVD can't be played"))
 
     def canale_morto(self):
@@ -2375,8 +2383,12 @@ class MainWindow(QMainWindow):
         limite = min(10, max(1, len(self._canali_visibili)))
         if self.salti >= limite:
             self.salti = 0
+            self._sfondo_forzato = True
+            self._aggiorna_sfondo()
             self._messaggio_temporaneo(_("%s is not responding, nor are the next ones") % self.nome_in_onda)
             return
+        self._sfondo_forzato = True
+        self._aggiorna_sfondo()
         self._messaggio_temporaneo(_("%s is not responding: skipping to the next") % self.nome_in_onda)
         QTimer.singleShot(600, lambda: self.salta(1))
 
@@ -2901,6 +2913,9 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, "XVB", _("libmpv not available"))
             return
         self._eof_gestito = False
+        self.salti = 0
+        self._ultima_posizione = None
+        self._sfondo_forzato = False
         self._giro_traccia += 1
         self.file_in_onda = percorso
         if os.path.isabs(percorso) and os.path.splitext(percorso)[1][1:].lower() in AUDIO:
