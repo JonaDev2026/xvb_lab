@@ -2,6 +2,8 @@ import time
 
 from PySide6.QtCore import Qt, QTimer, QRectF, Signal
 from PySide6.QtGui import QColor, QPainter, QPen, QBrush
+from core.constants import FONDO, PANNELLO, TASTO, TESTO, GRIGIO, ACCENTO
+from i18n import _
 from PySide6.QtWidgets import (
     QDialog, QWidget, QGridLayout, QScrollArea, QAbstractScrollArea,
     QScrollBar, QLabel
@@ -116,14 +118,14 @@ class Guida(QDialog):
         super().__init__(app.root if hasattr(app, "root") else app)
         self.app = app
         c = colori or {}
-        self.fondo = c.get("fondo", "#121212")
-        self.pannello = c.get("pannello", "#1c1b22")
-        self.tasto = c.get("tasto", "#2c2c2c")
-        self.testo = c.get("testo", "#e0e0e0")
-        self.grigio = c.get("grigio", "#9e9e9e")
+        self.fondo = c.get("fondo", FONDO)
+        self.pannello = c.get("pannello", PANNELLO)
+        self.tasto = c.get("tasto", TASTO)
+        self.testo = c.get("testo", TESTO)
+        self.grigio = c.get("grigio", GRIGIO)
         self.accento = c.get("accento", "#bb86fc")
         self.LOGO_L = c.get("logo_l", self.LOGO_L)
-        self.setWindowTitle(c.get("titolo", "TV guide"))
+        self.setWindowTitle(c.get("titolo", _("TV guide")))
         self.resize(1100, 620)
         self.setMinimumSize(700, 300)
         griglia = QGridLayout(self)
