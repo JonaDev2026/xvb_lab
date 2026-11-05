@@ -24,7 +24,7 @@ from PySide6.QtWidgets import (
 
 from engine.render import MPVRenderWidget
 from core.config import load_config, save_config
-from features.local_media import iter_folder_batches, scan_imported, load_tag_cache, save_tag_cache, read_media_tags
+from features.local_media import iter_folder_batches, scan_imported, load_tag_cache, save_tag_cache, read_media_tags, cache_cover_art
 
 
 class FolderScanWorker(QObject):
@@ -78,7 +78,7 @@ class MetadataWorker(QObject):
                 path = media["path"]
                 previous = cache.get(path)
                 tags = read_media_tags(path, cache)
-                metadata[path] = tags
+                metadata[path] = (tags, cache_cover_art(path))
                 if cache.get(path) != previous:
                     changed = True
             if changed:
@@ -784,11 +784,16 @@ class MainWindow(QMainWindow):
             return
         if getattr(self, "_active_source", None) != (source, value) or error:
             return
-        for path, tags in metadata.items():
+        for path, result in metadata.items():
             item = self._media_tree_items.get(path)
             if item is None:
                 continue
+            tags, cover_path = result
             title, artist, album, year = tags
+            if cover_path:
+                pixmap = QPixmap(cover_path)
+                if not pixmap.isNull():
+                    item.setIcon(0, QIcon(pixmap.scaled(48, 48, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)))
             subtitle = " · ".join(part for part in (artist, album, year) if part)
             item.setText(0, title or Path(path).stem)
             if subtitle:
