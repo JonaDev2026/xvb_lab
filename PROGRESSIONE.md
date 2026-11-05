@@ -1,0 +1,211 @@
+# XVB Lab — Registro di progressione
+
+Questo documento registra in ordine cronologico il lavoro effettivamente svolto su XVB Lab. È il registro operativo: non sostituisce `PROGETTO.md`, che resta il riferimento per obiettivi, architettura, inventario delle funzioni e piano generale.
+
+## Regole del registro
+
+1. Registrare ogni passaggio significativo, prima di iniziare il successivo.
+2. Per ogni modifica indicare data, file coinvolti, cosa è cambiato e perché.
+3. Riportare il commit Git quando disponibile.
+4. Distinguere sempre tra codice scritto, codice verificato e funzione realmente collaudata.
+5. Non segnare come funzionante una parte che non è stata eseguita e provata.
+6. Annotare errori, risultati dei test, correzioni e questioni ancora aperte.
+7. Aggiornare questo file nello stesso intervento in cui si aggiornano i sorgenti.
+8. Non modificare la Stable `JonaDev2026/xvb`: il lavoro riguarda esclusivamente `JonaDev2026/xvb_lab`.
+
+## Stato sintetico
+
+- **Progetto:** ricostruzione di XVB Player Stable 4.4.4.
+- **Repository:** https://github.com/JonaDev2026/xvb_lab
+- **Branch di lavoro:** `main`
+- **Riferimento funzionale:** https://github.com/JonaDev2026/xvb/tree/v4.4.4
+- **Architettura:** Python, PySide6/Qt6, libmpv Render API; motore separato dalle funzioni.
+- **Ultimo commit noto:** `4d0d69b1341aec8b2648fccb168ff04b8c71d9c9`
+- **Stato tecnico:** base Qt e primo collegamento Qt/libmpv presenti nel repository; esecuzione e rendering non ancora verificati sul computer di sviluppo.
+- **Funzioni della Stable trasferite:** nessuna funzione completa risulta ancora trasferita e collaudata.
+
+## Come registrare i prossimi interventi
+
+Usare questo schema per ogni nuova voce:
+
+```markdown
+### AAAA-MM-GG — Titolo del passaggio
+
+**Obiettivo**
+Descrizione del risultato che si vuole ottenere.
+
+**File creati o modificati**
+- `percorso/file.py` — descrizione precisa.
+
+**Modifiche**
+- Elenco delle modifiche effettivamente applicate.
+
+**Verifica**
+- Comando o procedura eseguita.
+- Risultato osservato.
+- Distinguere test superati, falliti e non eseguiti.
+
+**Commit**
+- SHA e messaggio, se disponibile.
+
+**Stato e prossimo passaggio**
+- Cosa è concluso.
+- Cosa resta da fare, senza anticipare attività non ancora eseguite.
+```
+
+---
+
+## Cronologia
+
+### 2026-11-05 — Creazione del registro di progressione
+
+**Obiettivo**
+
+Aggiungere un registro operativo cronologico separato dal diario generale, per conservare la sequenza precisa di passaggi e modifiche e facilitare la ripresa del lavoro tra sessioni.
+
+**File creati o modificati**
+
+- `PROGRESSIONE.md` — nuovo registro operativo.
+
+**Modifiche**
+
+- Definita la distinzione tra diario di progetto e registro di progressione.
+- Inserite le regole per annotare ogni modifica e il relativo stato di verifica.
+- Registrata la situazione tecnica nota fino a questo momento.
+- Riportati i commit già noti e i file coinvolti nei passaggi precedenti.
+
+**Verifica**
+
+- Contenuto preparato sulla base della cronologia Git e delle informazioni registrate in `PROGETTO.md`.
+- Il prototipo Qt/libmpv non è stato ancora collaudato sul computer di sviluppo.
+
+**Commit**
+
+- Da assegnare alla creazione di questo file.
+
+**Stato e prossimo passaggio**
+
+- Il registro operativo è stato preparato.
+- Prima di proseguire con nuove modifiche al codice, sincronizzare il clone locale e verificare il prototipo già presente nel repository.
+
+### 2026-11-05 — Primo collegamento Qt/libmpv
+
+**Obiettivo**
+
+Preparare il rendering video integrato nella UI Qt senza utilizzare l'embedding X11 tramite `wid`.
+
+**File creati o modificati**
+
+- `engine/render.py` — nuovo widget Qt basato su `QOpenGLWidget` e libmpv Render API.
+- `engine/mpv.py` — aggiornamento del controller libmpv.
+- `main.py` — collegamento della finestra Qt al widget video e ai comandi minimi.
+
+**Modifiche**
+
+- Implementato il primo tentativo di creazione del render context OpenGL di libmpv.
+- Collegato il framebuffer del widget Qt alla chiamata di rendering di libmpv.
+- Aggiunta la callback di aggiornamento del frame.
+- Impostato `vo=libmpv` nel motore.
+- Collegati i comandi minimi di apertura file e stop.
+
+**Commit**
+
+- `engine/render.py`: `1cca9d8516a7a661ea92634ad72aa2823e762126`
+- `engine/mpv.py`: `419f903ccaa53719badc7ccf5afd160a19e6a89f`
+- `main.py`: `057c187575026689adfb601a1532446889f24d81`
+- Aggiornamento del diario e dell'architettura: `4d0d69b1341aec8b2648fccb168ff04b8c71d9c9`
+
+**Verifica**
+
+- Implementazione presente nel repository.
+- Non risultano ancora prove di esecuzione sul computer di sviluppo.
+- Da verificare recupero dei puntatori OpenGL da Qt, creazione del render context, visualizzazione del video, orientamento del frame, callback e rilascio delle risorse.
+- Compatibilità X11 e Wayland ancora da verificare separatamente.
+
+**Stato e prossimo passaggio**
+
+- Codice iniziale scritto, non ancora collaudato.
+- Il primo controllo deve essere eseguito dopo il pull del repository locale. Non considerare il rendering funzionante fino alla prova effettiva.
+
+### 2026-11-05 — Avvio della base tecnica
+
+**Obiettivo**
+
+Creare lo scheletro iniziale del nuovo progetto e un primo controller libmpv autonomo.
+
+**File creati o modificati**
+
+- `requirements.txt` — dipendenza iniziale PySide6.
+- `main.py` — prima finestra Qt minimale.
+- `engine/__init__.py`
+- `engine/mpv.py` — primo controller libmpv tramite API C.
+- Package iniziali: `core/`, `ui/`, `features/`, `integrations/`, `translations/`, `tests/`.
+
+**Modifiche**
+
+- Avviata la struttura modulare del repository.
+- Separato il primo controller libmpv dal codice della finestra.
+- Evitati Tkinter, Xlib e il parametro finestra `wid` nel controller.
+
+**Verifica**
+
+- File creati e versionati.
+- Non risulta ancora un test di esecuzione sul computer di sviluppo.
+
+**Stato e prossimo passaggio**
+
+- Base iniziale presente.
+- Il controller e la finestra devono essere verificati nell'ambiente reale prima di aggiungere altre funzioni.
+
+### 2026-11-05 — Decisione di separare motore e funzioni
+
+**Obiettivo**
+
+Definire confini architetturali chiari per evitare che il nuovo progetto torni a essere un'applicazione monolitica.
+
+**Decisioni**
+
+- `engine/` contiene esclusivamente il motore di riproduzione e la sua API.
+- `features/` contiene le funzioni applicative: IPTV, EPG, registrazioni, musica, video, dischi, telecamere e sottotitoli.
+- `ui/` contiene i componenti grafici.
+- `core/` contiene i servizi condivisi.
+- `integrations/` contiene le integrazioni con il desktop.
+- `translations/` resta separata e centralizzata.
+- Le funzioni comunicano con il motore attraverso un'interfaccia interna stabile e non accedono direttamente ai dettagli di libmpv.
+
+**File aggiornati**
+
+- `PROGETTO.md` — struttura e regole architetturali.
+
+**Commit**
+
+- `4d0d69b1341aec8b2648fccb168ff04b8c71d9c9`
+
+**Stato**
+
+- Decisione architetturale registrata. L'implementazione completa dei moduli è ancora da realizzare.
+
+### 2026-11-05 — Definizione del progetto
+
+**Obiettivo**
+
+Ricostruire XVB Player mantenendo le funzionalità della Stable 4.4.4 e adottando una nuova base grafica compatibile con X11 e Wayland.
+
+**Decisioni iniziali**
+
+- Repository nuovo e indipendente: `JonaDev2026/xvb_lab`.
+- Riferimento funzionale: Stable `v4.4.4` nel repository `JonaDev2026/xvb`.
+- Stack scelto: Python, PySide6/Qt6 e libmpv.
+- La Stable non deve essere modificata.
+- La ricostruzione deve mantenere le funzioni originali, non ridursi a un player dimostrativo.
+
+**Analisi registrata**
+
+- Analizzato il sorgente principale `xvb.py` della Stable 4.4.4.
+- Individuate le principali aree funzionali e le risorse/traduzioni.
+- Preparato `PROGETTO.md` come diario generale e specifica di riferimento.
+
+**Stato**
+
+- Obiettivo e riferimento funzionale definiti.
+- Nessuna funzione della Stable ancora trasferita.
