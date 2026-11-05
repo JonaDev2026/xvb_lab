@@ -5,7 +5,8 @@ Sorgente analizzato direttamente dal tag `v4.4.4` del repository `JonaDev2026/xv
 - `xvb.py`: 11.823 righe, 474.157 caratteri.
 - Classi top-level: 8 (`_XVBFiltroSicurezza`, `Ricerca`, `Cursore`, `Guida`, `Tendina`, `Elenco`, `Finestrella`, `TV`).
 - La classe applicativa principale è `TV`, dichiarata alla riga 3530.
-- Metodi diretti rilevati nelle classi top-level: 480.
+- Metodi diretti rilevati nelle 8 classi top-level: 400.
+- Inventario completo dei 400 metodi: [`METODI_STABLE_4.4.4.md`](METODI_STABLE_4.4.4.md).
 - `traduzioni.py`: 1.418 righe; lingue presenti: inglese, italiano, spagnolo, francese, tedesco, portoghese e russo.
 
 ## Aree originali da trasferire
