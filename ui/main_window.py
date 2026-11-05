@@ -330,7 +330,7 @@ class MainWindow(QMainWindow):
         self.repeat_actions.get(self.config.get("repeat", ""), self.repeat_actions[""]).setChecked(True)
         self._action(playback, "Chapters", enabled=False)
         for speed in ("0.5", "0.75", "1", "1.25", "1.5", "2"):
-            self._action(playback, f"Speed x{speed}", enabled=False)
+            self._action(playback, f"Speed x{speed}", lambda checked=False, value=speed: self.set_playback_speed(value))
 
         video = bar.addMenu("Video")
         for label in ("Aspect Auto", "Aspect 16:9", "Aspect 4:3", "Aspect 21:9",
@@ -1162,6 +1162,13 @@ class MainWindow(QMainWindow):
         self.config["recent"] = []
         save_config(self.config)
         self.recent_menu.clear()
+
+    def set_playback_speed(self, speed):
+        try:
+            self.engine.command("set", "speed", speed)
+            self.playback_status.setText(f"speed x{speed}")
+        except Exception as error:
+            self.playback_status.setText(str(error))
 
     def set_loop_a(self):
         ok, message = self.ab_loop.set_a(
