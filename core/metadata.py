@@ -178,3 +178,50 @@ def copertina_da_brano(artista, titolo):
         if url not in urls:
             urls.append(url)
     return urls[:3], (data[:4] if data[:4].isdigit() and data != "9999" else ""), nome
+
+TMDB_CHIAVE = ("eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiIxMzIxMjRhMzU0YjRmYzE4NGVmYjgwODk5NzZmMWVmMiIsIm5iZiI6"
+               "MTc5MDc3MTY0OS4zODYsInN1YiI6IjZhYmQwMWMxOTkyNzRmMGQxOTFlN2JjYiIsInNjb3BlcyI6WyJhcGlf"
+               "cmVhZCJdLCJ2ZXJzaW9uIjoxfQ.AYShiHv1HdbN0Wj1l0co9D6CIFcOy5NAM5WkMZyQQ0M")
+
+
+def _tmdb(chiave, strada, parametri):
+    from urllib.parse import urlencode
+    if len(chiave) > 40:
+        intestazioni = {"Authorization": "Bearer " + chiave}
+    else:
+        intestazioni, parametri = None, dict(parametri, api_key=chiave)
+    return json_da("%s/%s?%s" % (TMDB, strada, urlencode(parametri)), intestazioni)
+
+
+def generi_tmdb(chiave, lingua, cache):
+    chiave_cache = "_generi_" + lingua
+    if chiave_cache not in cache:
+        nomi = {}
+        for tipo in ("movie", "tv"):
+            for genere in _tmdb(chiave, "genre/%s/list" % tipo,
+                                {"language": lingua}).get("genres") or []:
+                nomi[str(genere["id"])] = genere["name"]
+        cache[chiave_cache] = nomi
+    return cache[chiave_cache]
+
+
+def info_tmdb(chiave, titolo, anno, lingua):
+    for tipo, campo_anno, campo_nome, campo_data in (
+        ("movie", "year", "title", "release_date"),
+        ("tv", "first_air_date_year", "name", "first_air_date")
+    ):
+        parametri = {"query": titolo, "include_adult": "false", "language": lingua}
+        if anno:
+            parametri[campo_anno] = anno
+        risultati = _tmdb(chiave, "search/" + tipo, parametri).get("results") or []
+        if risultati:
+            risultato = next((voce for voce in risultati if voce.get("poster_path")), risultati[0])
+            return {
+                "titolo": risultato.get(campo_nome) or "",
+                "anno": (risultato.get(campo_data) or "")[:4],
+                "generi": [str(genere) for genere in risultato.get("genre_ids") or []],
+                "voto": risultato.get("vote_average") or 0,
+                "voti": risultato.get("vote_count") or 0,
+                "poster": TMDB_IMG + risultato["poster_path"] if risultato.get("poster_path") else ""
+            }
+    return None
