@@ -243,3 +243,10 @@ Non eseguiti test grafici o prove di rendering. La dissolvenza originale dello s
 
 - Rifinito lo sfondo: cache delle immagini per evitare ricaricamenti a ogni aggiornamento del player e dissolvenza Qt6 da 1,2 secondi con attesa iniziale, come nella Stable.
 - Ripristinato anche il pulsante contestuale della velocità: nascosto a x1, compare quando viene selezionata una velocità diversa e cicla nello stesso ordine della Stable.
+
+## Eventi libmpv e gestione degli errori
+
+- Collegati gli eventi END_FILE dei due player Qt6.
+- Il completamento di un file locale richiama la sequenza successiva; gli errori di stream fanno avanzare il canale con limite di tentativi, azzerato quando la riproduzione riprende.
+- Ripristinata la gestione specifica dei DVD non riproducibili, senza saltare automaticamente a un altro contenuto.
+- In caso di errore persistente viene mostrato lo sfondo invece di lasciare il riquadro del video in stato nero.
