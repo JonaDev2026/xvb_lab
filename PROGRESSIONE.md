@@ -31,6 +31,8 @@ Audit strutturale della Stable 4.4.4 completato: sorgente `xvb.py` del tag `v4.4
 - [x] Trasferiti in `core/constants.py` i metadati e i parametri originali della Stable 4.4.4.
 - [x] Trasferiti in `core/log.py` logging rotante, filtro per oscurare credenziali e token, gestione delle eccezioni globali e dei thread; il callback GUI è predisposto per Qt.
 - [x] Trasferita in `core/image.py` la premoltiplicazione alfa richiesta dalle sovrapposizioni mpv.
+- [x] Trasferiti in `core/metadata.py` estrazione titolo/anno, lettura metadati da percorso musicale, cache JSON, download HTTP con User-Agent XVB, copertine incorporate e ricerca poster locali.
+- [x] Aggiunti test per i casi titolo/anno, struttura cartelle musicali, poster e cache JSON.
 - [x] Aggiunti test per il filtro di sicurezza dei log.
 - [x] Trasferiti in `core/stream.py` parsing ClearKey (singola chiave, coppia KID/KEY e JSON), esclusione delle chiavi nulle, pulizia manifest DASH e proxy HTTP locale per manifest live.
 - [x] Aggiunti test di regressione per ClearKey e manifest DASH.
