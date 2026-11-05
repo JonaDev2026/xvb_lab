@@ -4,7 +4,7 @@ from PySide6.QtWidgets import (
     QMainWindow, QWidget, QFrame, QVBoxLayout, QHBoxLayout, QLabel, QDialog, QMenu,
     QPushButton, QFileDialog, QInputDialog, QMessageBox, QSlider, QTreeWidget, QTreeWidgetItem,
     QApplication, QLineEdit, QTextEdit, QPlainTextEdit, QAbstractSpinBox, QComboBox,
-    QListWidget, QListWidgetItem
+    QListWidget, QListWidgetItem, QStackedLayout
 )
 from engine.mpv import MpvVideo
 from ui.widgets import Cursore, Elenco, Finestrella, Ricerca, Guida, Tendina
@@ -1743,6 +1743,7 @@ class MainWindow(QMainWindow):
         self._aggiorna_sfondo()
 
     def _richiedi_foto_artisti(self, corrente):
+        self.artwork_artista.radici = list(self.sessione.config.get("cartelle", []))
         worker = self._artist_worker
         if worker is not None and worker.isRunning():
             return
