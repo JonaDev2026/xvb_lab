@@ -153,7 +153,7 @@ class MpvVideo(QOpenGLWidget):
         return lib
 
     def _crea(self):
-        cartella_screenshot = os.path.join(os.path.expanduser("~"), "Pictures", "xvb")
+        cartella_screenshot = os.path.join(os.path.expanduser("~"), "Pictures", "xvb5")
         try:
             os.makedirs(cartella_screenshot, exist_ok=True)
         except OSError:
@@ -174,7 +174,7 @@ class MpvVideo(QOpenGLWidget):
             "user-agent": UA,
             "volume-max": "150",
             "screenshot-directory": cartella_screenshot,
-            "screenshot-template": "xvb-%tY-%tm-%td_%tH-%tM-%tS",
+            "screenshot-template": "xvb5-%tY-%tm-%td_%tH-%tM-%tS",
             "cursor-autohide": "3000",
             "stream-lavf-o": "reconnect=1,reconnect_streamed=1,reconnect_on_network_error=1,reconnect_delay_max=10",
         }
