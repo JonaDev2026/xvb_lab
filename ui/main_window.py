@@ -508,7 +508,9 @@ class MainWindow(QMainWindow):
                     self.posizione.setValue(int(float(posizione) * 1000 / totale))
             if player.leggi("eof-reached") == "yes" and not self._eof_gestito:
                 self._eof_gestito = True
-                if self.ripeti == "tutti":
+                if self.file_in_onda and os.path.isabs(self.file_in_onda):
+                    self.prossimo_file()
+                elif self.ripeti == "tutti":
                     self.salta(1)
         except Exception:
             return
@@ -2166,6 +2168,23 @@ class MainWindow(QMainWindow):
         player = self._attivo()
         if player:
             player.seek(secondi, assoluto=False)
+
+    def prossimo_file(self):
+        percorso = self.file_in_onda
+        indice = next((i for i, voce in enumerate(self._canali_visibili)
+                       if voce[1] == percorso), -1)
+        if indice < 0:
+            return
+        if self.ripeti == "uno":
+            self.apri(percorso, nome=self.nome_in_onda, ide=self.ide_in_onda)
+        elif indice + 1 < len(self._canali_visibili):
+            voce = self._canali_visibili[indice + 1]
+            self._indice_canale = indice + 1
+            self.apri(voce[1], nome=voce[0], ide=voce[2])
+        elif self.ripeti == "tutti":
+            voce = self._canali_visibili[0]
+            self._indice_canale = 0
+            self.apri(voce[1], nome=voce[0], ide=voce[2])
 
     def salta(self, direzione):
         if not self._canali_visibili:
