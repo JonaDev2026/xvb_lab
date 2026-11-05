@@ -13,6 +13,7 @@ from core.media import media_in, AUDIO, e_media, tipo_preferiti, titolo_url, PRE
 from core.tags import leggi_tag, tag_di, scrivi_tag
 from core.metadata import titolo_anno, dal_percorso, copertina_url, copertina_dentro, poster_film
 from integrations.mpris import avvia_mpris
+from integrations.opensubtitles import RicercaSottotitoli, ScaricaSottotitolo
 from core.config import scrivi_config, CARTELLE_LISTE, REGISTRAZIONI, leggi_config, QUI
 from i18n import _, imposta_lingua, LINGUE
 from core.playlists import liste_in_cartella, BUFFER, LOGHI, NOMI_URL, CACHE_LISTE, CHIAVI, copia_lista_url, e_una_lista, _CACHE_PARSED_LOCK, _CACHE_PARSED_MEMORIA
@@ -402,6 +403,9 @@ class MainWindow(QMainWindow):
         self.quale = -1
         self._stream_player = None
         self._stream_workers = []
+        self._subtitle_workers = []
+        self._finestra_sottotitoli = None
+        self._pulsante_download_sub = None
         self.ripeti = self.sessione.config.get("ripeti", "")
         self.shuffle_attivo = bool(self.sessione.config.get("shuffle"))
         self._epg_rifare = False
@@ -664,6 +668,11 @@ class MainWindow(QMainWindow):
         self.menu_tracce_audio.aboutToShow.connect(lambda: self._riempi_menu_tracce(self.menu_tracce_audio, "audio"))
         self.menu_tracce_sub.aboutToShow.connect(lambda: self._riempi_menu_tracce(self.menu_tracce_sub, "sub"))
         audio.addAction(self._azione(_("Load subtitles..."), self.carica_sottotitoli))
+        self.azione_sottotitoli_online = self._azione(
+            _("Search subtitles online..."), self.cerca_sottotitoli_online)
+        audio.addAction(self.azione_sottotitoli_online)
+        audio.aboutToShow.connect(
+            lambda: self.azione_sottotitoli_online.setEnabled(bool(self.file_in_onda)))
         audio.addAction(self._azione(_("Audio output device..."), self.scegli_uscita_audio))
         audio.addAction(self._azione(_("Subtitles on/off"), lambda: self._ciclo("sub-visibility")))
         audio.addAction(self._azione("Subtitle delay +100 ms", lambda: self._regola("sub-delay", 0.1)))
@@ -760,13 +769,13 @@ class MainWindow(QMainWindow):
             scrivi_config(self.sessione.config)
 
 
-    def _chiedi_testo(self, titolo, etichetta, valore=""):
+    def _chiedi_testo(self, titolo, etichetta, valore="", maschera=False):
         def corpo(widget):
             testo = QLabel(etichetta, widget)
             testo.setStyleSheet("color:#9e9e9e")
             widget.contenuto.addWidget(testo)
         finestra = Finestrella(self, titolo, corpo, chiedi=etichetta,
-                               valore=valore, larga=460)
+                               valore=valore, larga=460, maschera=maschera)
         return finestra.risposta if finestra.exec() == QDialog.Accepted else None
 
 
@@ -1698,6 +1707,177 @@ class MainWindow(QMainWindow):
         player = self._attivo()
         if player:
             player.imposta(proprieta, identificativo)
+
+    def cerca_sottotitoli_online(self):
+        if not self.file_in_onda:
+            self._messaggio_temporaneo(_("nothing is playing"))
+            return
+        percorso_credenziali = os.path.expanduser("~/.config/xvb/opensubtitles.json")
+        try:
+            with open(percorso_credenziali, "r", encoding="utf-8") as stream:
+                credenziali = json.load(stream)
+            if not isinstance(credenziali, dict):
+                raise ValueError("Formato credenziali non valido")
+        except FileNotFoundError:
+            credenziali = {}
+        except Exception:
+            self._messaggio_temporaneo(_("Unable to read OpenSubtitles credentials"))
+            return
+        api_key = str(credenziali.get("api_key", "") or "").strip()
+        username = str(credenziali.get("username", "") or "").strip()
+        password = str(credenziali.get("password", "") or "")
+        if not api_key:
+            api_key = self._chiedi_testo(
+                _("OpenSubtitles API key"), _("Enter your OpenSubtitles API key:"))
+            if not api_key or not api_key.strip():
+                return
+            api_key = api_key.strip()
+        if not username:
+            username = self._chiedi_testo(
+                _("OpenSubtitles username"), _("Enter your OpenSubtitles username:"))
+            if not username or not username.strip():
+                return
+            username = username.strip()
+        if not password:
+            password = self._chiedi_testo(
+                _("OpenSubtitles password"), _("Enter your OpenSubtitles password:"),
+                maschera=True)
+            if not password:
+                return
+        credenziali = {"api_key": api_key, "username": username, "password": password}
+        try:
+            os.makedirs(os.path.dirname(percorso_credenziali), exist_ok=True)
+            with open(percorso_credenziali, "w", encoding="utf-8") as stream:
+                json.dump(credenziali, stream, indent=2)
+            os.chmod(percorso_credenziali, 0o600)
+            with open(percorso_credenziali, "r", encoding="utf-8") as stream:
+                if json.load(stream) != credenziali:
+                    raise ValueError("Verifica del salvataggio fallita")
+        except Exception:
+            self._messaggio_temporaneo(_("Unable to save OpenSubtitles credentials"))
+            return
+        lingue = self._chiedi_testo(
+            _("Subtitle languages"),
+            _("Language codes separated by commas (example: it,en):"), "it,en")
+        if not lingue or not lingue.strip():
+            return
+        media = str(self.file_in_onda)
+        percorso = urlparse(media).path if "://" in media else media
+        titolo = os.path.splitext(os.path.basename(percorso))[0]
+        titolo = re.sub(r"[._]+", " ", titolo).strip() or media
+        codici = []
+        for codice in lingue.split(","):
+            codice = codice.strip().lower()
+            if re.fullmatch(r"[a-z]{2,3}", codice) and codice not in codici:
+                codici.append(codice)
+        if not codici:
+            self._messaggio_temporaneo(_("Invalid subtitle language codes"))
+            return
+        worker = RicercaSottotitoli(api_key, username, password, titolo, ",".join(codici))
+        worker.completato.connect(
+            lambda chiave, token, risultati, base, t=titolo:
+            self._mostra_risultati_sottotitoli(chiave, token, base, risultati, t))
+        worker.errore.connect(
+            lambda errore: self._messaggio_temporaneo(
+                _("Online subtitle search failed: %s") % errore))
+        worker.finished.connect(lambda w=worker: self._rimuovi_worker_sottotitoli(w))
+        self._subtitle_workers.append(worker)
+        self._messaggio_temporaneo(_("Searching online subtitles..."))
+        worker.start()
+
+    def _mostra_risultati_sottotitoli(self, api_key, token, base_url, risultati, titolo):
+        if not risultati:
+            self._messaggio_temporaneo(_("No online subtitles found"))
+            return
+        finestra = QDialog(self)
+        finestra.setWindowTitle(_("Online subtitles"))
+        finestra.resize(760, 390)
+        finestra.setModal(True)
+        finestra.setStyleSheet(
+            "QDialog{background:%s;color:%s}"
+            "QListWidget{background:%s;color:%s;border:0}"
+            "QListWidget::item:selected{background:%s;color:#17121f}"
+            "QPushButton{background:%s;color:%s;border:0;padding:6px 14px}"
+            "QPushButton:hover{background:%s;color:white}" %
+            (PANNELLO, TESTO, IN_ONDA, TESTO, ACCENTO, IN_ONDA, TESTO, SCELTO))
+        layout = QVBoxLayout(finestra)
+        layout.addWidget(QLabel(_("Choose a subtitle to download"), finestra))
+        lista = QListWidget(finestra)
+        layout.addWidget(lista, 1)
+        validi = []
+        for elemento in risultati:
+            attributi = elemento.get("attributes") or {}
+            files = attributi.get("files") or []
+            file_id = next((f.get("file_id") for f in files if f.get("file_id") is not None), None)
+            if file_id is None:
+                continue
+            lingua = attributi.get("language", "?")
+            release = attributi.get("release") or (files[0].get("file_name", "") if files else "")
+            uploader = (attributi.get("uploader") or {}).get("name", "")
+            downloads = attributi.get("download_count", 0)
+            riga = "%s  |  %s  |  %s  |  %s %s" % (
+                lingua, release or _("Unknown release"),
+                uploader or _("Unknown uploader"), downloads, _("downloads"))
+            lista.addItem(riga)
+            validi.append((file_id, lingua, release))
+        if not validi:
+            finestra.deleteLater()
+            self._messaggio_temporaneo(_("No downloadable subtitles found"))
+            return
+        lista.setCurrentRow(0)
+        fondo = QHBoxLayout()
+        fondo.addStretch(1)
+        annulla = QPushButton(_("Cancel"), finestra)
+        scarica = QPushButton(_("Download and load"), finestra)
+        fondo.addWidget(annulla)
+        fondo.addWidget(scarica)
+        layout.addLayout(fondo)
+        self._finestra_sottotitoli = finestra
+        self._pulsante_download_sub = scarica
+
+        def avvia_download():
+            indice = lista.currentRow()
+            if not 0 <= indice < len(validi):
+                return
+            file_id, lingua, _release = validi[indice]
+            scarica.setEnabled(False)
+            worker = ScaricaSottotitolo(api_key, token, base_url, file_id, lingua, titolo)
+            worker.completato.connect(
+                lambda percorso, w=finestra: self._attiva_sottotitolo_online(percorso, w))
+            worker.errore.connect(
+                lambda errore, w=finestra: self._errore_download_sottotitolo(errore, w))
+            worker.finished.connect(lambda w=worker: self._rimuovi_worker_sottotitoli(w))
+            self._subtitle_workers.append(worker)
+            self._messaggio_temporaneo(_("Downloading subtitle..."))
+            worker.start()
+
+        scarica.clicked.connect(avvia_download)
+        lista.itemDoubleClicked.connect(lambda _item: avvia_download())
+        annulla.clicked.connect(finestra.reject)
+        finestra.exec()
+        self._finestra_sottotitoli = None
+        self._pulsante_download_sub = None
+
+    def _attiva_sottotitolo_online(self, percorso, finestra):
+        player = self._attivo()
+        try:
+            if player is None:
+                raise RuntimeError(_("libmpv not available"))
+            player.comando("sub-add", percorso, "select")
+            self._messaggio_temporaneo(_("subtitles: %s") % os.path.basename(percorso))
+            finestra.accept()
+        except Exception as errore:
+            self._messaggio_temporaneo(
+                _("cannot read %s: %s") % (os.path.basename(percorso), errore))
+
+    def _errore_download_sottotitolo(self, messaggio, finestra):
+        self._messaggio_temporaneo(_("Subtitle download failed: %s") % messaggio)
+        if self._pulsante_download_sub is not None:
+            self._pulsante_download_sub.setEnabled(True)
+
+    def _rimuovi_worker_sottotitoli(self, worker):
+        if worker in self._subtitle_workers:
+            self._subtitle_workers.remove(worker)
 
     def carica_sottotitoli(self):
         percorso, _ = QFileDialog.getOpenFileName(
@@ -2764,6 +2944,9 @@ class MainWindow(QMainWindow):
         self._timer_overlay.stop()
         if self._versione_worker and self._versione_worker.isRunning():
             self._versione_worker.wait(12000)
+        for worker in self._subtitle_workers:
+            if worker.isRunning():
+                worker.wait(45000)
         self.tendina.chiudi()
         self._timer_player.stop()
         self._timer_rec.stop()
