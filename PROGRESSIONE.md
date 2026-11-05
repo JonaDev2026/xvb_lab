@@ -306,3 +306,13 @@ Commit: `b3f2b68`. Nessun test runtime eseguito.
 - La stessa preparazione viene usata sia da Open folder sia dal drag & drop multiplo.
 
 Commit: `c689417`. Nessun test runtime eseguito.
+
+
+## Caricamento librerie locali all'avvio
+
+- Eliminata la scansione sincrona delle cartelle configurate dal costruttore della finestra principale.
+- Le cartelle Local vengono ora scandite dopo la costruzione della UI, tramite il worker Qt già usato da Open folder e drag & drop.
+- Anche lettura tag e preparazione delle righe Music/Video avvengono nel worker; al completamento vengono aggiornati una sola volta sidebar ed elenco.
+- La finestra non resta bloccata all'avvio mentre attraversa librerie locali estese.
+
+Commit: `19b6e1b`. Nessun test runtime eseguito.
