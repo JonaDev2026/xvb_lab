@@ -697,3 +697,43 @@ Correggere ulteriori differenze visibili nella barra comandi, confrontandola con
 
 - Ulteriori differenze della barra comandi corrette.
 - La ricostruzione della UI non è completa: restano da trasferire struttura e contenuti reali dell'elenco media e della sidebar IPTV/EPG/M3U.
+
+
+### 2026-11-05 — Migrazione di timer spegnimento, loop A-B e velocità
+
+**Obiettivo**
+
+Portare in Qt tre comportamenti già presenti nella Stable 4.4.4, mantenendone le condizioni operative e senza introdurre nuove funzioni.
+
+**File creati o modificati**
+
+- `features/sleep_timer.py` — timer Qt single-shot separato dalla finestra.
+- `features/ab_loop.py` — controller dedicato ai punti A/B.
+- `ui/main_window.py` — collegamento delle azioni originali Playback al motore e ai servizi.
+
+**Modifiche**
+
+- Timer spegnimento con scelte 15, 30, 45, 60 e 90 minuti, annullamento e stop automatico alla scadenza.
+- Lo stop manuale annulla il timer, come nella Stable.
+- Loop A/B applicabile ai file: A memorizza la posizione, B deve essere successivo ad A; al raggiungimento di B il motore torna ad A; è disponibile l'azzeramento.
+- Ripristinate le velocità originali 0.5, 0.75, 1, 1.25, 1.5 e 2 tramite proprietà speed di libmpv.
+- I servizi sono separati dalla UI e non dipendono da Tkinter.
+
+**Verifica**
+
+- Codice pubblicato nel repository.
+- Non ancora compilato o collaudato nell'ambiente locale; la verifica runtime resta necessaria.
+- Il timer è gestito da QTimer; loop A/B e velocità usano i comandi/proprietà libmpv.
+
+**Commit**
+
+- `dc0c166e31c3809c15880a524c253cddbfb2b7a4` — timer.
+- `a1d7da3f52278a6e51f54a1cd32bd0e8b190e167` — integrazione timer.
+- `5f1fab8b6715eae2f3ec59bcc7c4fbc0dc74e12b` — controller loop A/B.
+- `ca5acdab7075c8244603f549eba6c88892ad611c` — integrazione loop A/B.
+- `07ae675866de70bac8ea03790aafaa0cb5b85025` — velocità.
+
+**Stato e prossimo passaggio**
+
+- Questi tre comportamenti originali sono stati implementati nel nuovo codice, ma non sono ancora dichiarati collaudati.
+- Restano da migrare e verificare tutte le altre funzioni Stable, comprese quelle IPTV, EPG, registrazione, dischi, audio, video e gestione completa delle liste.
