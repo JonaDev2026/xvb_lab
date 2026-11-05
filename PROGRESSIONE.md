@@ -75,7 +75,7 @@ Nessuna funzione è ancora dichiarata migrata e l'applicazione non è pronta per
 
 - [x] Trasferita la ricerca TMDB della Stable: generi film/serie con cache per lingua e metadati con priorità al risultato provvisto di poster.
 - [x] Aggiunti test per cache generi, selezione poster e fallback tra ricerca film e serie.
-- [x] Corretto `PROGETTO.md`: il branch attuale non contiene ancora `main.py`, `engine/` o `ui/`; non viene più riportata come verificata una base Qt6 che non è presente nel repository.
+- [x] Nota storica superata: il branch ora contiene `main.py`, `engine/` e `ui/`; la prima integrazione Qt6 è presente ma non ancora collaudata.
 
 - [x] Avviata la migrazione Qt6 dei widget visuali originali in `ui/widgets.py`: casella di ricerca Material con lente, segnaposto, callback ed Escape; cursore percentuale con trascinamento, rotella, callback e sfondo dinamico. Le API conservano i nomi originali `Ricerca` e `Cursore`.
 - [ ] Verificare la parità grafica dei widget Qt6 con la Stable e completare i widget `Guida`, `Tendina`, `Elenco` e `Finestrella`.
@@ -95,3 +95,23 @@ Nessuna funzione è ancora dichiarata migrata e l'applicazione non è pronta per
 ### Stato effettivo
 
 La prima integrazione Qt6 esiste nel branch, ma non è ancora una migrazione completa e non è pronta per il pull di collaudo. La compatibilità grafica e comportamentale dei widget non è stata verificata contro la Stable; l'elenco Qt6 non ha ancora tutte le decorazioni dinamiche originali (loghi, poster, progressi e tag); restano da trasferire le classi applicative e i metodi di `TV`, l'intero flusso di playlist/EPG/registrazioni, le funzioni di libreria musicale e video, i menu dinamici e le interazioni complete. Il rendering libmpv è stato collegato a livello di codice, ma non verificato su X11/Wayland. Nessun test viene dichiarato superato finché CI e prova reale non lo confermano.
+
+
+## Avanzamento migrazione UI e playback Qt6
+
+- [x] Separati i widget derivati dalla Stable in moduli dedicati: `ui/search.py` (Ricerca/Cursore), `ui/dialogs.py` (Finestrella/Tendina), `ui/list.py` (Elenco e delegate), `ui/guide.py` (Guida EPG).
+- [x] Ridotto `ui/widgets.py` a facciata di compatibilità, mantenendo gli import già usati dalla finestra principale.
+- [x] Aggiunta `ui/sidebar.py` per l'albero Qt6 con API di inserimento, cancellazione, selezione, espansione, tag e valori; collegato alla finestra principale.
+- [x] Collegati nella sidebar IPTV > EPG/M3U > playlist > categorie, cartelle Local, dischi, CD/DVD, registrazioni, preferiti IPTV/Music/Video, media importati e sottocartelle.
+- [x] Collegati alla finestra principale i controlli di trasporto con icone originali, seek orizzontale, volume con il widget Cursore, repeat tramite Tendina e orologio locale nella barra di stato.
+- [x] Collegata Finestrella per le richieste di URL, apertura URL e pianificazione registrazioni.
+- [x] Collegata la Guida Qt6 al metodo di apertura canale della finestra principale; aggiunti tick orari e indicatore dell'ora corrente.
+- [x] Aggiunto il segnale di selezione mancante a Elenco e mantenuta la compatibilità MPRIS del cursore volume (`value()`/`setValue()`).
+- [x] Completato il ciclo eventi di `engine/mpv.py` e impostato il framebuffer OpenGL RGBA8 nel rendering Qt.
+- [x] Collegato il pulsante Favorite della barra alla gestione dei preferiti già presente nel controller; supporta i file locali e le sorgenti presenti nelle playlist.
+- [ ] Confrontare ancora tutti i widget, i menu, i flussi e i metodi applicativi contro la Stable 4.4.4, senza dichiarare equivalenza prima del confronto.
+- [ ] Completare il porting dei metodi rimanenti della classe `TV` e le decorazioni/overlay originali della barra.
+- [ ] Verificare il rendering libmpv e tutti i flussi su X11 e Wayland.
+- [ ] Collaudo completo e test di parità funzionale con la Stable.
+
+Questi trasferimenti sono presenti nel branch, ma non sono stati eseguiti test in questa fase. Non è ancora la build da sottoporre al pull di collaudo.
