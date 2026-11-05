@@ -2566,6 +2566,10 @@ class MainWindow(QMainWindow):
         if liste:
             archivio = self.sessione.config.setdefault("liste", [])
             archivio.extend(p for p in liste if p not in archivio)
+        if liste and not cartelle and not file_media:
+            scrivi_config(self.sessione.config)
+            self.ricarica_liste(forza=False)
+            return
         if file_media:
             cartella = next((c for c in self.sessione.config.get("cartelle", [])
                              if file_media[0].startswith(c.rstrip(os.sep) + os.sep)), None)
@@ -2575,7 +2579,7 @@ class MainWindow(QMainWindow):
                 self._importa_percorsi(file_media)
                 self._percorso_attivo, self._categoria_attiva = "__importati__", None
         scrivi_config(self.sessione.config)
-        self.canali = [(n, u, ide, cat, lista) for n, u, ide, cat, lista in self.sessione.canali]
+        self.canali = [(n, u, ide) for n, u, ide, _cat, _lista in self.sessione.canali]
         self._riempi_liste()
         self._riempi_elenco()
         if file_media:
@@ -3260,6 +3264,7 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, evento):
         self._timer_overlay.stop()
+        self._timer_spegnimento.stop()
         self._timer_avviso.stop()
         if self._versione_worker and self._versione_worker.isRunning():
             self._versione_worker.wait(12000)
