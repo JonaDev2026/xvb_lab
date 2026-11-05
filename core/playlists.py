@@ -7,7 +7,7 @@ import time
 from urllib.request import Request, urlopen
 
 from i18n import _
-from .config import CASA, CARTELLE_LISTE, CARTELLE_VECCHIE
+from .config import CASA, CACHE_DIR, CARTELLE_LISTE, CARTELLE_VECCHIE
 from .constants import UA
 PREFERITI = "favorite"
 PREF_IPTV = "iptv"
@@ -21,7 +21,7 @@ BUFFER = (("minimal", "Minimal", 48, 16, 10, 5),
           ("high", "High", 1024, 256, 60, 15))
 CATEGORIE_URL = (("podcast", "Podcast"), ("musica", "Music"), ("radio", "Radio"),
                  ("cam", "IP cam"), ("film", "Film"), ("video", "Video"))
-CACHE_LISTE = os.path.join(CASA, ".cache", "xvb", "liste")
+CACHE_LISTE = os.path.join(CACHE_DIR, "liste")
 LISTA_VECCHIA = 6 * 3600
 _CACHE_PARSED_LOCK = threading.RLock()
 _CACHE_PARSED_MEMORIA = {}
