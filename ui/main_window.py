@@ -524,6 +524,8 @@ class MainWindow(QMainWindow):
         self.et_liste.setText(_("Playlists"))
         self.cerca.casella.setPlaceholderText(_("Search"))
         self._aggiorna_recenti()
+        if self.avviso.isVisible() and self.avviso_chiave[0]:
+            self.et_avviso.setText(_(self.avviso_chiave[0]) % self.avviso_chiave[1])
         self.riga_stato.setText(_("ready"))
 
     def buffer_attuale(self):
