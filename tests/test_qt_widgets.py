@@ -161,7 +161,7 @@ class QtWidgetTests(unittest.TestCase):
             salvato = "https://example.test/saved.m3u8"
             window.sessione.config["url_aperti"] = [temporaneo]
             window.sessione.config["nomi_url"] = {temporaneo: "Temporary", salvato: "Saved"}
-            with patch("ui.main_window.copertina_url", return_value="/tmp/temp-cover.jpg"), \\
+            with patch("ui.main_window.copertina_url", return_value="/tmp/temp-cover.jpg"), \
                  patch("ui.main_window.os.remove") as rimuovi:
                 window._via_url_temporanei()
                 rimuovi.assert_called_once_with("/tmp/temp-cover.jpg")
