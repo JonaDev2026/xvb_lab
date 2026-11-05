@@ -341,17 +341,28 @@ class Tendina(QFrame):
     def fuori(self, ev=None):
         self.chiudi()
 
+    def hideEvent(self, evento):
+        if self.top is self:
+            self._watch_timer.stop()
+            self.top = None
+            callback, self.al_chiudere = self.al_chiudere, None
+            self.chiusa = (self.chi, time.time())
+            self.chi = None
+            if callback:
+                QTimer.singleShot(0, callback)
+        super().hideEvent(evento)
+
     def chiudi(self):
         if not self.isVisible():
             return
         self._watch_timer.stop()
-        f, self.al_chiudere = self.al_chiudere, None
-        self.hide()
         self.top = None
-        self.chiusa = (self.chi, __import__("time").time())
+        callback, self.al_chiudere = self.al_chiudere, None
+        self.chiusa = (self.chi, time.time())
         self.chi = None
-        if f:
-            f()
+        self.hide()
+        if callback:
+            callback()
 
 
 class Elenco(QListWidget):
