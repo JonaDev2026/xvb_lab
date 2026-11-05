@@ -5,7 +5,7 @@ from PySide6.QtWidgets import (
     QPushButton, QFileDialog, QInputDialog, QMessageBox, QSlider, QTreeWidget, QTreeWidgetItem
 )
 from engine.mpv import MpvVideo
-from ui.widgets import Elenco, Ricerca, Guida
+from ui.widgets import Cursore, Elenco, Ricerca, Guida
 from ui.sidebar import Sidebar
 from core.session import Sessione
 from core.media import media_in, AUDIO
@@ -229,10 +229,9 @@ class MainWindow(QMainWindow):
         pulsante("sidebar", "playlist", self._sidebar, 24, _("Playlists"))
         pulsante("fullscreen", "pieno", self.schermo_intero, 24, _("Fullscreen"))
         pulsante("mute", "volume", self._muto, 24, _("Mute"))
-        self.volume = QSlider(Qt.Horizontal, self.barra)
-        self.volume.setRange(0, 100)
-        self.volume.setValue(int(self.sessione.config.get("volume", 85)))
-        self.volume.setFixedWidth(85)
+        self.volume = Cursore(
+            self.barra, self._volume, larga=85, alta=26)
+        self.volume.valore = int(self.sessione.config.get("volume", 85))
         controlli.addWidget(self.volume)
         comandi.addLayout(controlli)
 
@@ -255,7 +254,6 @@ class MainWindow(QMainWindow):
             lambda: self.orologio.setText(time.strftime("%a %d %b  %H:%M")))
         self._timer_orologio.start(30000)
 
-        self.volume.valueChanged.connect(self._volume)
         self._pieno = False
         self.player2 = None
         self.player_pip = None
@@ -294,7 +292,7 @@ class MainWindow(QMainWindow):
         self._timer_player.start(500)
         self._aggiorna_recenti()
         self.applica_filtri_audio()
-        self._volume(self.volume.value())
+        self._volume(self.volume.get())
 
 
     def _aggiorna_player(self):
@@ -1046,7 +1044,7 @@ class MainWindow(QMainWindow):
                 "album": album,
                 "arte": arte,
                 "stato": "Stopped" if not self.file_in_onda else ("Paused" if pausa else "Playing"),
-                "volume": self.volume.value() / 100.0,
+                "volume": self.volume.get() / 100.0,
                 "durata": durata,
                 "shuffle": self.shuffle_attivo,
                 "giro_ripeti": {"uno": "Track", "tutti": "Playlist"}.get(self.ripeti, "None"),
