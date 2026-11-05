@@ -2640,11 +2640,38 @@ class MainWindow(QMainWindow):
         titolo, artista, album, arte = self.nome_in_onda, "", "", ""
         durata = player.duration if player else 0
         if self.file_in_onda and os.path.isabs(self.file_in_onda):
-            tag_titolo, artista, album, _anno = tag_di(self.file_in_onda, self.tag_cache)
-            titolo = tag_titolo or titolo
+            estensione = os.path.splitext(self.file_in_onda)[1][1:].lower()
+            if estensione in AUDIO:
+                tag_titolo, artista, album, _anno = tag_di(self.file_in_onda, self.tag_cache)
+                if not (tag_titolo or artista or album):
+                    tag_titolo, artista, album, _anno = dal_percorso(
+                        self.file_in_onda, self.sessione.config.get("cartelle", []))
+                titolo = tag_titolo or titolo
+                if artista:
+                    foto = self.artwork_artista.percorso_foto(artista)
+                    if os.path.isfile(foto):
+                        arte = foto
+            else:
+                titolo = titolo_anno(self.file_in_onda)[0] or titolo
             copertina = copertina_url(self.file_in_onda)
-            if os.path.isfile(copertina):
+            if not arte and os.path.isfile(copertina):
                 arte = copertina
+            if not arte:
+                poster = poster_film(self.file_in_onda)
+                if poster and os.path.isfile(poster):
+                    arte = poster
+        elif self.file_in_onda:
+            programma = self._programma_corrente()
+            artista = programma[2] if programma else ""
+            logo = LOGHI.get(self.file_in_onda)
+            if logo:
+                percorso_logo = os.path.join(
+                    CACHE_LOGHI, hashlib.md5(logo.encode()).hexdigest())
+                if os.path.isfile(percorso_logo) and os.path.getsize(percorso_logo):
+                    arte = percorso_logo
+        if not arte:
+            icona = os.path.join(QUI, "icon.png")
+            arte = icona if os.path.isfile(icona) else ""
         try:
             pausa = player.leggi("pause") == "yes" if player else True
             self._mpris.aggiorna({
