@@ -14,7 +14,7 @@ from core.metadata import titolo_anno, dal_percorso, copertina_url, copertina_de
 from integrations.mpris import avvia_mpris
 from core.config import scrivi_config, CARTELLE_LISTE, REGISTRAZIONI, leggi_config, QUI
 from i18n import _, imposta_lingua, LINGUE
-from core.playlists import liste_in_cartella, BUFFER, LOGHI, NOMI_URL, CACHE_LISTE, CHIAVI, copia_lista_url, e_una_lista
+from core.playlists import liste_in_cartella, BUFFER, LOGHI, NOMI_URL, CACHE_LISTE, CHIAVI, copia_lista_url, e_una_lista, _CACHE_PARSED_LOCK, _CACHE_PARSED_MEMORIA
 from core.colors import CACHE_LOGHI, leggi_colori, scrivi_colori, colore_di, colore_dal_logo
 from core.stream import varianti, chiave_clearkey, server_mpd, CACHE_VARIANTE
 from core.constants import SCALA_FILE, CATEGORIE_URL, VERSIONE
@@ -750,6 +750,12 @@ class MainWindow(QMainWindow):
         NOMI_URL.update(precedente.config.get("nomi_liste", {}))
         NOMI_URL.update(precedente.config.get("liste_url", {}))
         if forza:
+            with _CACHE_PARSED_LOCK:
+                _CACHE_PARSED_MEMORIA.clear()
+            LOGHI.clear()
+            CHIAVI.clear()
+            self.colori = {}
+            scrivi_colori(self.colori)
             for url in precedente.config.get("liste_url", {}):
                 try:
                     copia_lista_url(url, "forza")
