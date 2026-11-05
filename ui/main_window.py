@@ -2546,46 +2546,54 @@ class MainWindow(QMainWindow):
         for percorso in percorsi:
             percorso = os.path.abspath(percorso)
             if os.path.isdir(percorso):
-                cartelle.append(percorso)
+                if percorso not in cartelle:
+                    cartelle.append(percorso)
             elif os.path.isfile(percorso) and e_media(percorso):
-                file_media.append(percorso)
+                if percorso not in file_media:
+                    file_media.append(percorso)
             elif os.path.isfile(percorso) and e_una_lista(percorso):
-                liste.append(percorso)
-        for cartella in cartelle:
-            if cartella in self.sessione.config.get("cartelle", []):
-                continue
-            nuovi = self._media_locale(cartella)
-            if nuovi:
-                self.sessione.canali.extend(nuovi)
-                self.sessione.liste.append({
-                    "percorso": cartella, "nome": os.path.basename(cartella),
-                    "canali": [(n, p, ide) for n, p, ide, _cat, _lista in nuovi],
-                    "categorie": {p: cat for _n, p, _ide, cat, _lista in nuovi},
-                })
-                self.sessione.config.setdefault("cartelle", []).append(cartella)
+                if percorso not in liste:
+                    liste.append(percorso)
+        cfg = self.sessione.config
+        archivio = cfg.setdefault("liste", [])
+        archivio.extend(p for p in liste if p not in archivio)
+        cartelle_cfg = cfg.setdefault("cartelle", [])
+        nuove_cartelle = [p for p in cartelle if p not in cartelle_cfg]
+        cartelle_cfg.extend(nuove_cartelle)
+        scrivi_config(cfg)
         if liste:
-            archivio = self.sessione.config.setdefault("liste", [])
-            archivio.extend(p for p in liste if p not in archivio)
-        if liste and not cartelle and not file_media:
-            scrivi_config(self.sessione.config)
             self.ricarica_liste(forza=False)
-            return
+        for cartella in nuove_cartelle:
+            nuovi = self._media_locale(cartella)
+            if not nuovi:
+                continue
+            self.sessione.canali.extend(nuovi)
+            self.sessione.liste.append({
+                "percorso": cartella, "nome": os.path.basename(cartella),
+                "canali": [(n, p, ide) for n, p, ide, _cat, _lista in nuovi],
+                "categorie": {p: cat for _n, p, _ide, cat, _lista in nuovi},
+            })
+        non_importati = [p for p in file_media
+                         if not any(voce[1] == p for voce in self.sessione.canali)]
+        if non_importati:
+            self._importa_percorsi(non_importati)
         if file_media:
-            cartella = next((c for c in self.sessione.config.get("cartelle", [])
-                             if file_media[0].startswith(c.rstrip(os.sep) + os.sep)), None)
-            if len(file_media) == 1 and cartella:
-                self._percorso_attivo, self._categoria_attiva = cartella, None
-            else:
-                self._importa_percorsi(file_media)
-                self._percorso_attivo, self._categoria_attiva = "__importati__", None
-        scrivi_config(self.sessione.config)
+            prima = file_media[0]
+            voce = next((v for v in self.sessione.canali if v[1] == prima), None)
+            if voce is not None:
+                if voce[4] == "__importati__":
+                    self._percorso_attivo, self._categoria_attiva = "__importati__", None
+                else:
+                    self._percorso_attivo, self._categoria_attiva = voce[4], None
+        elif nuove_cartelle:
+            self._percorso_attivo, self._categoria_attiva = nuove_cartelle[0], None
         self.canali = [(n, u, ide) for n, u, ide, _cat, _lista in self.sessione.canali]
         self._riempi_liste()
         self._riempi_elenco()
         if file_media:
-            percorso = file_media[0]
-            voce = next((v for v in self.sessione.canali if v[1] == percorso), None)
-            self.apri(percorso, nome=voce[0] if voce else os.path.basename(percorso),
+            prima = file_media[0]
+            voce = next((v for v in self.sessione.canali if v[1] == prima), None)
+            self.apri(prima, nome=voce[0] if voce else os.path.basename(prima),
                       ide=voce[2] if voce else None)
 
     def importa_file(self):
