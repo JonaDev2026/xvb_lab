@@ -363,3 +363,15 @@ Commit: `b799089`, `39cca51`. Nessun test runtime eseguito.
 - Il test di costruzione della `MainWindow` viene eseguito senza libmpv; il rendering reale e la riproduzione restano da verificare sul sistema Linux di prova.
 
 Commit: `05268c1`.
+
+
+## Aggiornamento automatico delle guide EPG
+
+- Ripristinato il controllo periodico presente nella Stable 4.4.4: ogni 30 minuti vengono controllate le guide configurate.
+- Le guide remote vengono ricaricate quando la cache manca o supera le sei ore; le guide locali vengono ricaricate quando il file cambia rispetto all'ultimo caricamento.
+- Dopo un tentativo fallito o completato, un nuovo tentativo automatico non parte prima di un'ora; un caricamento già in corso non viene duplicato.
+- Il controllo usa un helper isolato in `core/epg.py`, richiamato da un `QTimer` della finestra principale e fermato durante la chiusura.
+- Aggiunti test per scadenza cache remota, modifica dei file locali e intervallo minimo fra i tentativi.
+- GitHub Actions sul commit `aadc7d6` ha superato compilazione e suite di regressione/Qt.
+
+Commit: `bad83bc`, `f2e96f0`, `7cbc8cc`, `c277eda`, `aadc7d6`.
