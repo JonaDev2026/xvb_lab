@@ -3,7 +3,7 @@ from PySide6.QtGui import QAction, QKeySequence, QIcon, QDesktopServices, QPixma
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QFrame, QVBoxLayout, QHBoxLayout, QLabel, QDialog, QMenu,
     QPushButton, QFileDialog, QInputDialog, QMessageBox, QSlider, QTreeWidget, QTreeWidgetItem,
-    QApplication, QLineEdit, QTextEdit, QPlainTextEdit, QAbstractSpinBox, QComboBox
+    QApplication, QLineEdit, QTextEdit, QPlainTextEdit, QAbstractSpinBox, QComboBox, QCursor
 )
 from engine.mpv import MpvVideo
 from ui.widgets import Cursore, Elenco, Finestrella, Ricerca, Guida, Tendina
@@ -157,7 +157,9 @@ class MainWindow(QMainWindow):
         self._costruisci_menu()
         centrale = QWidget(self)
         self.setCentralWidget(centrale)
+        self._centrale = centrale
         root = QVBoxLayout(centrale)
+        self._layout_principale = root
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
 
@@ -221,6 +223,7 @@ class MainWindow(QMainWindow):
         self._riempi_elenco()
 
         self.video = QWidget(self.contenuto)
+        self.video.setMouseTracking(True)
         self.video_layout = QHBoxLayout(self.video)
         self.video_layout.setContentsMargins(0, 0, 0, 0)
         self.video_layout.setSpacing(0)
@@ -228,6 +231,7 @@ class MainWindow(QMainWindow):
             self.player = MpvVideo(self.video, options=self._mpv_buffer_options())
             self.video_layout.addWidget(self.player, 1)
             self.player.installEventFilter(self)
+            self.player.setMouseTracking(True)
         except Exception as errore:
             self.player = None
             avviso = QLabel("libmpv: " + str(errore), self.video)
@@ -256,6 +260,10 @@ class MainWindow(QMainWindow):
 
         self.barra = QFrame(centrale)
         self.barra.setFixedHeight(96)
+        self._overlay_attivo = False
+        self._timer_overlay = QTimer(self)
+        self._timer_overlay.setSingleShot(True)
+        self._timer_overlay.timeout.connect(self._nascondi_overlay)
         comandi = QVBoxLayout(self.barra)
         comandi.setContentsMargins(12, 5, 12, 5)
         comandi.setSpacing(5)
@@ -2290,11 +2298,16 @@ class MainWindow(QMainWindow):
 
 
     def eventFilter(self, oggetto, evento):
-        if evento.type() == evento.Type.MouseButtonPress:
-            if oggetto is self.player:
-                self.schermo_attivo = 0
-            elif oggetto is self.player2:
-                self.schermo_attivo = 1
+        if evento.type() in (evento.Type.MouseMove, evento.Type.MouseButtonPress):
+            if self._overlay_attivo and (oggetto is self.player or oggetto is self.video
+                                         or oggetto is self.barra
+                                         or self.barra.isAncestorOf(oggetto)):
+                self._mostra_overlay()
+            if evento.type() == evento.Type.MouseButtonPress:
+                if oggetto is self.player:
+                    self.schermo_attivo = 0
+                elif oggetto is self.player2:
+                    self.schermo_attivo = 1
         return super().eventFilter(oggetto, evento)
 
     def split_si_no(self):
@@ -2380,21 +2393,72 @@ class MainWindow(QMainWindow):
                 self.player.seek(posizione)
             self.player.pausa(False)
 
+    def _posiziona_overlay(self):
+        if self._overlay_attivo and self.barra.parent() is self.video:
+            self.barra.setGeometry(
+                0, max(0, self.video.height() - self.barra.height()),
+                self.video.width(), self.barra.height())
+            self.barra.raise_()
+
+    def _attiva_overlay(self):
+        if not self._overlay_attivo:
+            self._overlay_attivo = True
+            self.barra.setParent(self.video)
+            self.barra.setAttribute(Qt.WA_StyledBackground, True)
+            self.barra.setStyleSheet("QFrame{background:rgba(28,27,34,220)}")
+            for widget in self.barra.findChildren(QWidget):
+                widget.installEventFilter(self)
+            self.video.installEventFilter(self)
+            self._posiziona_overlay()
+        self.barra.show()
+        self._mostra_overlay()
+
+    def _disattiva_overlay(self):
+        self._timer_overlay.stop()
+        if not self._overlay_attivo:
+            return
+        self._overlay_attivo = False
+        self.barra.setParent(self._centrale)
+        self.barra.setStyleSheet("")
+        self._layout_principale.insertWidget(1, self.barra)
+        self.barra.show()
+
+    def _mostra_overlay(self):
+        if not self._overlay_attivo:
+            return
+        self._posiziona_overlay()
+        self.barra.show()
+        self.barra.raise_()
+        self._timer_overlay.start(3000)
+
+    def _nascondi_overlay(self):
+        if not self._overlay_attivo or not self.barra.isVisible():
+            return
+        if self.barra.frameGeometry().contains(QCursor.pos()):
+            self._timer_overlay.start(3000)
+            return
+        self.barra.hide()
+
     def schermo_intero(self):
+        if self.split:
+            self.chiudi_split()
         if self.isFullScreen():
+            self._disattiva_overlay()
             self.showNormal()
             self.menuBar().show()
-            self.barra.show()
             self.sinistra.show()
             self.destra.show()
+            self.riga_stato.parentWidget().show()
         else:
             self.menuBar().hide()
-            self.barra.hide()
             self.sinistra.hide()
             self.destra.hide()
+            self.riga_stato.parentWidget().hide()
             self.showFullScreen()
+            self._attiva_overlay()
 
     def closeEvent(self, evento):
+        self._timer_overlay.stop()
         self.tendina.chiudi()
         self._timer_player.stop()
         self._timer_rec.stop()
