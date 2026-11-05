@@ -7,7 +7,7 @@ from PySide6.QtWidgets import (
 from engine.mpv import MpvVideo
 from ui.widgets import Elenco, Ricerca, Guida
 from core.session import Sessione
-from core.media import media_in
+from core.media import media_in, AUDIO
 from core.config import scrivi_config, CARTELLE_LISTE, REGISTRAZIONI
 from core.playlists import liste_in_cartella
 import os
@@ -323,8 +323,10 @@ class MainWindow(QMainWindow):
             if lista["percorso"].startswith(("http://", "https://")):
                 continue
             if os.path.isdir(lista["percorso"]):
-                nuovi = [(n, p, ide, "Local", lista["percorso"])
-                         for n, p, ide in media_in(lista["percorso"])]
+                nuovi = [(n, p, ide,
+                      "Music" if os.path.splitext(p)[1][1:].lower() in AUDIO else "Video",
+                      lista["percorso"])
+                     for n, p, ide in media_in(lista["percorso"])]
                 if nuovi:
                     nuova.canali.extend(nuovi)
                     nuova.liste.append(lista)
@@ -462,7 +464,9 @@ class MainWindow(QMainWindow):
         if not cartella:
             return
         gia = {voce[1] for voce in self.sessione.canali}
-        nuovi = [(nome, percorso, ide, "Local", cartella)
+        nuovi = [(nome, percorso, ide,
+                  "Music" if os.path.splitext(percorso)[1][1:].lower() in AUDIO else "Video",
+                  cartella)
                  for nome, percorso, ide in media_in(cartella) if percorso not in gia]
         if not nuovi:
             self.riga_stato.setText("No media files found")
@@ -472,7 +476,7 @@ class MainWindow(QMainWindow):
         self.sessione.liste.append({
             "percorso": cartella, "nome": os.path.basename(cartella),
             "canali": [(n, p, i) for n, p, i, _c, _l in nuovi],
-            "categorie": {p: "Local" for _n, p, _i, _c, _l in nuovi},
+            "categorie": {p: categoria for _n, p, _i, categoria, _l in nuovi},
         })
         self._riempi_liste()
         self._percorso_attivo, self._categoria_attiva = cartella, None
