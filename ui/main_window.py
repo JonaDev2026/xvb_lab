@@ -225,8 +225,8 @@ class MainWindow(QMainWindow):
         self._end_timer.timeout.connect(self._check_playback_end)
         self._end_timer.timeout.connect(self._update_playback_display)
         self._end_timer.start(500)
-        self.engine.command("set_property", "volume", str(self.volume_slider.value()))
-        self.engine.command("set_property", "mute", "yes" if self.config.get("muted", False) else "no")
+        self.engine.command("set", "volume", str(self.volume_slider.value()))
+        self.engine.command("set", "mute", "yes" if self.config.get("muted", False) else "no")
 
     def _icon(self, name):
         path = self.icons_dir / f"{name}.png"
@@ -1176,7 +1176,7 @@ class MainWindow(QMainWindow):
         self.engine.command("seek", str(seconds), "relative")
 
     def set_volume(self, value):
-        self.engine.command("set_property", "volume", str(value))
+        self.engine.command("set", "volume", str(value))
 
     def _save_volume(self):
         self.config["volume"] = self.volume_slider.value()
@@ -1185,7 +1185,7 @@ class MainWindow(QMainWindow):
     def toggle_mute(self):
         muted = not bool(self.config.get("muted", False))
         self.config["muted"] = muted
-        self.engine.command("set_property", "mute", "yes" if muted else "no")
+        self.engine.command("set", "mute", "yes" if muted else "no")
         self.volume_button.setIcon(self._icon("volume_off" if muted else "volume"))
         self.volume_button.setToolTip("Unmute" if muted else "Mute")
         save_config(self.config)
