@@ -1,7 +1,7 @@
 import ctypes
 import ctypes.util
 from core.constants import UA
-from PySide6.QtCore import Qt, QTimer, Signal
+from PySide6.QtCore import Qt, QTimer, Signal, QByteArray
 from PySide6.QtGui import QOpenGLContext, QSurfaceFormat
 from PySide6.QtOpenGLWidgets import QOpenGLWidget
 
@@ -154,7 +154,7 @@ class MpvVideo(QOpenGLWidget):
         if self._inizializzato or not self._mpv:
             return
         def get_proc(_ctx, nome):
-            ptr = QOpenGLContext.currentContext().getProcAddress(bytes(nome).decode())
+            ptr = QOpenGLContext.currentContext().getProcAddress(QByteArray(nome))
             if ptr is None:
                 return None
             try:
