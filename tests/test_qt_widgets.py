@@ -112,8 +112,8 @@ class QtWidgetTests(unittest.TestCase):
             window = MainWindow()
             path = "/tmp/News/Evening News.mkv"
             raccolte = [(("News", "2026-11-05"), [("20:30", "Evening News", path)])]
-            with patch("ui.main_window.registrazioni", return_value=raccolte), \\
-                 patch.object(window, "logo_di", return_value=None), \\
+            with patch("ui.main_window.registrazioni", return_value=raccolte), \
+                 patch.object(window, "logo_di", return_value=None), \
                  patch.object(window, "colore_canale", return_value="#ffffff"):
                 window._riempi_liste()
                 self.assertEqual(window.el_liste.item("registrazioni:0", "valore"),
