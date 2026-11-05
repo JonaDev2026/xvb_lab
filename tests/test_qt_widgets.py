@@ -306,6 +306,18 @@ class QtWidgetTests(unittest.TestCase):
             avvia.assert_not_called()
             window.close()
             self.app.processEvents()
+    def test_record_button_switches_to_stop_while_recording(self):
+        with patch("ui.main_window.MpvVideo", side_effect=RuntimeError("libmpv unavailable")):
+            window = MainWindow()
+            pulsante = window._pulsanti["rec"]
+            originale = pulsante.toolTip()
+            window._imposta_pulsante_rec(True)
+            attiva = pulsante.toolTip()
+            self.assertNotEqual(attiva, originale)
+            window._imposta_pulsante_rec(False)
+            self.assertEqual(pulsante.toolTip(), originale)
+            window.close()
+            self.app.processEvents()
 
 if __name__ == "__main__":
     unittest.main()
