@@ -232,3 +232,11 @@ Il completamento del trasferimento degli asset dipende dall'esecuzione del workf
 - Il layout video ora separa lo sfondo dal contenitore dei player, così il secondo player dello split mantiene la disposizione affiancata.
 
 Non eseguiti test grafici o prove di rendering. La dissolvenza originale dello sfondo resta da trasferire.
+
+## Verifica CI dopo l'integrazione Qt6
+
+- Il workflow ha trasferito nel Lab gli asset originali della Stable 4.4.4: `icone/`, `fonts/` e `icon.png`. I riferimenti Git degli asset principali corrispondono a quelli del tag Stable.
+- Corretto l'import del percorso applicazione nel widget di sfondo: `QUI` proviene da `core.config`.
+- GitHub Actions: compilazione dei moduli e suite di regressione concluse con esito positivo; 78 test superati, inclusi test Qt per dialoghi, tendina, guida, lista, ricerca, cursore e costruzione della MainWindow senza libmpv.
+- Questa CI non sostituisce la prova reale di rendering libmpv, riproduzione e confronto grafico su X11/Wayland.
+
