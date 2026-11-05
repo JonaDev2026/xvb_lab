@@ -81,6 +81,31 @@ class _CaricaCopertina(QThread):
         self.completato.emit(self.url)
 
 
+
+class _AggiornaListe(QThread):
+    completato = Signal(bool)
+
+    def __init__(self, urls):
+        super().__init__()
+        self.urls = list(urls)
+
+    def run(self):
+        cambiata = False
+        for url in self.urls:
+            try:
+                prima = os.path.getmtime(os.path.join(
+                    CACHE_LISTE, hashlib.md5(url.encode()).hexdigest() + ".m3u"))
+            except OSError:
+                prima = 0
+            try:
+                percorso = copia_lista_url(url)
+                dopo = os.path.getmtime(percorso)
+                cambiata = cambiata or dopo != prima
+            except Exception:
+                continue
+        self.completato.emit(cambiata)
+
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -278,6 +303,10 @@ class MainWindow(QMainWindow):
         self._timer_dischi.timeout.connect(self.controlla_dischi)
         self._timer_dischi.start(5000)
         self.controlla_dischi()
+        self._timer_refresh = QTimer(self)
+        self._timer_refresh.timeout.connect(self.aggiorna_periodico)
+        self._timer_refresh.start(1800000)
+        self._worker_liste = None
         self.mpv = self.player
         self._mpris = avvia_mpris(self)
         self._indice_canale = -1
@@ -503,6 +532,20 @@ class MainWindow(QMainWindow):
                                valore=valore, larga=460)
         return finestra.risposta if finestra.exec() == QDialog.Accepted else None
 
+
+    def aggiorna_periodico(self):
+        if self._worker_liste is not None and self._worker_liste.isRunning():
+            return
+        self._worker_liste = _AggiornaListe(self.sessione.config.get("liste_url", {}).keys())
+        self._worker_liste.completato.connect(self._liste_auto_pronte)
+        self._worker_liste.start()
+        if not self._thread_epg.isRunning():
+            self.ricarica_guida()
+
+    def _liste_auto_pronte(self, cambiata):
+        if cambiata:
+            self.ricarica_liste(forza=False)
+
     def aggiungi_lista_url(self):
         url = self._chiedi_testo(_("Add playlist URL"), _("URL of the playlist (m3u):"))
         if not url or not url.strip():
@@ -521,16 +564,17 @@ class MainWindow(QMainWindow):
         scrivi_config(self.sessione.config)
         self.ricarica_liste(scegli=url)
 
-    def ricarica_liste(self, scegli=None):
+    def ricarica_liste(self, scegli=None, forza=True):
         precedente = self.sessione
         NOMI_URL.clear()
         NOMI_URL.update(precedente.config.get("nomi_liste", {}))
         NOMI_URL.update(precedente.config.get("liste_url", {}))
-        for url in precedente.config.get("liste_url", {}):
-            try:
-                copia_lista_url(url, "forza")
-            except Exception:
-                pass
+        if forza:
+            for url in precedente.config.get("liste_url", {}):
+                try:
+                    copia_lista_url(url, "forza")
+                except Exception:
+                    pass
         nuova = Sessione()
         nuova.epg = precedente.epg
         nuova.epg_nomi = precedente.epg_nomi
@@ -1478,6 +1522,9 @@ class MainWindow(QMainWindow):
         self._timer_player.stop()
         self._timer_rec.stop()
         self._timer_dischi.stop()
+        self._timer_refresh.stop()
+        if self._worker_liste and self._worker_liste.isRunning():
+            self._worker_liste.wait(35000)
         if self._thread_epg.isRunning():
             self._thread_epg.wait(65000)
         for worker in self._logo_threads + self._cover_threads:
