@@ -514,4 +514,5 @@ Commit: `c868b66`, `9fe7995`, `7493e57`, `94586e1`, `b55c041`.
 - Ripristinato l'albero URL della Stable: cartelle Podcast, Music, Radio, IP cam, Film, Video e Temporary, con selezione della categoria, apertura diretta, nomi personalizzati e menu contestuale già collegato.
 - Aggiunti due test per la costruzione dell'albero URL e la navigazione tra categorie/indirizzi. Commit implementazione: `ac8321a`. Commit test: `8d737e2`.
 - Corretto il ripristino del nome URL personalizzato: svuotando il campo viene eliminato l'alias e torna il titolo derivato dall'indirizzo. Test aggiunto. Commit implementazione: `f5c011c`. Commit test: `3316df3`.
+- La selezione diretta di un indirizzo dalla sidebar conserva ora la categoria di provenienza (incluse le URL temporanee), così la lista centrale resta nel contesto corretto. Test di navigazione esteso. Commit implementazione: `732710b`. Commit test: `380e273`.
 - Verifica CI dei nuovi commit: in attesa; nessuna prova runtime su X11/Wayland è stata eseguita.
