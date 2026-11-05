@@ -129,7 +129,8 @@ class Cursore(QWidget):
 
 
 from PySide6.QtCore import QTimer, QPoint, QRect, QSize
-from PySide6.QtGui import QFontMetrics, QPixmap, QImage, QIcon, QFont
+from PySide6.QtGui import QFontMetrics, QPixmap, QImage, QIcon, QFont, QCursor
+import time
 from core.epg import nome_piatto
 from core.colors import colore_sfondo_guida
 from i18n import _
@@ -305,8 +306,30 @@ class Tendina(QFrame):
         if self.root.geometry() != self.finestra_era:
             self.chiudi()
             return
-        if not self._watch_timer.isActive():
-            self._watch_timer.start()
+        posizione = QCursor.pos()
+        def contiene(widget):
+            if widget is None or not widget.isVisible():
+                return False
+            return widget.frameGeometry().contains(posizione)
+        if contiene(self) or contiene(self.chi):
+            self.fuori_da = None
+        elif self.altrove:
+            try:
+                if self.altrove(posizione.x(), posizione.y(), subito=True):
+                    return
+            except TypeError:
+                if self.altrove(posizione.x(), posizione.y()):
+                    return
+            if self.fuori_da is None:
+                self.fuori_da = time.monotonic()
+            elif time.monotonic() - self.fuori_da > 2.0:
+                self.chiudi()
+                return
+        elif self.fuori_da is None:
+            self.fuori_da = time.monotonic()
+        elif time.monotonic() - self.fuori_da > 2.0:
+            self.chiudi()
+            return
 
     def accendi(self, riga, a, b, si):
         riga.setStyleSheet("background:#51466b" if si else "background:#1c1b22")
