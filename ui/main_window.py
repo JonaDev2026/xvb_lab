@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (
 from engine.mpv import MpvVideo
 from ui.widgets import Cursore, Elenco, Finestrella, Ricerca, Guida, Tendina
 from ui.sidebar import Sidebar
+from ui.backdrop import Sfondo
 from ui.handle import Maniglia
 from core.session import Sessione
 from core.media import media_in, AUDIO, e_media, tipo_preferiti, titolo_url, PREF_IPTV, PREF_MUSICA, PREF_VIDEO
@@ -247,20 +248,28 @@ class MainWindow(QMainWindow):
 
         self.video = QWidget(self.contenuto)
         self.video.setMouseTracking(True)
-        self.video_layout = QHBoxLayout(self.video)
+        self.video_layout = QStackedLayout(self.video)
         self.video_layout.setContentsMargins(0, 0, 0, 0)
-        self.video_layout.setSpacing(0)
+        self.video_layout.setStackingMode(QStackedLayout.StackAll)
+        self.sfondo = Sfondo(self.video)
+        self.video_layout.addWidget(self.sfondo)
+        self.player_area = QWidget(self.video)
+        self.player_area.setStyleSheet("background:transparent")
+        self.player_layout = QHBoxLayout(self.player_area)
+        self.player_layout.setContentsMargins(0, 0, 0, 0)
+        self.player_layout.setSpacing(0)
+        self.video_layout.addWidget(self.player_area)
         try:
-            self.player = MpvVideo(self.video, options=self._mpv_buffer_options())
-            self.video_layout.addWidget(self.player, 1)
+            self.player = MpvVideo(self.player_area, options=self._mpv_buffer_options())
+            self.player_layout.addWidget(self.player, 1)
             self.player.installEventFilter(self)
             self.player.setMouseTracking(True)
         except Exception as errore:
             self.player = None
-            avviso = QLabel("libmpv: " + str(errore), self.video)
+            avviso = QLabel("libmpv: " + str(errore), self.player_area)
             avviso.setAlignment(Qt.AlignCenter)
-            avviso.setStyleSheet("color:#9e9e9e")
-            self.video_layout.addWidget(avviso, 1)
+            avviso.setStyleSheet("color:#9e9e9e;background:transparent")
+            self.player_layout.addWidget(avviso, 1)
 
         self.destra = QFrame(self.contenuto)
         self.destra.setFixedWidth(max(140, int(self.sessione.config.get("larga_dx", 220))))
@@ -505,7 +514,42 @@ class MainWindow(QMainWindow):
             self.schermo_intero()
 
 
+    def _aggiorna_sfondo(self):
+        if not hasattr(self, "sfondo") or self.player is None:
+            return
+        if self.split:
+            self.player.show()
+            if self.player2:
+                self.player2.show()
+            return
+        percorso = self.file_in_onda
+        if not percorso:
+            self.sfondo.imposta()
+            self.player.hide()
+            return
+        solo_audio = os.path.isabs(percorso) and os.path.splitext(percorso)[1][1:].lower() in AUDIO
+        if not solo_audio:
+            try:
+                tracce = self.player.leggi_nodo("track-list") or []
+                if tracce:
+                    solo_audio = not any(
+                        voce.get("type") == "video" and not voce.get("albumart")
+                        for voce in tracce if isinstance(voce, dict))
+            except Exception:
+                pass
+        if solo_audio:
+            immagine = self.logo_di(percorso)
+            if immagine is not None:
+                self.sfondo.imposta_pixmap(immagine)
+            else:
+                self.sfondo.imposta()
+            self.player.hide()
+        else:
+            self.sfondo.imposta()
+            self.player.show()
+
     def _aggiorna_player(self):
+        self._aggiorna_sfondo()
         player = self._attivo()
         if not player:
             return
@@ -1645,6 +1689,7 @@ class MainWindow(QMainWindow):
     def _copertina_pronta(self, _url):
         if hasattr(self, "elenco"):
             self._riempi_elenco()
+        self._aggiorna_sfondo()
 
     def _rimuovi_worker_logo(self, worker):
         if worker in self._logo_threads:
@@ -2877,6 +2922,7 @@ class MainWindow(QMainWindow):
             self.play_button.setToolTip(_("Play"))
             self.riga_stato.setText("XVB")
             self._icona_preferito()
+            self._aggiorna_sfondo()
             self._aggiorna_mpris()
 
     def dispositivi_uscita_audio(self):
@@ -3128,7 +3174,7 @@ class MainWindow(QMainWindow):
             self.player2.imposta("volume", self.volume.get())
             self.player2.imposta("audio-device", self.sessione.config.get("audio_device", "auto"))
             self.player2.installEventFilter(self)
-            self.video_layout.addWidget(self.player2, 1)
+            self.player_layout.addWidget(self.player2, 1)
             self.split = True
             self.schermo_attivo = 0
         except Exception as errore:
@@ -3141,7 +3187,7 @@ class MainWindow(QMainWindow):
         self.schermo_attivo = 0
         self.split = False
         self.player2.ferma()
-        self.video_layout.removeWidget(self.player2)
+        self.player_layout.removeWidget(self.player2)
         self.player2.chiudi()
         self.player2.setParent(None)
         self.player2.deleteLater()
