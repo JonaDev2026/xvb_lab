@@ -563,12 +563,29 @@ class MainWindow(QMainWindow):
         menu = QMenu(self)
         if valore and valore[0] == "__epg__":
             menu.addAction(_("Remove guide"), lambda: self.togli_epg(valore[1]))
+        elif valore and valore[0] == "__media_folder__" and valore[1] in self.sessione.config.get("cartelle", []):
+            menu.addAction(_("Remove media folder"), lambda: self.rimuovi_cartella_media(valore[1]))
         elif valore and isinstance(valore[0], str) and valore[0].startswith(("http://", "https://")):
             menu.addAction(_("Remove playlist"), lambda: self.rimuovi_lista(valore[0]))
         elif valore and os.path.isfile(str(valore[0])):
             menu.addAction(_("Remove from list"), lambda: self.rimuovi_lista(valore[0]))
         if menu.actions():
             menu.exec(self.el_liste.mapToGlobal(posizione))
+
+
+    def rimuovi_cartella_media(self, cartella):
+        cfg = self.sessione.config
+        cfg["cartelle"] = [p for p in cfg.get("cartelle", []) if p != cartella]
+        scrivi_config(cfg)
+        self.sessione.canali = [v for v in self.sessione.canali if v[4] != cartella]
+        self.sessione.liste = [v for v in self.sessione.liste if v["percorso"] != cartella]
+        self.sottotitoli = {p: v for p, v in self.sottotitoli.items()
+                            if not (p == cartella or p.startswith(cartella + os.sep))}
+        self.canali = [(n, u, ide) for n, u, ide, _cat, _lista in self.sessione.canali]
+        self._percorso_attivo = None
+        self._categoria_attiva = None
+        self._riempi_liste()
+        self._riempi_elenco()
 
     def rimuovi_lista_selezionata(self):
         if self._percorso_attivo:
