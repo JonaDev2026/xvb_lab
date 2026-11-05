@@ -768,6 +768,10 @@ class MainWindow(QMainWindow):
         self.epg = self.sessione.epg
         self.epg_nomi = self.sessione.epg_nomi
         self.riga_stato.setText("EPG ready")
+        self.aggiorna_info_canale()
+        if self._epg_rifare:
+            self._epg_rifare = False
+            self.ricarica_guida()
 
     def _epg_errore(self, errore):
         self.riga_stato.setText("EPG: " + errore)
