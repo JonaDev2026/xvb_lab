@@ -1212,7 +1212,8 @@ class MainWindow(QMainWindow):
             self.nome_in_onda = nome or os.path.basename(percorso.rstrip("/")) or percorso
             self.ide_in_onda = ide
             self.riga_stato.setText(self.nome_in_onda)
-            self.play_button.setText("Ⅱ")
+            self.play_button.setIcon(QIcon(os.path.join("icone", "pausa.png")))
+            self.play_button.setToolTip(_("Pause"))
             self._aggiorna_mpris()
         except Exception as errore:
             QMessageBox.critical(self, "XVB", str(errore))
