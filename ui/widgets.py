@@ -782,3 +782,8 @@ class _ElencoDelegate(QStyledItemDelegate):
         h = self.elenco.poster_h or (
             self.elenco.poster_onda_h if "onda" in tags else 0)
         return QSize(max(1, option.rect.width()), max(58, h + 48))
+
+
+from .dialogs import Finestrella, SCORRE, Tendina
+from .guide import Guida
+from .list import Elenco
