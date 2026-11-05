@@ -36,6 +36,9 @@ Audit strutturale della Stable 4.4.4 completato: sorgente `xvb.py` del tag `v4.4
 - [x] Aggiunti test per lettura tag, cache e fallback su file mancanti.
 - [x] Trasferiti in `core/colors.py` conversione SVG, schiarimento colori, estrazione colore dominante dai loghi, cache colori versione 4 e scelta icone playlist.
 - [x] Aggiunti test per cache colori, conversione SVG e priorità icone.
+- [x] Trasferite in `core/artwork.py` le primitive PIL originali per copertine vinile, maschere e anelli, pallini, qualità, cartelle, segnalibri, globo, dischi e icone vinile.
+- [x] Le primitive producono immagini RGBA PIL, pronte per l'adattatore QImage/QPixmap Qt; la geometria e i colori derivano dalla Stable.
+- [x] Aggiunti test di regressione per dimensioni, trasparenza, icone e fasce di qualità; CI installa Pillow.
 - [x] Aggiunti test per i casi titolo/anno, struttura cartelle musicali, poster e cache JSON.
 - [x] Trasferita in `integrations/mpris.py` l'integrazione MPRIS originale: comandi multimediali, metadati, posizione, volume, shuffle e repeat; i callback dal bus D-Bus vengono inoltrati al thread Qt tramite segnale queued, senza `root.after` Tkinter.
 - [x] Aggiunti test per il filtro di sicurezza dei log.
