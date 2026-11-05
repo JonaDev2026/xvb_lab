@@ -332,3 +332,11 @@ Commit: `1d6b011`. Nessun test runtime eseguito.
 - Le cartelle locali vengono ordinate alfabeticamente per titolo dopo la lettura dei tag, ripristinando l'ordine definitivo usato dalla Stable per Music e Video.
 
 Commit: `6263f41`.
+
+
+## Eventi libmpv — sottoscrizione esplicita
+
+- Il motore Qt6 ora registra esplicitamente gli eventi libmpv necessari al ciclo player: START_FILE, END_FILE, FILE_LOADED, PLAYBACK_RESTART e SHUTDOWN.
+- Questo rende effettiva la consegna degli eventi usati per avanzamento automatico, ripresa della posizione, aggiornamento del playback e chiusura del motore.
+
+Commit: `a11fdc2`. La verifica runtime resta rinviata al pull concordato.
