@@ -131,3 +131,20 @@ La struttura Qt6 è ora presente nel repository e non va più descritta come ass
 Commit di questo avanzamento: `1a9b18f`, `a665183`, `203f289`, `b2aee4c`, `7adaee1`, `28c5594`, `505c33b`, `4fb96d9`, `f5ab422`, `55ebe0f`.
 
 Restano aperti il confronto puntuale con i widget originali, l'integrazione completa dei flussi applicativi, la verifica del motore video e la parità funzionale dell'intera Stable.
+
+## Controlli e collegamenti Qt6 — aggiornamento successivo
+
+- La barra comandi ora può essere spostata sopra il video sia a schermo intero sia quando entrambe le barre laterali sono chiuse. Il timer la nasconde dopo tre secondi e il movimento del mouse la fa riapparire; il ridimensionamento video aggiorna la posizione dell'overlay.
+- Lo stato delle due barre laterali viene conservato entrando e uscendo dal fullscreen. Il comando Playlists le mostra/nasconde insieme, come il comando originale; il menu View permette anche di intervenire separatamente.
+- Ripristinate le scorciatoie originali principali: M, +/-, volume su/giù, cambio canale con sinistra/destra, seek con Shift+sinistra/destra, PageUp/PageDown, F11 ed Escape. I tasti non vengono sottratti ai campi di testo o ai pannelli ad albero.
+- La lista canali conserva la riga del canale in riproduzione evidenziata senza sovrapporre la selezione blu; il cambio canale aggiorna l'indicatore.
+- Ripristinati i controlli di ritardo audio per singolo contenuto, ritardo e dimensione sottotitoli con salvataggio delle preferenze, reset dei sottotitoli, selezione dispositivo di uscita audio tramite `audio-device-list` di libmpv e applicazione del dispositivo al secondo player split.
+- Aggiunto accesso strutturato ai nodi libmpv (`MPV_FORMAT_NODE`) per leggere le liste dei dispositivi audio.
+- Ripristinati il controllo release GitHub, il collegamento al download, la donazione e l'opzione Sempre in primo piano.
+- La guida ora conserva la posizione di scorrimento durante il refresh, mostra il pallino colorato quando manca il logo e apre il canale solo cliccando su un blocco programma.
+- Corretta la lista per rispettare il colore originale del canale e l'evidenziazione del programma/canale in onda.
+- Aggiunti test di regressione per selezione tastiera, riga in onda, lifecycle overlay, cancellazione multipla e dimensionamento dialogo. Non eseguiti: il collaudo locale resta rinviato al pull concordato.
+
+Commit recenti: `e24763c`, `16fc99a`, `14ca9fd`, `4837a37`, `5e53165`, `0078d03`, `0569cec`, `e95aece`, `45bf581`, `2884c01`, `f720f9e`, `f8ad1c5`, `4ab189d`, `49d8fb3`, `4202571`, `dd0b2ae`.
+
+Il primo insieme dei quattro blocchi richiesti è stato implementato a livello di struttura e collegamenti Qt6, ma non è dichiarato completo: restano confronto puntuale con la Stable, verifica reale libmpv su X11/Wayland e controllo end-to-end di playlist, IPTV, EPG e libreria. Nessun pull di collaudo è richiesto in questo aggiornamento.
