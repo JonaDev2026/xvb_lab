@@ -66,6 +66,15 @@ class SessionTests(unittest.TestCase):
         self.assertEqual(sessione.epg, {})
         self.assertEqual(EPG_ICONE, {})
         self.assertEqual(EPG_ICONE_NOME, {})
+    def test_silent_epg_refresh_keeps_previous_data_when_download_fails(self):
+        sessione = Sessione.__new__(Sessione)
+        sessione.config = {"epg": ["https://example.test/guide.xml"]}
+        sessione.epg_nomi = {"news": "news.id"}
+        sessione.epg = {"news.id": [(1, 2, "Current programme")]}
+        with patch("core.session.prendi_epg", side_effect=OSError("offline")):
+            sessione.carica_guide(silenzioso=True)
+        self.assertEqual(sessione.epg_nomi, {"news": "news.id"})
+        self.assertEqual(sessione.epg, {"news.id": [(1, 2, "Current programme")]})
 
 if __name__ == "__main__":
     unittest.main()
