@@ -76,3 +76,6 @@ Nessuna funzione è ancora dichiarata migrata e l'applicazione non è pronta per
 - [x] Trasferita la ricerca TMDB della Stable: generi film/serie con cache per lingua e metadati con priorità al risultato provvisto di poster.
 - [x] Aggiunti test per cache generi, selezione poster e fallback tra ricerca film e serie.
 - [x] Corretto `PROGETTO.md`: il branch attuale non contiene ancora `main.py`, `engine/` o `ui/`; non viene più riportata come verificata una base Qt6 che non è presente nel repository.
+
+- [x] Avviata la migrazione Qt6 dei widget visuali originali in `ui/widgets.py`: casella di ricerca Material con lente, segnaposto, callback ed Escape; cursore percentuale con trascinamento, rotella, callback e sfondo dinamico. Le API conservano i nomi originali `Ricerca` e `Cursore`.
+- [ ] Verificare la parità grafica dei widget Qt6 con la Stable e completare i widget `Guida`, `Tendina`, `Elenco` e `Finestrella`.
