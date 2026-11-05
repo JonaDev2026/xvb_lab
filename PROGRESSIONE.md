@@ -240,3 +240,6 @@ Non eseguiti test grafici o prove di rendering. La dissolvenza originale dello s
 - GitHub Actions: compilazione dei moduli e suite di regressione concluse con esito positivo; 78 test superati, inclusi test Qt per dialoghi, tendina, guida, lista, ricerca, cursore e costruzione della MainWindow senza libmpv.
 - Questa CI non sostituisce la prova reale di rendering libmpv, riproduzione e confronto grafico su X11/Wayland.
 
+
+- Rifinito lo sfondo: cache delle immagini per evitare ricaricamenti a ogni aggiornamento del player e dissolvenza Qt6 da 1,2 secondi con attesa iniziale, come nella Stable.
+- Ripristinato anche il pulsante contestuale della velocità: nascosto a x1, compare quando viene selezionata una velocità diversa e cicla nello stesso ordine della Stable.
