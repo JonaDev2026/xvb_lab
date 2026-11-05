@@ -8,7 +8,7 @@ from engine.mpv import MpvVideo
 from ui.widgets import Cursore, Elenco, Finestrella, Ricerca, Guida, Tendina
 from ui.sidebar import Sidebar
 from core.session import Sessione
-from core.media import media_in, AUDIO
+from core.media import media_in, AUDIO, tipo_preferiti, PREF_IPTV, PREF_MUSICA, PREF_VIDEO
 from core.tags import leggi_tag, tag_di, scrivi_tag
 from core.metadata import titolo_anno, dal_percorso, copertina_url, copertina_dentro, poster_film
 from integrations.mpris import avvia_mpris
@@ -19,6 +19,7 @@ from core.colors import CACHE_LOGHI, leggi_colori, scrivi_colori, colore_di, col
 from core.constants import SCALA_FILE, VERSIONE
 from core.discs import dischi, cd_audio, dvd_cifrato, e_dvd, titolo_da_etichetta
 from core.recordings import registrazioni
+from core.favorites import leggi_preferiti, leggi_preferiti_cat, scrivi_preferiti
 import os
 import re
 import time
@@ -274,6 +275,7 @@ class MainWindow(QMainWindow):
         pulsante("repeat", "repeat", self._menu_ripeti, 24, _("Repeat"))
         pulsante("shuffle", "shuffle", lambda: self.mpris_shuffle(not self.shuffle_attivo), 24, _("Shuffle"))
         controlli.addStretch(1)
+        pulsante("favorite", "favorite_off", self._preferito_in_onda, 24, _("Favorite"))
         pulsante("pip", "pip", self.pip_si_no, 24, "PiP")
         pulsante("split", "setting", self.split_si_no, 24, _("Split screen"))
         pulsante("sidebar", "playlist", self._sidebar, 24, _("Playlists"))
@@ -1166,10 +1168,40 @@ class MainWindow(QMainWindow):
 
 
     def _tipo_preferito(self, voce):
-        url = voce[1]
-        if url.startswith(("http://", "https://")):
-            return PREF_IPTV
-        return PREF_MUSICA if os.path.splitext(url)[1][1:].lower() in AUDIO else PREF_VIDEO
+        return tipo_preferiti(voce[1])
+
+    def _preferito_in_onda(self):
+        url = self.file_in_onda
+        if not url or not self.nome_in_onda:
+            return
+        voce = next((v for v in self.sessione.canali
+                     if v[1] == url and v[4] not in (
+                         "__favorite__", "__favorite_music__", "__favorite_video__")), None)
+        if voce is None:
+            return
+        tipo = self._tipo_preferito(voce)
+        if any(v[1] == url for v in leggi_preferiti(tipo)):
+            self.rimuovi_preferito(url, tipo)
+        else:
+            self.aggiungi_preferito(voce, tipo)
+        self._icona_preferito()
+
+    def _icona_preferito(self):
+        pulsante = self._pulsanti.get("favorite")
+        if pulsante is None:
+            return
+        url = self.file_in_onda
+        voce = next((v for v in self.sessione.canali if v[1] == url), None) if url else None
+        possibile = bool(voce and voce[4] not in (
+            "__favorite__", "__favorite_music__", "__favorite_video__"))
+        pulsante.setVisible(possibile)
+        if possibile:
+            tipo = self._tipo_preferito(voce)
+            acceso = any(v[1] == url for v in leggi_preferiti(tipo))
+            nome = "favorite_on" if acceso else "favorite_off"
+            percorso = os.path.join(QUI, "icone", nome + ".png")
+            if os.path.isfile(percorso):
+                pulsante.setIcon(QIcon(percorso))
 
     def _menu_canale(self, posizione):
         item = self.elenco.itemAt(posizione)
@@ -1735,6 +1767,7 @@ class MainWindow(QMainWindow):
             self.nome_in_onda = nome or os.path.basename(percorso.rstrip("/")) or percorso
             self.ide_in_onda = ide
             self.riga_stato.setText(self.nome_in_onda)
+            self._icona_preferito()
             self.play_button.setIcon(QIcon(os.path.join(QUI, "icone", "pausa.png")))
             self.play_button.setToolTip(_("Pause"))
             self._aggiorna_mpris()
@@ -1760,6 +1793,7 @@ class MainWindow(QMainWindow):
             self.play_button.setIcon(QIcon(os.path.join(QUI, "icone", "play.png")))
             self.play_button.setToolTip(_("Play"))
             self.riga_stato.setText("XVB")
+            self._icona_preferito()
             self._aggiorna_mpris()
 
     def _volume(self, valore):
