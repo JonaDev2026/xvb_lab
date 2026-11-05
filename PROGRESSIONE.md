@@ -162,3 +162,12 @@ Il primo insieme dei quattro blocchi richiesti è stato implementato a livello d
 Questi trasferimenti ampliano i collegamenti del player, ma non sono ancora dichiarati verificati: test e prova d'uso completa verranno eseguiti dopo il pull concordato.
 
 Ultimi commit successivi: `29e84b0`, `9429c66`, `8447a34`, `3cc2679`, `ba993b8`, `c15a13b`, `b5a2199`, `1125ba3`, `5aef256`, `c6ca98b`, `bac8c25`, `20faa8b`.
+
+## Rifinitura widget lista Qt6
+
+- Corretto il dimensionamento delle righe di `Elenco`: ora considera anche l'altezza del poster limitato alla sola riga del canale in onda, non soltanto il poster globale.
+- Quando cambia l'altezza dei poster, la lista ricalcola le dimensioni effettive degli elementi e il layout, così lo spazio riservato al poster viene applicato anche allo scorrimento.
+- La misura del delegate ora rispetta le righe senza sottotitolo, evitando di imporre sempre l'altezza minima delle righe a due linee.
+- Rimosse importazioni circolari superflue in fondo a `ui/list.py`.
+
+Non eseguiti test né prove grafiche: restano per il pull concordato.
