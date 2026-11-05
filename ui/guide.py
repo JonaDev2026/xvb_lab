@@ -1,5 +1,5 @@
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QColor, QPainter, QPen
+from PySide6.QtGui import QColor, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import QWidget, QLineEdit
 
 
@@ -83,10 +83,21 @@ class Guida(QDialog):
                 self.righe.append((nome, url, ide, prog))
         self.nomi.clear()
         for nome, url, ide, prog in self.righe:
-            voce = QListWidgetItem(nome)
+            voce = QListWidgetItem(nome[:18])
             logo = self.app.logo_di(url) if hasattr(self.app, "logo_di") else None
             if logo is not None:
                 voce.setIcon(QIcon(logo))
+            else:
+                logo = QPixmap(24, 24)
+                logo.fill(Qt.transparent)
+                pittore = QPainter(logo)
+                pittore.setRenderHint(QPainter.Antialiasing)
+                pittore.setPen(Qt.NoPen)
+                pittore.setBrush(QColor(self.app.colore_canale(nome, url)))
+                pittore.drawEllipse(5, 5, 14, 14)
+                pittore.end()
+                voce.setIcon(QIcon(logo))
+            voce.setIconSize(QSize(24, 24))
             voce.setSizeHint(QSize(self.NOMI, self.RIGA))
             voce.setBackground(QColor(PANNELLO if self.nomi.count() % 2 else FONDO))
             self.nomi.addItem(voce)
@@ -97,7 +108,6 @@ class Guida(QDialog):
         return (t - self.da) / 3600.0 * self.ORA
 
     def ridisegna(self):
-        self.raccogli()
         self.tela.update()
         self.testa.update()
 
