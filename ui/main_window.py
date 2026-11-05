@@ -161,6 +161,22 @@ class MainWindow(QMainWindow):
                         "categorie": {p: cat for _n, p, _ide, cat, _path in locali},
                     })
         self.canali = [(n, u, ide) for n, u, ide, _cat, _lista in self.sessione.canali]
+        for percorso in self.sessione.config.get("importati", []):
+            if not os.path.isfile(percorso) or any(v[1] == percorso for v in self.sessione.canali):
+                continue
+            estensione = os.path.splitext(percorso)[1][1:].lower()
+            if estensione in AUDIO:
+                titolo, artista, album, anno = tag_di(percorso, self.tag_cache)
+                nome = titolo or os.path.splitext(os.path.basename(percorso))[0]
+                self.sottotitoli[percorso] = " · ".join(x for x in (artista, album, anno) if x)
+                categoria = "Music"
+            else:
+                nome, anno = titolo_anno(percorso)
+                nome = nome or os.path.splitext(os.path.basename(percorso))[0]
+                self.sottotitoli[percorso] = anno or ""
+                categoria = "Video"
+            self.sessione.canali.append((nome, percorso, None, categoria, "__importati__"))
+
         self.epg = self.sessione.epg
         self.epg_nomi = self.sessione.epg_nomi
         self._percorso_attivo = None
@@ -419,6 +435,7 @@ class MainWindow(QMainWindow):
     def _costruisci_menu(self):
         media = self.menuBar().addMenu(_("Media"))
         media.addAction(self._azione(_("Open file..."), self.apri_file, "Ctrl+O"))
+        media.addAction(self._azione(_("Import files..."), self.importa_file))
         media.addAction(self._azione(_("Open folder..."), self.apri_cartella))
         media.addAction(self._azione(_("Open URL..."), self.apri_url, "Ctrl+L"))
         self.menu_recenti = media.addMenu(_("Recent"))
@@ -916,6 +933,18 @@ class MainWindow(QMainWindow):
                 self.el_liste.insert(iid, "end", iid=iid_sotto,
                                      text=" " + nome_sotto + " (%d)" % len(dentro))
                 self.el_liste.item(iid_sotto, valore=("__media_folder__", sotto))
+        importati = [v for v in self.sessione.canali if v[4] == "__importati__"]
+        if importati:
+            nodo_importati = self.el_liste.insert(
+                locale, "end", iid="importati", text=" " + _("Imported media") +
+                " (%d)" % len(importati), open=False)
+            self.el_liste.item(nodo_importati, valore=("__importati__", None))
+            for i, (nome, percorso, _ide, categoria, _lista) in enumerate(importati):
+                iid = "importato:%d" % i
+                icona = "music" if categoria == "Music" else "player"
+                self.el_liste.insert(nodo_importati, "end", iid=iid, text=" " + nome,
+                                     image=QPixmap(os.path.join(QUI, "icone", icona + ".png")))
+                self.el_liste.item(iid, valore=("__imported_file__", percorso))
         if self.sessione.preferiti_musica:
             nodo = self.el_liste.insert(locale, "end", iid="preferiti:music", text=" " + _("Music favorites"), open=True)
             for i, (nome, url, ide, categoria) in enumerate(self.sessione.preferiti_musica):
@@ -949,6 +978,9 @@ class MainWindow(QMainWindow):
         if not dati:
             return
         self._percorso_attivo, self._categoria_attiva = dati
+        if self._percorso_attivo == "__imported_file__":
+            self.apri(self._categoria_attiva, nome=os.path.basename(self._categoria_attiva))
+            return
         if self._percorso_attivo == "__epg_folder__":
             self.apri_guida()
             return
@@ -985,7 +1017,9 @@ class MainWindow(QMainWindow):
         categoria = self._categoria_attiva
         ricerca = self.cerca.get() if hasattr(self, "cerca") else ""
         self.elenco.delete(*self.elenco.get_children())
-        if percorso == "__media_folder__":
+        if percorso == "__importati__":
+            base = [voce for voce in self.sessione.canali if voce[4] == "__importati__"]
+        elif percorso == "__media_folder__":
             cartella = getattr(self, "_cartella_media_attiva", "")
             base = [voce for voce in self.sessione.canali
                     if voce[4] == cartella or voce[1].startswith(cartella.rstrip(os.sep) + os.sep)]
@@ -1588,6 +1622,36 @@ class MainWindow(QMainWindow):
         self.sessione.config["recenti"] = []
         scrivi_config(self.sessione.config)
         self._aggiorna_recenti()
+
+
+    def importa_file(self):
+        percorsi, _ = QFileDialog.getOpenFileNames(self, _("Import media files"))
+        if not percorsi:
+            return
+        importati = self.sessione.config.setdefault("importati", [])
+        aggiunti = 0
+        for percorso in percorsi:
+            if not os.path.isfile(percorso) or percorso in importati:
+                continue
+            importati.append(percorso)
+            estensione = os.path.splitext(percorso)[1][1:].lower()
+            if estensione in AUDIO:
+                titolo, artista, album, anno = tag_di(percorso, self.tag_cache)
+                nome = titolo or os.path.splitext(os.path.basename(percorso))[0]
+                self.sottotitoli[percorso] = " · ".join(x for x in (artista, album, anno) if x)
+                categoria = "Music"
+            else:
+                nome, anno = titolo_anno(percorso)
+                nome = nome or os.path.splitext(os.path.basename(percorso))[0]
+                self.sottotitoli[percorso] = anno or ""
+                categoria = "Video"
+            self.sessione.canali.append((nome, percorso, None, categoria, "__importati__"))
+            aggiunti += 1
+        scrivi_config(self.sessione.config)
+        self._riempi_liste()
+        self._percorso_attivo, self._categoria_attiva = "__importati__", None
+        self._riempi_elenco()
+        self.riga_stato.setText(_("%d media files imported") % aggiunti)
 
     def apri_file(self):
         percorso, _ = QFileDialog.getOpenFileName(self, _("Open file"))
