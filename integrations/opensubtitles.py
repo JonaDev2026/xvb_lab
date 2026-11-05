@@ -141,7 +141,7 @@ class ScaricaSottotitolo(QThread):
                 estensione = ".srt"
             cartella = os.path.join(os.path.expanduser("~"), ".cache", "xvb", "subtitles")
             os.makedirs(cartella, exist_ok=True)
-            base = re.sub(r"[^\\w.-]+", "_", self.titolo, flags=re.UNICODE).strip("._") or "subtitle"
+            base = re.sub(r"[^\w.-]+", "_", self.titolo, flags=re.UNICODE).strip("._") or "subtitle"
             codice = re.sub(r"[^a-zA-Z0-9_-]", "", str(self.lingua)) or "sub"
             destinazione = os.path.join(cartella, "%s.%s%s" % (base, codice, estensione))
             if os.path.exists(destinazione):
