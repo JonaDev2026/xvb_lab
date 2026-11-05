@@ -317,6 +317,8 @@ class MainWindow(QMainWindow):
     def ricarica_liste(self):
         precedente = self.sessione
         nuova = Sessione()
+        nuova.epg = precedente.epg
+        nuova.epg_nomi = precedente.epg_nomi
         for lista in precedente.liste:
             if lista["percorso"].startswith(("http://", "https://")):
                 continue
@@ -327,6 +329,9 @@ class MainWindow(QMainWindow):
                     nuova.canali.extend(nuovi)
                     nuova.liste.append(lista)
         self.sessione = nuova
+        self.canali = [(n, u, ide) for n, u, ide, _cat, _lista in nuova.canali]
+        self.epg = nuova.epg
+        self.epg_nomi = nuova.epg_nomi
         self._percorso_attivo = None
         self._categoria_attiva = None
         self._riempi_liste()
@@ -452,6 +457,7 @@ class MainWindow(QMainWindow):
             self.riga_stato.setText("No media files found")
             return
         self.sessione.canali.extend(nuovi)
+        self.canali.extend((n, p, i) for n, p, i, _c, _l in nuovi)
         self.sessione.liste.append({
             "percorso": cartella, "nome": os.path.basename(cartella),
             "canali": [(n, p, i) for n, p, i, _c, _l in nuovi],
