@@ -2423,10 +2423,13 @@ class MainWindow(QMainWindow):
         errore = evento.get("errore_file") or evento.get("errore")
         if motivo == 4 or (isinstance(errore, int) and errore < 0):
             self.canale_morto()
-        elif motivo == 0 and self.file_in_onda and os.path.isabs(self.file_in_onda):
+        elif motivo == 0 and self.file_in_onda:
             if not self._eof_gestito:
                 self._eof_gestito = True
-                self.prossimo_file()
+                if os.path.isabs(self.file_in_onda):
+                    self.prossimo_file()
+                elif self.ripeti == "tutti":
+                    self.salta(1)
 
     def dvd_bloccato(self):
         if not (self.file_in_onda or "").startswith("dvd://"):
