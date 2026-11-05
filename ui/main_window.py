@@ -703,9 +703,20 @@ class MainWindow(QMainWindow):
                                    open=True)
         locale = self.el_liste.insert("", "end", iid="locale",
                                       text=" Local", open=True)
+        gruppi = {}
         for indice, lista in enumerate(self.sessione.liste):
             locale_lista = os.path.isdir(lista["percorso"])
-            padre = locale if locale_lista else m3u
+            if locale_lista:
+                padre = locale
+            elif lista.get("gruppo"):
+                nome_gruppo = lista["gruppo"]
+                if nome_gruppo not in gruppi:
+                    gruppi[nome_gruppo] = self.el_liste.insert(
+                        m3u, "end", iid="gruppo:" + nome_gruppo,
+                        text=" " + nome_gruppo, open=True)
+                padre = gruppi[nome_gruppo]
+            else:
+                padre = m3u
             iid = "lista:%d" % indice
             nodo = self.el_liste.insert(
                 padre, "end", iid=iid, text=" " + lista["nome"],
