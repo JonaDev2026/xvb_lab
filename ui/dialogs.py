@@ -30,13 +30,16 @@ class Finestrella(QDialog):
         self.setFixedSize(larga, self.sizeHint().height())
         self.risposta = None
         self.setStyleSheet(
-            "QDialog{background:{PANNELLO};color:{TESTO}}"
-            "QLabel{color:{TESTO}}"
-            "QLineEdit{background:%s;color:%s;border:1px solid %s;" % (CERCA, TESTO, SCELTO)
-            "border-radius:5px;padding:7px;selection-background-color:{TESTO_ONDA}}"
-            "QPushButton{background:%s;color:%s;border:0;border-radius:5px;padding:7px 16px}" % (CERCA, TESTO)
-            "QPushButton:hover{background:{SCELTO}}"
-            "QPushButton[primary=true]{background:%s;color:%s}" % (IN_ONDA, TESTO_ONDA)
+            (
+                "QDialog{background:%s;color:%s}"
+                "QLabel{color:%s}"
+                "QLineEdit{background:%s;color:%s;border:1px solid %s;"
+                "border-radius:5px;padding:7px;selection-background-color:%s}"
+                "QPushButton{background:%s;color:%s;border:0;border-radius:5px;padding:7px 16px}"
+                "QPushButton:hover{background:%s;color:white}"
+                "QPushButton[primary=true]{background:%s;color:%s}"
+            ) % (PANNELLO, TESTO, TESTO, CERCA, TESTO, SCELTO,
+                 ACCENTO, CERCA, TESTO, SCELTO, IN_ONDA, TESTO_ONDA)
         )
         self.contenuto = QVBoxLayout(self)
         self.contenuto.setContentsMargins(22, 18, 22, 16)
@@ -45,7 +48,7 @@ class Finestrella(QDialog):
         self.casella = None
         if chiedi is not None:
             etichetta = QLabel(chiedi, self)
-            etichetta.setStyleSheet("color:{GRIGIO}")
+            etichetta.setStyleSheet("color:%s" % GRIGIO)
             self.contenuto.addWidget(etichetta)
             self.casella = QLineEdit(self)
             self.casella.setText(valore)
@@ -104,11 +107,13 @@ class Tendina(QFrame):
         self._layout.setSpacing(0)
         self.setObjectName("xvbTendina")
         self.setStyleSheet(
-            "QFrame#xvbTendina{background:%s;border:1px solid %s}" % (PANNELLO, SCELTO)
-            "QPushButton{background:transparent;color:%s;text-align:left;" % TESTO
-            "border:0;padding:5px 12px;min-height:20px}"
-            "QPushButton:hover{background:%s;color:white}" % SCELTO
-            "QPushButton:disabled{color:%s}" % GRIGIO
+            (
+                "QFrame#xvbTendina{background:%s;border:1px solid %s}"
+                "QPushButton{background:transparent;color:%s;text-align:left;"
+                "border:0;padding:5px 12px;min-height:20px}"
+                "QPushButton:hover{background:%s;color:white}"
+                "QPushButton:disabled{color:%s}"
+            ) % (PANNELLO, SCELTO, TESTO, SCELTO, GRIGIO)
         )
 
     def aperta(self):
@@ -186,6 +191,8 @@ class Tendina(QFrame):
         if testo[:3] in ("*  ", "   "):
             testo = testo[3:]
         b = QPushButton(("✓   " if spunta else "    ") + testo, self)
+        if spunta:
+            b.setStyleSheet("color:%s" % ACCENTO)
         b.setFixedHeight(self.ALTA)
         b.setEnabled(bool(cosa))
         if cosa:
