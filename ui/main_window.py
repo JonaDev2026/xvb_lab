@@ -351,6 +351,9 @@ class MainWindow(QMainWindow):
         self.elenco.itemDoubleClicked.connect(self._apri_selezionato)
         self.elenco.prog_di = self._progresso_di
         sx.addWidget(self.elenco, 1)
+        self.nome_in_onda = ""
+        self.ide_in_onda = None
+        self.file_in_onda = None
         self._riempi_elenco()
 
         self.video = QWidget(self.contenuto)
@@ -539,9 +542,6 @@ class MainWindow(QMainWindow):
         self._chiudendo_pip = False
         self.split = False
         self.schermo_attivo = 0
-        self.nome_in_onda = ""
-        self.ide_in_onda = None
-        self.file_in_onda = None
         self.registrando = ""
         self.inizio_rec = 0.0
         self.fine_rec = 0.0
