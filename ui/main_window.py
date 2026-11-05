@@ -625,6 +625,9 @@ class MainWindow(QMainWindow):
         if player:
             for nome in ("brightness", "contrast", "saturation", "gamma", "hue"):
                 player.imposta(nome, 0)
+        if self.file_in_onda:
+            self.sessione.config.get("video", {}).pop(self.file_in_onda, None)
+            scrivi_config(self.sessione.config)
 
 
     def _chiedi_testo(self, titolo, etichetta, valore=""):
