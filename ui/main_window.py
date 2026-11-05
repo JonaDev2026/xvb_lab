@@ -26,6 +26,13 @@ from PySide6.QtWidgets import (
 )
 
 from engine.render import MPVRenderWidget
+from ui.metrics import (
+    WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_MIN_WIDTH, WINDOW_MIN_HEIGHT,
+    LEFT_PANEL_WIDTH, RIGHT_PANEL_WIDTH, MEDIA_ROW_HEIGHT,
+    MEDIA_LOGO_WIDTH, MEDIA_LOGO_HEIGHT, PLAYLIST_ROW_HEIGHT,
+    STATUS_BAR_HEIGHT, STATUS_FONT_PX, CONTROL_BAR_HEIGHT,
+    NOTIFICATION_BAR_HEIGHT,
+)
 from core.config import load_config, save_config
 from features.local_media import iter_folder_batches, scan_imported, load_tag_cache, save_tag_cache, read_media_tags, cache_cover_art
 
@@ -131,8 +138,8 @@ class MainWindow(QMainWindow):
         self.resource_dir = Path(__file__).resolve().parents[1] / "resources"
         self.icons_dir = self.resource_dir / "icons"
         self.setWindowTitle("XVB v4.4.4")
-        self.resize(1280, 720)
-        self.setMinimumSize(900, 520)
+        self.resize(WINDOW_WIDTH, WINDOW_HEIGHT)
+        self.setMinimumSize(WINDOW_MIN_WIDTH, WINDOW_MIN_HEIGHT)
         self.setStyleSheet(f"""
             QMainWindow, QWidget {{
                 background: {FONDO};
@@ -391,7 +398,7 @@ class MainWindow(QMainWindow):
         splitter.setChildrenCollapsible(False)
 
         self.left_panel = QFrame()
-        self.left_panel.setMinimumWidth(180)
+        self.left_panel.setMinimumWidth(LEFT_PANEL_WIDTH)
         left_layout = QVBoxLayout(self.left_panel)
         left_layout.setContentsMargins(10, 10, 8, 8)
         left_layout.setSpacing(8)
@@ -400,7 +407,8 @@ class MainWindow(QMainWindow):
         left_layout.addWidget(self.search)
         self.media_tree = QTreeWidget()
         self.media_tree.setHeaderHidden(True)
-        self.media_tree.setIconSize(QSize(48, 48))
+        self.media_tree.setIconSize(QSize(MEDIA_LOGO_WIDTH, MEDIA_LOGO_HEIGHT))
+        self.media_tree.setStyleSheet(f"QTreeWidget::item {{ height: {MEDIA_ROW_HEIGHT}px; }}")
         self.media_tree.setIndentation(16)
         self.media_tree.setAlternatingRowColors(False)
         self.media_tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -414,7 +422,7 @@ class MainWindow(QMainWindow):
         self.video.setStyleSheet("background: #000000;")
 
         self.right_panel = QFrame()
-        self.right_panel.setMinimumWidth(150)
+        self.right_panel.setMinimumWidth(RIGHT_PANEL_WIDTH)
         right_layout = QVBoxLayout(self.right_panel)
         right_layout.setContentsMargins(8, 10, 8, 8)
         right_layout.setSpacing(5)
@@ -424,6 +432,7 @@ class MainWindow(QMainWindow):
         self.playlist_tree = QTreeWidget()
         self.playlist_tree.setHeaderHidden(True)
         self.playlist_tree.setIndentation(14)
+        self.playlist_tree.setStyleSheet(f"QTreeWidget::item {{ height: {PLAYLIST_ROW_HEIGHT}px; }}")
         self.playlist_tree.setSelectionMode(QTreeWidget.SelectionMode.SingleSelection)
         self.playlist_tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.playlist_tree.customContextMenuRequested.connect(self.local_tree_context_menu)
@@ -441,7 +450,7 @@ class MainWindow(QMainWindow):
         outer.addWidget(splitter, 1)
 
         self.notification = QFrame()
-        self.notification.setFixedHeight(42)
+        self.notification.setFixedHeight(NOTIFICATION_BAR_HEIGHT)
         self.notification.setStyleSheet(f"background: {IN_ONDA2};")
         notice_layout = QHBoxLayout(self.notification)
         notice_layout.setContentsMargins(12, 0, 10, 0)
@@ -455,7 +464,7 @@ class MainWindow(QMainWindow):
         outer.addWidget(self.notification)
 
         self.control_bar = QFrame()
-        self.control_bar.setFixedHeight(96)
+        self.control_bar.setFixedHeight(CONTROL_BAR_HEIGHT)
         controls = QHBoxLayout(self.control_bar)
         controls.setContentsMargins(8, 5, 8, 5)
         controls.setSpacing(2)
@@ -511,7 +520,7 @@ class MainWindow(QMainWindow):
         outer.addWidget(self.control_bar)
 
         self.status_bar = QFrame()
-        self.status_bar.setFixedHeight(28)
+        self.status_bar.setFixedHeight(STATUS_BAR_HEIGHT)
         self.status_bar.setStyleSheet(f"background: {STATO};")
         status = QHBoxLayout(self.status_bar)
         status.setContentsMargins(8, 0, 10, 0)
@@ -524,11 +533,11 @@ class MainWindow(QMainWindow):
         self.format_status = QLabel("")
         for widget in (self.category_status, self.playback_status, self.title_status,
                        self.program_time_status, self.next_status, self.format_status):
-            widget.setStyleSheet(f"background: {STATO}; color: {TESTO};")
+            widget.setStyleSheet(f"background: {STATO}; color: {TESTO}; font-size: {STATUS_FONT_PX}px;")
             status.addWidget(widget)
         status.addStretch(1)
         self.clock_status = QLabel("")
-        self.clock_status.setStyleSheet(f"background: {STATO}; color: {TESTO};")
+        self.clock_status.setStyleSheet(f"background: {STATO}; color: {TESTO}; font-size: {STATUS_FONT_PX}px;")
         status.addWidget(self.clock_status)
         outer.addWidget(self.status_bar)
         self.setCentralWidget(root)
