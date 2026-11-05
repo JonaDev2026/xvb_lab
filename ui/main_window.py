@@ -3,11 +3,13 @@ from PySide6.QtGui import QAction, QKeySequence, QIcon, QDesktopServices, QPixma
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QFrame, QVBoxLayout, QHBoxLayout, QLabel, QDialog, QMenu,
     QPushButton, QFileDialog, QInputDialog, QMessageBox, QSlider, QTreeWidget, QTreeWidgetItem,
-    QApplication, QLineEdit, QTextEdit, QPlainTextEdit, QAbstractSpinBox, QComboBox
+    QApplication, QLineEdit, QTextEdit, QPlainTextEdit, QAbstractSpinBox, QComboBox,
+    QListWidget, QListWidgetItem
 )
 from engine.mpv import MpvVideo
 from ui.widgets import Cursore, Elenco, Finestrella, Ricerca, Guida, Tendina
 from ui.sidebar import Sidebar
+from ui.handle import Maniglia
 from core.session import Sessione
 from core.media import media_in, AUDIO, e_media, tipo_preferiti, titolo_url, PREF_IPTV, PREF_MUSICA, PREF_VIDEO
 from core.tags import leggi_tag, tag_di, scrivi_tag
