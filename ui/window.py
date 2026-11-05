@@ -12,6 +12,7 @@ from core.constants import VERSIONE, FONDO, PANNELLO, BARRA, STATO, TESTO, GRIGI
 from core.mpv import MpvPlayer
 from .widgets import Ricerca, Cursore
 from .list import Elenco
+from .sidebar import Sidebar
 
 
 class FinestraXVB(QMainWindow):
@@ -183,8 +184,9 @@ class FinestraXVB(QMainWindow):
         self.et_liste = QLabel("Playlists", self.destra)
         self.et_liste.setStyleSheet("color:%s" % GRIGIO)
         dx.addWidget(self.et_liste)
-        self.pannello_destro = QWidget(self.destra)
-        dx.addWidget(self.pannello_destro, 1)
+        self.el_liste = Sidebar(self.destra)
+        dx.addWidget(self.el_liste, 1)
+        self.pannello_destro = self.el_liste
         principale.addWidget(self.destra)
 
         self.stato = QLabel("ready", self)
