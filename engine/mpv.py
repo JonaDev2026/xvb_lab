@@ -21,6 +21,33 @@ class MpvError(RuntimeError):
     pass
 
 
+class _MpvNodeList(ctypes.Structure):
+    pass
+
+
+class _MpvNode(ctypes.Structure):
+    pass
+
+
+class _MpvNodeUnion(ctypes.Union):
+    _fields_ = [
+        ("string", ctypes.c_char_p),
+        ("flag", ctypes.c_int),
+        ("int64", ctypes.c_int64),
+        ("double", ctypes.c_double),
+        ("list", ctypes.POINTER(_MpvNodeList)),
+        ("byte_array", ctypes.c_void_p),
+    ]
+
+
+_MpvNodeList._fields_ = [
+    ("num", ctypes.c_int),
+    ("values", ctypes.POINTER(_MpvNode)),
+    ("keys", ctypes.POINTER(ctypes.c_char_p)),
+]
+_MpvNode._fields_ = [("u", _MpvNodeUnion), ("format", ctypes.c_int)]
+
+
 class MpvVideo(QOpenGLWidget):
     aggiornato = Signal()
     evento = Signal(object)
@@ -98,6 +125,11 @@ class MpvVideo(QOpenGLWidget):
         lib.mpv_set_property_string.restype = ctypes.c_int
         lib.mpv_get_property_string.argtypes = [ctypes.c_void_p, ctypes.c_char_p]
         lib.mpv_get_property_string.restype = ctypes.c_void_p
+        lib.mpv_get_property.argtypes = [
+            ctypes.c_void_p, ctypes.c_char_p, ctypes.c_int, ctypes.c_void_p]
+        lib.mpv_get_property.restype = ctypes.c_int
+        lib.mpv_free_node_contents.argtypes = [ctypes.POINTER(_MpvNode)]
+        lib.mpv_free_node_contents.restype = None
         lib.mpv_free.argtypes = [ctypes.c_void_p]
         lib.mpv_wait_event.argtypes = [ctypes.c_void_p, ctypes.c_double]
         lib.mpv_wait_event.restype = ctypes.c_void_p
@@ -241,6 +273,43 @@ class MpvVideo(QOpenGLWidget):
             self._mpv, str(nome).encode(), str(valore).encode())
         if rc < 0:
             raise MpvError("Impossibile impostare " + str(nome))
+
+    def leggi_nodo(self, nome):
+        if not self._mpv:
+            return None
+        nodo = _MpvNode()
+        rc = self._lib.mpv_get_property(
+            self._mpv, str(nome).encode("utf-8"), 6, ctypes.byref(nodo))
+        if rc < 0:
+            return None
+
+        def converti(valore):
+            formato = valore.format
+            if formato in (1, 2):
+                return valore.u.string.decode("utf-8", "replace") if valore.u.string else ""
+            if formato == 3:
+                return bool(valore.u.flag)
+            if formato == 4:
+                return int(valore.u.int64)
+            if formato == 5:
+                return float(valore.u.double)
+            if formato in (7, 8):
+                lista = valore.u.list.contents if valore.u.list else None
+                if lista is None:
+                    return [] if formato == 7 else {}
+                if formato == 7:
+                    return [converti(lista.values[i]) for i in range(lista.num)]
+                risultato = {}
+                for i in range(lista.num):
+                    chiave = lista.keys[i].decode("utf-8", "replace") if lista.keys and lista.keys[i] else str(i)
+                    risultato[chiave] = converti(lista.values[i])
+                return risultato
+            return None
+
+        try:
+            return converti(nodo)
+        finally:
+            self._lib.mpv_free_node_contents(ctypes.byref(nodo))
 
     def leggi(self, nome):
         ptr = self._lib.mpv_get_property_string(self._mpv, str(nome).encode())
