@@ -209,17 +209,13 @@ class QtWidgetTests(unittest.TestCase):
                  patch("ui.main_window.generi_tmdb", return_value={"18": "Drama"}), \
                  patch("ui.main_window.scarica_in", side_effect=scarica):
                 worker = _ScaricaCopertine([film], root, False, {}, {}, [])
-                risultati = []
-                worker.completato.connect(
-                    lambda fatti, nuove, info, chiave:
-                    risultati.append((fatti, nuove, info, chiave)))
                 worker.run()
 
             poster = os.path.join(root, "Film (2020).jpg")
             self.assertTrue(os.path.isfile(poster))
             self.assertEqual(scaricati, [poster])
-            self.assertEqual(risultati[0][0:2], (1, 1))
-            self.assertEqual(risultati[0][2][film]["generi"], ["Drama"])
+            self.assertEqual((worker.fatti, worker.nuove), (1, 1))
+            self.assertEqual(worker.info[film]["generi"], ["Drama"])
             with open(info_file, encoding="utf-8") as stream:
                 self.assertEqual(json.load(stream)[film]["generi"], ["Drama"])
             with open(tried_file, encoding="utf-8") as stream:
