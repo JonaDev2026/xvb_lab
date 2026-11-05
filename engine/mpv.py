@@ -1,5 +1,6 @@
 import ctypes
 import ctypes.util
+import os
 from core.constants import UA
 from PySide6.QtCore import Qt, QTimer, Signal, QByteArray
 from PySide6.QtGui import QOpenGLContext, QSurfaceFormat
@@ -165,6 +166,8 @@ class MpvVideo(QOpenGLWidget):
             "ytdl": "no",
             "user-agent": UA,
             "volume-max": "150",
+            "screenshot-directory": os.path.join(os.path.expanduser("~"), "Pictures", "xvb"),
+            "screenshot-template": "xvb-%tY-%tm-%td_%tH-%tM-%tS",
             "cursor-autohide": "3000",
             "stream-lavf-o": "reconnect=1,reconnect_streamed=1,reconnect_on_network_error=1,reconnect_delay_max=10",
         }
@@ -377,6 +380,7 @@ class MpvVideo(QOpenGLWidget):
         if self._render:
             try:
                 self.makeCurrent()
+                self._lib.mpv_render_context_set_update_callback(self._render, None, None)
                 self._lib.mpv_render_context_free(self._render)
                 self.doneCurrent()
             except Exception:
