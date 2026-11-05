@@ -488,3 +488,14 @@ Commit: `ad03baa`, `b37b04e`.
 - Aggiunto test Qt per visibilità, popolamento e selezione del capitolo corrente. GitHub Actions sul commit `f18d97b` ha superato compilazione e suite di regressione/Qt.
 
 Commit: `c01cd46`, `48dd002`, `f18d97b`.
+
+## Preparazione asincrona dei file importati
+
+- Spostata fuori dal costruttore della finestra la lettura dei tag musicali e l'estrazione titolo/anno dei file importati singolarmente.
+- Il worker di avvio prepara ora sia le cartelle locali configurate sia i file importati, quindi consegna i risultati al thread Qt tramite il segnale già usato per la libreria.
+- I file importati che appartengono già a una cartella configurata non vengono preparati una seconda volta; vengono inoltre esclusi i percorsi già presenti nella sessione.
+- Il callback Qt aggiorna la sessione e i sottotitoli delle righe importate solo dopo la preparazione in background.
+- Aggiunto un test dedicato al worker. La CI sul commit `b55c041` ha superato compilazione e 103 test di regressione/Qt.
+- Il rendering libmpv e la verifica pratica dell'avvio restano da eseguire sul sistema Linux di prova.
+
+Commit: `c868b66`, `9fe7995`, `7493e57`, `94586e1`, `b55c041`.
