@@ -386,3 +386,21 @@ Avvicinare l'albero Local alla struttura della Stable 4.4.4, mantenendo la confi
 **Commit**
 
 - UI: `95f9dc69cb11033ed137763f395d334e1e9ca9a8`
+
+### 2026-11-05 — Associazione stabile delle sorgenti nell'albero Local
+
+**Modifiche**
+
+- Registrato il riferimento UI di ogni sorgente Imported media, sia del nodo complessivo sia dei singoli file.
+- Il completamento della scansione aggiorna il nodo Imported corretto senza dipendere dall'elemento attualmente selezionato nell'albero.
+- Registrate anche le sottocartelle create dopo la scansione, così possono essere selezionate e scandite ricorsivamente.
+- Quando una cartella viene aggiornata, vengono rimossi dalla mappa i riferimenti alle vecchie sottocartelle prima di ricreare i nodi.
+
+**Verifica**
+
+- Codice aggiornato nel repository.
+- Compilazione e prova funzionale locali non ancora eseguite per questo intervento.
+
+**Stato**
+
+- Correzione scritta; da compilare e collaudare dopo il pull.
