@@ -66,7 +66,7 @@ class HudVideo(QWidget):
                 pittore.drawLine(16, y + 10, 16, y + 14)
                 pittore.drawLine(16, y + 14, 20, y + 16)
             else:
-                alpha = int(80 + 175 * (0.5 + 0.5 * (self.phase / 11.0)))
+                alpha = int(80 + 175 * abs(6 - self.phase) / 6)
                 pittore.setPen(Qt.NoPen)
                 pittore.setBrush(QColor(colore.red(), colore.green(), colore.blue(), alpha))
                 pittore.drawEllipse(12, y + 9, 10, 10)
