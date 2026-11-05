@@ -28,7 +28,7 @@ from core.constants import (SCALA_FILE, CATEGORIE_URL, VERSIONE, DONA, REPO, UA,
                             CERCA, IN_ONDA, TESTO_ONDA)
 from core.discs import dischi, cd_audio, dvd_cifrato, e_dvd, titolo_da_etichetta
 from core.recordings import registrazioni, piu_nuova
-from core.epg import guide_da_aggiornare, CACHE_EPG
+from core.epg import guide_da_aggiornare, CACHE_EPG, nome_epg
 from core.favorites import leggi_preferiti, leggi_preferiti_cat, scrivi_preferiti
 import os
 import re
@@ -1489,7 +1489,7 @@ class MainWindow(QMainWindow):
     def nome_guida(self, dove):
         return (self.sessione.config.get("epg_nomi_utente", {}).get(dove)
                 or self.sessione.config.get("epg_nomi", {}).get(dove)
-                or os.path.basename(urlparse(dove).path) or dove)
+                or nome_epg(dove))
 
     def togli_epg_selezionata(self):
         if self._guida_selezionata:
