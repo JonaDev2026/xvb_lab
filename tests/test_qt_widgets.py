@@ -75,6 +75,12 @@ class QtWidgetTests(unittest.TestCase):
         widget.setCurrentRow(1)
         self.assertEqual(widget.selection(), ("two",))
 
+    def test_on_air_list_item_keeps_highlight_without_selection(self):
+        widget = Elenco(None)
+        widget.insert("", "end", iid="on-air", text="Channel", tags=("onda",))
+        widget.selection_set("on-air")
+        self.assertEqual(widget.selection(), ())
+
     def test_dialog_and_popup_construction(self):
         def corpo(parent):
             layout = QVBoxLayout(parent)
