@@ -404,3 +404,20 @@ Avvicinare l'albero Local alla struttura della Stable 4.4.4, mantenendo la confi
 **Stato**
 
 - Correzione scritta; da compilare e collaudare dopo il pull.
+
+### 2026-11-05 — Evidenziazione della sorgente Local attiva
+
+**Modifiche**
+
+- Trasferita nella barra laterale l'evidenziazione della sorgente attualmente aperta, equivalente al tag `usata` della Stable.
+- L'evidenziazione viene applicata alla cartella, sottocartella o nodo Imported selezionato per la scansione.
+- Quando cambia sorgente, la precedente evidenziazione viene rimossa e resta evidenziato soltanto il nodo attivo.
+
+**Verifica**
+
+- Codice pubblicato nel repository.
+- Compilazione e verifica grafica locali ancora da eseguire.
+
+**Stato**
+
+- Implementazione scritta; da verificare dopo il pull.
