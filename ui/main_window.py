@@ -542,9 +542,20 @@ class MainWindow(QMainWindow):
         mostra = self.sinistra.isHidden() and self.destra.isHidden()
         self.sinistra.setVisible(mostra)
         self.destra.setVisible(mostra)
+        self._aggiorna_overlay_pannelli()
 
     def _nascondi_pannello(self, pannello):
         pannello.setVisible(not pannello.isVisible())
+        if not self.isFullScreen():
+            self._aggiorna_overlay_pannelli()
+
+    def _aggiorna_overlay_pannelli(self):
+        if self.isFullScreen():
+            self._attiva_overlay()
+        elif self.sinistra.isHidden() and self.destra.isHidden():
+            self._attiva_overlay()
+        else:
+            self._disattiva_overlay()
 
     def _aggiorna_menu_view(self):
         self.azione_lista.setText(_("Show list") if self.sinistra.isHidden() else _("Hide list"))
@@ -2732,7 +2743,6 @@ class MainWindow(QMainWindow):
         if self.split:
             self.chiudi_split()
         if self.isFullScreen():
-            self._disattiva_overlay()
             self.showNormal()
             self.menuBar().show()
             sinistra, destra = getattr(self, "_sidebar_prima", (True, True))
@@ -2740,6 +2750,7 @@ class MainWindow(QMainWindow):
             self.destra.setVisible(destra)
             self._sidebar_prima = None
             self.riga_stato.parentWidget().show()
+            self._aggiorna_overlay_pannelli()
         else:
             self._sidebar_prima = (self.sinistra.isVisible(), self.destra.isVisible())
             self.menuBar().hide()
