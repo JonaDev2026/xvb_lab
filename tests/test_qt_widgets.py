@@ -137,6 +137,23 @@ class QtWidgetTests(unittest.TestCase):
                 cerca.assert_called_once_with(path)
             window.close()
             self.app.processEvents()
+    def test_mpris_metadata_timer_runs_only_when_service_is_available(self):
+        class Servizio:
+            def __init__(self):
+                self.stato = None
+            def aggiorna(self, stato):
+                self.stato = stato
+        servizio = Servizio()
+        with patch("ui.main_window.MpvVideo", side_effect=RuntimeError("libmpv unavailable")), \\
+             patch("ui.main_window.avvia_mpris", return_value=servizio):
+            window = MainWindow()
+            self.assertTrue(window._timer_mpris.isActive())
+            self.assertEqual(window._timer_mpris.interval(), 1000)
+            window._aggiorna_mpris()
+            self.assertEqual(servizio.stato["stato"], "Stopped")
+            window.close()
+            self.assertFalse(window._timer_mpris.isActive())
+            self.app.processEvents()
 
 if __name__ == "__main__":
     unittest.main()
