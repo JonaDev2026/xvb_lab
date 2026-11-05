@@ -14,8 +14,9 @@ from core.metadata import titolo_anno, dal_percorso, copertina_url, copertina_de
 from integrations.mpris import avvia_mpris
 from core.config import scrivi_config, CARTELLE_LISTE, REGISTRAZIONI, leggi_config, QUI
 from i18n import _, imposta_lingua, LINGUE
-from core.playlists import liste_in_cartella, BUFFER, LOGHI, NOMI_URL, CACHE_LISTE, copia_lista_url
+from core.playlists import liste_in_cartella, BUFFER, LOGHI, NOMI_URL, CACHE_LISTE, CHIAVI, copia_lista_url
 from core.colors import CACHE_LOGHI, leggi_colori, scrivi_colori, colore_di, colore_dal_logo
+from core.stream import varianti, chiave_clearkey, server_mpd, CACHE_VARIANTE
 from core.constants import SCALA_FILE, VERSIONE
 from core.discs import dischi, cd_audio, dvd_cifrato, e_dvd, titolo_da_etichetta
 from core.recordings import registrazioni
@@ -26,7 +27,7 @@ import time
 import random
 import json
 import hashlib
-from urllib.parse import urlparse
+from urllib.parse import urlparse, quote
 
 
 class _CaricaGuide(QThread):
@@ -82,6 +83,22 @@ class _CaricaCopertina(QThread):
             pass
         self.completato.emit(self.url)
 
+
+
+
+class _RisolviStream(QThread):
+    completato = Signal(str, object, str)
+
+    def __init__(self, url):
+        super().__init__()
+        self.url = url
+
+    def run(self):
+        try:
+            elenco = varianti(self.url)
+            self.completato.emit(self.url, elenco, "")
+        except Exception as errore:
+            self.completato.emit(self.url, [], str(errore))
 
 
 class _AggiornaListe(QThread):
@@ -338,6 +355,10 @@ class MainWindow(QMainWindow):
         self._indice_canale = -1
         self._giro_traccia = 0
         self._eof_gestito = False
+        self.varianti = []
+        self.quale = -1
+        self._stream_player = None
+        self._stream_workers = []
         self.ripeti = self.sessione.config.get("ripeti", "")
         self.shuffle_attivo = bool(self.sessione.config.get("shuffle"))
         self._epg_rifare = False
@@ -494,6 +515,9 @@ class MainWindow(QMainWindow):
             video.addAction(self._azione(nome, lambda _=False, v=valore: self._regola(*v)))
         video.addAction(self._azione(_("Reset picture"), lambda: self._azzera_video()))
         video.addAction(self._azione(_("Screenshot"), lambda: self._comando("screenshot")))
+        self.menu_qualita = video.addMenu(_("Quality"))
+        self.menu_qualita.setEnabled(False)
+        self.menu_qualita.aboutToShow.connect(self._riempi_menu_qualita)
         audio = self.menuBar().addMenu(_("Audio"))
         audio.addAction(self._azione(_("Next audio track"), lambda: self._ciclo("aid")))
         audio.addAction(self._azione(_("Next subtitle track"), lambda: self._ciclo("sid")))
