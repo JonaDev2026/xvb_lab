@@ -87,6 +87,8 @@ class QtWidgetTests(unittest.TestCase):
         with patch("ui.main_window.MpvVideo", side_effect=RuntimeError("libmpv unavailable")):
             window = MainWindow()
             self.assertTrue(window.azioni_velocita[1].isChecked())
+            self.assertFalse(window.azione_carica_sottotitoli.isEnabled())
+            self.assertFalse(window.azione_sottotitoli_online.isEnabled())
             window.metti_velocita(1.5)
             window.mpris_shuffle(True)
             window.metti_ripeti("uno")
