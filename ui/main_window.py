@@ -387,7 +387,7 @@ class MainWindow(QMainWindow):
         pulsante = self._pulsanti.get("mute")
         if pulsante:
             nome = "volume_off" if self._muto_attivo else "volume"
-            percorso = os.path.join("icone", nome + ".png")
+            percorso = os.path.join(QUI, "icone", nome + ".png")
             if os.path.isfile(percorso):
                 pulsante.setIcon(QIcon(percorso))
 
@@ -1528,7 +1528,7 @@ class MainWindow(QMainWindow):
             self.nome_in_onda = nome or os.path.basename(percorso.rstrip("/")) or percorso
             self.ide_in_onda = ide
             self.riga_stato.setText(self.nome_in_onda)
-            self.play_button.setIcon(QIcon(os.path.join("icone", "pausa.png")))
+            self.play_button.setIcon(QIcon(os.path.join(QUI, "icone", "pausa.png")))
             self.play_button.setToolTip(_("Pause"))
             self._aggiorna_mpris()
         except Exception as errore:
@@ -1539,7 +1539,7 @@ class MainWindow(QMainWindow):
         if player:
             player.pausa()
             fermo = player.leggi("pause") == "yes"
-            percorso = os.path.join("icone", "play" if fermo else "pausa")
+            percorso = os.path.join(QUI, "icone", "play" if fermo else "pausa")
             self.play_button.setIcon(QIcon(percorso + ".png"))
             self.play_button.setToolTip(_("Resume") if fermo else _("Pause"))
             self._aggiorna_mpris()
