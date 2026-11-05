@@ -1,239 +1,81 @@
-from PySide6.QtCore import Qt, QSize, Signal
-from PySide6.QtGui import QColor, QFont, QPainter, QPen, QPixmap, QImage
-from PySide6.QtWidgets import QListWidget, QListWidgetItem, QStyledItemDelegate, QStyle
-from core.constants import FONDO, PANNELLO, TESTO, GRIGIO, SCELTO, ZEBRA, IN_ONDA, PUNTO
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QColor, QPainter, QPen
+from PySide6.QtWidgets import QWidget, QLineEdit
 
 
-_ROLE = Qt.UserRole + 41
+from PySide6.QtCore import QTimer, QPoint, QRect, QSize
+from PySide6.QtGui import QFontMetrics, QPixmap, QImage, QIcon, QFont, QCursor, QPolygon
+import time
+from core.epg import nome_piatto
+from core.colors import colore_sfondo_guida
+from i18n import _
+
+SCORRE = object()
+
+from PySide6.QtWidgets import (
+    QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QFrame,
+    QScrollArea, QToolButton, QLineEdit, QListWidget, QListWidgetItem,
+    QAbstractItemView, QMenu, QStyledItemDelegate
+)
 
 
-def _pixmap(immagine):
-    if immagine is None:
+
+
+def _pixmap(valore):
+    if valore is None:
         return None
-    if isinstance(immagine, QPixmap):
-        return immagine
-    if isinstance(immagine, QImage):
-        return QPixmap.fromImage(immagine)
-    if hasattr(immagine, "convert") and hasattr(immagine, "size"):
+    if isinstance(valore, QPixmap):
+        return valore
+    if isinstance(valore, QImage):
+        return QPixmap.fromImage(valore)
+    if isinstance(valore, QIcon):
+        return valore.pixmap(QSize(48, 48))
+    if isinstance(valore, str):
+        pix = QPixmap(valore)
+        return pix if not pix.isNull() else None
+    if hasattr(valore, "convert") and hasattr(valore, "tobytes"):
         try:
-            rgba = immagine.convert("RGBA")
-            dati = rgba.tobytes()
-            image = QImage(dati, rgba.width, rgba.height, rgba.width * 4,
-                           QImage.Format_RGBA8888)
-            return QPixmap.fromImage(image.copy())
+            im = valore.convert("RGBA")
+            q = QImage(im.tobytes("raw", "RGBA"), im.width, im.height,
+                       im.width * 4, QImage.Format_RGBA8888).copy()
+            return QPixmap.fromImage(q)
         except Exception:
             return None
     return None
 
 
-class _VoceDelegate(QStyledItemDelegate):
-    def __init__(self, elenco):
-        super().__init__(elenco)
-        self.elenco = elenco
-
-    def sizeHint(self, option, index):
-        d = index.data(_ROLE) or {}
-        h = self.elenco.altezza_riga
-        poster = self.elenco.poster_h or (
-            self.elenco.poster_onda_h if "onda" in d.get("tags", ()) else 0)
-        return QSize(option.rect.width(), h + poster)
-
-    def paint(self, painter, option, index):
-        e = self.elenco
-        d = index.data(_ROLE) or {}
-        r = option.rect
-        painter.save()
-        scelto = option.state & QStyle.State_Selected
-        onda = "onda" in d.get("tags", ())
-        fondo = e.scelto if scelto else (e.onda if onda else
-                (e.zebra if index.row() % 2 else e.pannello))
-        painter.fillRect(r, QColor(fondo))
-        poster_h = e.poster_h or (e.poster_onda_h if onda else 0)
-        y = r.y() + poster_h
-        if poster_h and e.poster_di:
-            try:
-                img, titolo = e.poster_di(d.get("iid"), r.width() - 8, poster_h)
-                if img is not None:
-                    pix = _pixmap(img)
-                    if pix is not None:
-                        painter.drawPixmap(r.x() + 4, r.y() + 3, pix)
-                elif titolo:
-                    painter.setPen(QColor(e.grigio))
-                    painter.drawText(r.adjusted(8, 0, -8, -e.altezza_riga),
-                                     Qt.AlignVCenter | Qt.AlignLeft, titolo)
-            except Exception:
-                pass
-        logo = d.get("logo") or d.get("image")
-        if e.segno == "logo" and logo is not None:
-            try:
-                pix = _pixmap(logo)
-                if pix is not None:
-                    painter.drawPixmap(r.x() + (e.colonna - pix.width()) // 2,
-                                       y + (e.altezza_riga - pix.height()) // 2, pix)
-            except Exception:
-                pass
-        nome, _, sotto = (d.get("text") or "").partition("\n")
-        nome = nome.lstrip() if e.segno == "logo" else nome
-        sotto = sotto.lstrip() if e.segno == "logo" else sotto
-        x = r.x() + (e.colonna if e.segno == "logo" else 8)
-        if e.segno == "dot" and d.get("image") is not None:
-            try:
-                pix = _pixmap(d["image"])
-                if pix is not None:
-                    painter.drawPixmap(r.x() + 4, y + 2, pix)
-                x += e.punto + 8
-            except Exception:
-                pass
-        colore = "#ffffff" if scelto else (d.get("colore") or e.grigio)
-        f = QFont(e.font)
-        f.setBold(True)
-        painter.setFont(f)
-        painter.setPen(QColor(colore))
-        painter.drawText(x, y + e.nome_px + 2, nome)
-        f.setBold(False)
-        f.setPixelSize(e.sotto_px)
-        painter.setFont(f)
-        painter.setPen(QColor(colore))
-        painter.drawText(x, y + e.nome_px + e.sotto_px + 8, sotto)
-        if e.prog_di:
-            try:
-                parte = e.prog_di(d.get("iid"))
-                if parte is not None:
-                    yy = r.bottom() - 2
-                    x0 = x + 8
-                    larg = max(0, r.right() - x0)
-                    painter.fillRect(x0, yy, larg, 2, QColor("#444444"))
-                    painter.fillRect(x0, yy, int(larg * max(0, min(1, parte))), 2,
-                                     QColor(d.get("colore") or e.grigio))
-            except Exception:
-                pass
-        painter.restore()
-
-
 class Elenco(QListWidget):
     treeviewSelect = Signal()
 
-    def __init__(self, dove=None, **kw):
+    def __init__(self, dove, **kw):
         super().__init__(dove)
-        self.setFrameShape(QListWidget.NoFrame)
+        self.setFrameShape(QFrame.NoFrame)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.setVerticalScrollMode(QListWidget.ScrollPerPixel)
-        self.setSelectionMode(QListWidget.SingleSelection)
-        self.setFocusPolicy(Qt.StrongFocus)
-        self.voci = []
-        self.posto = {}
-        self.dati = {}
+        self.setSelectionMode(QAbstractItemView.SingleSelection)
+        self.setStyleSheet(
+            "QListWidget{background:#1c1b22;color:#e0e0e0;border:0;outline:0}"
+            "QListWidget::item{border:0;padding:0}"
+            "QListWidget::item:selected{background:#51466b;color:white}"
+        )
+        self.voci, self.posto, self.dati = [], {}, {}
         self.scelta = None
-        self.colonna = None
-        self.colonna_dopo = None
         self.prog_di = None
-        self.barre = []
-        self.poster_h = 0
-        self.poster_onda_h = 0
         self.poster_di = None
-        self.poster_lbl = []
         self.singolo = None
         self.doppio = None
-        self.nome_sopra = 10
         self.segno = "logo"
-        self.tinte = set()
-        self.tag_configurazioni = {}
-        self.corti = {}
-        self.pannello = kw.pop("pannello", PANNELLO)
-        self.fondo = kw.pop("fondo", FONDO)
-        self.testo = kw.pop("testo", TESTO)
-        self.grigio = kw.pop("grigio", GRIGIO)
-        self.scelto = kw.pop("scelto", SCELTO)
-        self.zebra = kw.pop("zebra", ZEBRA)
-        self.onda = kw.pop("onda", IN_ONDA)
-        self.colonna = kw.pop("colonna", 44)
-        self.punto = kw.pop("punto", PUNTO)
-        self.nome_px = kw.pop("nome_px", 14)
-        self.sotto_px = kw.pop("sotto_px", 11)
-        self.altezza_riga = kw.pop("altezza_riga", 48)
-        self.font = self.font()
-        self.setStyleSheet("QListWidget{background:%s;color:%s;border:0;outline:0}"
-                           "QListWidget::item{border:0;padding:0}"
-                           "QListWidget::item:selected{background:transparent}" %
-                           (self.pannello, self.testo))
-        self.setItemDelegate(_VoceDelegate(self))
-        self.currentRowChanged.connect(self._selezione)
-        self.itemClicked.connect(self._clic_singolo)
-        self.itemDoubleClicked.connect(self._clic_doppio)
+        self.poster_h = 0
+        self.poster_onda_h = 0
+        self.itemClicked.connect(self._selezionato)
+        self.setItemDelegate(_ElencoDelegate(self))
+        self.setSpacing(0)
+        self.setUniformItemSizes(False)
+        self.nome_sopra = 10
+        self.poster_cache = {}
+        self.itemDoubleClicked.connect(lambda _i: self.doppio() if self.doppio else None)
 
     def column(self, *a, **k):
         return None
-
-    def tag_configure(self, tag, **opzioni):
-        self.tag_configurazioni.setdefault(tag, {}).update(opzioni)
-        if tag == "onda" and "background" in opzioni:
-            self.onda = opzioni["background"]
-        elif tag == "scelto" and "background" in opzioni:
-            self.scelto = opzioni["background"]
-        elif tag == "zebra" and "background" in opzioni:
-            self.zebra = opzioni["background"]
-        self.viewport().update()
-
-    def tag_add(self, tag, *indici):
-        for indice in indici:
-            try:
-                riga = int(str(indice).split(".")[0])
-                posizione = max(0, (riga - 1) // 3)
-                if posizione < len(self.voci):
-                    iid = self.voci[posizione]
-                    tags = list(self.dati[iid].get("tags", ()))
-                    if tag not in tags:
-                        tags.append(tag)
-                    self.dati[iid]["tags"] = tuple(tags)
-                    self.disegna(iid)
-            except (TypeError, ValueError):
-                continue
-
-    def tag_remove(self, tag, *indici):
-        selezionati = indici or tuple("%d.0" % (i * 3 + 1) for i in range(len(self.voci)))
-        for indice in selezionati:
-            try:
-                riga = int(str(indice).split(".")[0])
-                posizione = max(0, (riga - 1) // 3)
-                if posizione < len(self.voci):
-                    iid = self.voci[posizione]
-                    self.dati[iid]["tags"] = tuple(
-                        t for t in self.dati[iid].get("tags", ()) if t != tag)
-                    self.disegna(iid)
-            except (TypeError, ValueError):
-                continue
-
-    def tag_raise(self, *a, **k):
-        self.viewport().update()
-
-    def tag_names(self, indice):
-        try:
-            riga = int(str(indice).split(".")[0])
-            posizione = max(0, (riga - 1) // 3)
-            return self.dati[self.voci[posizione]].get("tags", ())
-        except (ValueError, IndexError, KeyError):
-            return ()
-
-    def tag_cget(self, tag, opzione):
-        return self.tag_configurazioni.get(tag, {}).get(opzione, "")
-
-    def event_generate(self, evento, *a, **k):
-        if evento == "<<TreeviewSelect>>":
-            self.treeviewSelect.emit()
-
-    def _selezione(self, riga):
-        self.scelta = self.voci[riga] if 0 <= riga < len(self.voci) else None
-
-    def _clic_singolo(self, item):
-        riga = self.row(item)
-        if 0 <= riga < len(self.voci):
-            self.selection_set(self.voci[riga])
-            if self.singolo:
-                self.singolo()
-
-    def _clic_doppio(self, item):
-        if self.doppio:
-            self.doppio()
 
     def get_children(self, *a):
         return tuple(self.voci)
@@ -241,139 +83,277 @@ class Elenco(QListWidget):
     def exists(self, iid):
         return iid in self.dati
 
-    def insert(self, parent, index, iid=None, text="", image=None, tags=(),
-               colore=None, logo=None):
-        if iid is None:
-            iid = str(len(self.voci))
-        d = dict(iid=iid, text=text, image=image, tags=tuple(tags),
-                 colore=colore, logo=logo, img=True)
+    def insert(self, parent, index, iid=None, text="", image=None, tags=(), colore=None, logo=None):
+        iid = str(len(self.voci)) if iid is None else str(iid)
+        d = dict(text=text, image=image, tags=tuple(tags), colore=colore, logo=logo, img=True)
         self.dati[iid] = d
         self.posto[iid] = len(self.voci)
         self.voci.append(iid)
         item = QListWidgetItem()
-        item.setData(_ROLE, d)
         self.addItem(item)
-        self._aggiorna_altezza()
+        self._aggiorna_item(iid, item)
         return iid
+
+    def _aggiorna_item(self, iid, item):
+        d = self.dati[iid]
+        nome, _, sotto = (d["text"] or "").partition("\n")
+        item.setText(nome + ("\n" + sotto if sotto else ""))
+        item.setData(Qt.UserRole, iid)
+        item.setData(Qt.UserRole + 1, d.get("image"))
+        item.setData(Qt.UserRole + 2, d.get("logo"))
+        item.setData(Qt.UserRole + 3, d.get("colore") or "#9e9e9e")
+        item.setData(Qt.UserRole + 4, d.get("tags", ()))
+        colore = QColor(d.get("colore") or "#9e9e9e")
+        item.setForeground(colore)
+        if d.get("image") is not None and hasattr(d["image"], "toImage"):
+            item.setIcon(d["image"])
+        item.setBackground(QColor("#202025") if self.posto[iid] % 2 else QColor("#1c1b22"))
+        item.setSizeHint(QSize(self.viewport().width(), max(58 if sotto else 42, self.poster_h + 48)))
 
     def delete(self, *iids):
         if not iids:
             return
-        if set(iids) >= set(self.voci):
+        if set(map(str, iids)) >= set(self.voci):
             self.clear()
-            self.voci, self.dati, self.scelta, self.posto = [], {}, None, {}
+            self.voci, self.posto, self.dati, self.scelta = [], {}, {}, None
             return
-        for iid in iids:
-            if iid in self.dati:
-                r = self.posto[iid]
-                self.takeItem(r)
-                self.voci.remove(iid)
-                del self.dati[iid]
-                if self.scelta == iid:
-                    self.scelta = None
+        for iid in map(str, iids):
+            if iid not in self.dati:
+                continue
+            row = self.posto[iid]
+            self.takeItem(row)
+            self.voci.remove(iid)
+            del self.dati[iid]
+            if self.scelta == iid:
+                self.scelta = None
         self.posto = {v: i for i, v in enumerate(self.voci)}
-        self._aggiorna_altezza()
 
     def item(self, iid, option=None, **kw):
-        d = self.dati[iid]
+        d = self.dati[str(iid)]
         if option:
             return d.get(option)
-        if kw:
-            d.update({k: tuple(v) if k == "tags" else v for k, v in kw.items()})
-            item = super().item(self.posto[iid])
-            item.setData(_ROLE, d)
-            item.setSizeHint(QSize(max(1, self.viewport().width()), self._altezza(d)))
-            self.viewport().update()
-        return dict(d)
+        if not kw:
+            return dict(d)
+        d.update({k: tuple(v) if k == "tags" else v for k, v in kw.items()})
+        self._aggiorna_item(str(iid), self.item_for(str(iid)))
+
+    def item_for(self, iid):
+        return QListWidget.item(self, self.posto[iid])
 
     def selection(self):
         return (self.scelta,) if self.scelta in self.dati else ()
 
     def selection_set(self, iid, vedi=False):
+        iid = str(iid) if iid is not None else None
         self.scelta = iid if iid in self.dati else None
         if self.scelta is None:
             self.clearSelection()
-            self.setCurrentRow(-1)
         else:
-            r = self.posto[self.scelta]
-            self.setCurrentRow(r)
+            item = self.item_for(self.scelta)
+            self.setCurrentItem(item)
             if vedi:
-                self.scrollToItem(super().item(r))
+                self.scrollToItem(item)
         self.treeviewSelect.emit()
 
     def selection_remove(self, iid):
-        if self.scelta == iid:
+        if self.scelta == str(iid):
             self.selection_set(None)
 
     def see(self, iid):
-        if iid in self.dati:
-            self.scrollToItem(super().item(self.posto[iid]))
+        if str(iid) in self.dati:
+            self.scrollToItem(self.item_for(str(iid)))
 
     def riga(self, iid):
-        return self.posto[iid]
+        return 3 * self.posto[str(iid)] + 1
 
     def spanne(self, iid):
-        return self.posto[iid], self.posto[iid]
+        r = self.riga(iid)
+        return (r, r + 2)
 
     def corto(self, img):
         return img
 
     def disegna(self, iid):
         if iid in self.dati:
-            item = super().item(self.posto[iid])
-            item.setData(_ROLE, self.dati[iid])
-            item.setSizeHint(QSize(max(1, self.viewport().width()),
-                                   self._altezza(self.dati[iid])))
-            self.viewport().update()
-
-    def _altezza(self, d):
-        poster = self.poster_h or (self.poster_onda_h if "onda" in d.get("tags", ()) else 0)
-        return self.altezza_riga + poster
-
-    def _aggiorna_altezza(self):
-        for i, iid in enumerate(self.voci):
-            super().item(i).setSizeHint(QSize(max(1, self.viewport().width()),
-                                               self._altezza(self.dati[iid])))
+            self._aggiorna_item(iid, self.item_for(iid))
 
     def ridisegna_colonna(self):
         self.viewport().update()
 
     def metti_poster(self, h):
-        if h != self.poster_h:
-            self.poster_h = h
-            self._aggiorna_altezza()
+        self.poster_h = h
+        self.viewport().update()
 
     def metti_poster_onda(self, h):
-        if h != self.poster_onda_h:
-            self.poster_onda_h = h
-            self._aggiorna_altezza()
+        self.poster_onda_h = h
+        self.viewport().update()
+
+    def _nuovo_poster(self):
+        return QLabel(self)
+
+    def _poster(self):
+        self.viewport().update()
+
+    def _nuova_barra(self):
+        return QFrame(self), QFrame(self)
+
+    def _barre(self):
+        self.viewport().update()
+
+    def _colonna_loghi(self):
+        self.viewport().update()
 
     def clic_y(self, y, attiva=False):
-        item = self.itemAt(2, int(y))
-        if item is not None:
-            iid = self.voci[self.row(item)]
-            self.selection_set(iid)
+        item = self.itemAt(3, y)
+        if item:
+            self.selection_set(item.data(Qt.UserRole))
             if attiva and self.singolo:
+                self.singolo()
+        return "break"
+
+    def clic(self, ev=None):
+        item = self.itemAt(ev.position().toPoint()) if ev is not None else None
+        if item:
+            self.selection_set(item.data(Qt.UserRole))
+            if self.singolo:
                 self.singolo()
         return "break"
 
     def sposta(self, dove):
         if not self.voci:
             return "break"
-        i = self.posto.get(self.scelta, -1)
+        i = self.voci.index(self.scelta) if self.scelta in self.dati else -1
         i = max(0, min(len(self.voci) - 1, i + dove))
         self.selection_set(self.voci[i], vedi=True)
         return "break"
 
-    def yview_scroll(self, quanti, unita="units"):
-        barra = self.verticalScrollBar()
-        passo = barra.singleStep() if unita == "units" else barra.pageStep()
-        barra.setValue(barra.value() + int(quanti) * passo)
+    def _selezionato(self, item):
+        iid = item.data(Qt.UserRole)
+        self.scelta = iid
+        if self.singolo:
+            self.singolo()
 
-    def wheelEvent(self, evento):
-        super().wheelEvent(evento)
-        self.viewport().update()
 
-    def resizeEvent(self, evento):
-        super().resizeEvent(evento)
-        self._aggiorna_altezza()
+class _ElencoDelegate(QStyledItemDelegate):
+    def __init__(self, elenco):
+        super().__init__(elenco)
+        self.elenco = elenco
+
+    @staticmethod
+    def _pixmap(valore, lato=None):
+        if valore is None:
+            return None
+        if isinstance(valore, QPixmap):
+            pix = valore
+        elif isinstance(valore, QImage):
+            pix = QPixmap.fromImage(valore)
+        elif isinstance(valore, QIcon):
+            pix = valore.pixmap(lato or QSize(48, 48))
+        elif isinstance(valore, str):
+            pix = QPixmap(valore)
+        elif hasattr(valore, "convert") and hasattr(valore, "tobytes"):
+            try:
+                im = valore.convert("RGBA")
+                q = QImage(im.tobytes("raw", "RGBA"), im.width, im.height,
+                           im.width * 4, QImage.Format_RGBA8888).copy()
+                pix = QPixmap.fromImage(q)
+            except Exception:
+                return None
+        else:
+            return None
+        return pix if not pix.isNull() else None
+
+    def paint(self, painter, option, index):
+        e = self.elenco
+        iid = index.data(Qt.UserRole)
+        d = e.dati.get(iid, {})
+        testo = d.get("text") or ""
+        nome, _, sotto = testo.partition("\n")
+        tags = d.get("tags", ())
+        colore = QColor(d.get("colore") or "#9e9e9e")
+        rett = option.rect
+        selezionato = iid == e.scelta and e.hasFocus()
+        sfondo = QColor("#42414d") if selezionato else (
+            QColor("#42414d") if "onda" in tags else
+            QColor("#2b2a33") if index.row() % 2 else QColor("#1c1b22"))
+        painter.save()
+        painter.fillRect(rett, sfondo)
+        poster_h = e.poster_h or (e.poster_onda_h if "onda" in tags else 0)
+        y_testo = rett.top() + (poster_h + 3 if poster_h else 0) + e.nome_sopra
+        logo_x = rett.left() + 8
+        colonna = 48
+        logo = self._pixmap(d.get("logo"), QSize(40, 40))
+        if logo is None:
+            logo = self._pixmap(d.get("image"), QSize(24, 24))
+        if e.segno == "logo":
+            if logo is not None:
+                lato = min(40, max(18, rett.height() - 12))
+                logo = logo.scaled(lato, lato, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+                painter.drawPixmap(logo_x + (colonna - logo.width()) // 2,
+                                   rett.top() + (rett.height() - logo.height()) // 2,
+                                   logo)
+            else:
+                painter.setPen(Qt.NoPen)
+                painter.setBrush(colore)
+                painter.drawEllipse(logo_x + 14, rett.center().y() - 5, 10, 10)
+            x_testo = rett.left() + colonna + 18
+        else:
+            x_testo = rett.left() + 12
+        painter.setPen(QColor("#ffffff" if selezionato else "#e0e0e0"))
+        font = painter.font()
+        font.setBold(True)
+        painter.setFont(font)
+        painter.drawText(x_testo, y_testo + 16, nome)
+        if sotto:
+            font.setBold(False)
+            font.setPointSizeF(max(7.0, font.pointSizeF() - 1.0))
+            painter.setFont(font)
+            painter.setPen(colore)
+            painter.drawText(x_testo, y_testo + 36, sotto)
+        parte = None
+        if e.prog_di:
+            try:
+                parte = e.prog_di(iid)
+            except Exception:
+                parte = None
+        if parte is not None:
+            x0 = rett.left() + (colonna if e.segno == "logo" else 0) + 8
+            y0 = rett.bottom() - 5
+            larg = max(0, rett.right() - x0 - 4)
+            painter.fillRect(x0, y0, larg, 2, QColor("#444444"))
+            painter.fillRect(x0, y0, int(larg * max(0.0, min(1.0, float(parte)))), 2, colore)
+        if poster_h and e.poster_di:
+            try:
+                chiave = (iid, rett.width(), poster_h)
+                poster = e.poster_cache.get(chiave)
+                if poster is None:
+                    poster = e.poster_di(iid, rett.width() - 8, poster_h)
+                    e.poster_cache[chiave] = poster
+                img, titolo = poster
+                pix = self._pixmap(img)
+                if pix is not None:
+                    pix = pix.scaled(rett.width() - 8, poster_h,
+                                     Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation)
+                    painter.drawPixmap(rett.left() + 4, rett.top() + 3,
+                                       pix, 0, 0, rett.width() - 8, poster_h)
+                elif titolo:
+                    painter.setPen(QColor("#9e9e9e"))
+                    painter.drawText(rett.left() + 8, rett.top() + poster_h,
+                                     str(titolo))
+            except Exception:
+                pass
+        painter.restore()
+
+    def sizeHint(self, option, index):
+        d = self.elenco.dati.get(index.data(Qt.UserRole), {})
+        tags = d.get("tags", ())
+        h = self.elenco.poster_h or (
+            self.elenco.poster_onda_h if "onda" in tags else 0)
+        return QSize(max(1, option.rect.width()), max(58, h + 48))
+
+
+
+
+from ui.list import Elenco
+from ui.dialogs import Finestrella, Tendina
+from ui.guide import Guida
