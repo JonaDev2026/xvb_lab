@@ -5,12 +5,16 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtWidgets import QApplication, QLabel
 from ui.widgets import Ricerca, Cursore, Elenco, Finestrella, Tendina, Guida
+from ui.main_window import MainWindow
 
 
 class QtWidgetTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])
+
+    def test_main_window_module_imports(self):
+        self.assertTrue(MainWindow)
 
     def test_search_callback_and_value(self):
         calls = []
