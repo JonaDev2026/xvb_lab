@@ -16,8 +16,9 @@ class Ricerca(QWidget):
         self.casella.setFrame(False)
         self.casella.setPlaceholderText(vuota)
         self.casella.setStyleSheet(
-            "QLineEdit{background:transparent;border:0;color:%s;selection-background-color:%s}" %
-            (self.testo.name(), self.accento.name()))
+            "QLineEdit{background:transparent;border:0;color:%s;selection-background-color:%s}"
+            "QLineEdit::placeholder{color:%s}" %
+            (self.testo.name(), self.accento.name(), self.grigio.name()))
         self.casella.textChanged.connect(lambda _v: self.cambia())
         self.casella.installEventFilter(self)
         self._posiziona()
@@ -43,7 +44,8 @@ class Ricerca(QWidget):
         p = QPainter(self)
         p.setRenderHint(QPainter.Antialiasing)
         p.setPen(Qt.NoPen)
-        p.setBrush(self.pannello)
+        p.fillRect(self.rect(), self.pannello)
+        p.setBrush(self.cerca)
         p.drawRoundedRect(self.rect(), self.alta / 2, self.alta / 2)
         r = self.alta / 2
         p.setPen(QPen(self.grigio, 2))
@@ -59,7 +61,7 @@ class Cursore(QWidget):
     valoreCambiato = Signal(int)
 
     def __init__(self, dove, cambia, larga=170, alta=26,
-                 barra="#42414d", traccia="#4a4a4a", pieno="#ffffff"):
+                 barra="#1c1b22", traccia="#4a4a4a", pieno="#ffffff"):
         super().__init__(dove)
         self.larga, self.alta, self.cambia = larga, alta, cambia
         self.barra, self.traccia, self.pieno = map(QColor, (barra, traccia, pieno))
