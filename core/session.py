@@ -1,11 +1,11 @@
 import hashlib
 import os
 
-from core.config import leggi_config, CARTELLE_LISTE, CARTELLE_VECCHIE
+from core.config import leggi_config, scrivi_config, CARTELLE_LISTE, CARTELLE_VECCHIE
 from core.playlists import (
     categorie, categorie_m3u, leggi_lista, liste_in_cartella, nome_di, NOMI_URL, CACHE_LISTE
 )
-from core.epg import leggi_epg, prendi_epg, unisci_guide
+from core.epg import leggi_epg, prendi_epg, unisci_guide, nome_dentro
 from core.favorites import leggi_preferiti_cat, PREF_MUSICA, PREF_VIDEO
 
 
@@ -105,7 +105,12 @@ class Sessione:
             percorsi = [percorsi] if percorsi else []
         for percorso in percorsi:
             try:
-                guide.append(leggi_epg(prendi_epg(percorso)))
+                file_epg = prendi_epg(percorso)
+                nome = nome_dentro(file_epg)
+                if nome:
+                    self.config.setdefault("epg_nomi", {})[percorso] = nome
+                    scrivi_config(self.config)
+                guide.append(leggi_epg(file_epg))
             except Exception:
                 continue
         if guide:
