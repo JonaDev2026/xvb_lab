@@ -401,7 +401,9 @@ class MainWindow(QMainWindow):
         pulsante("successivo", "dopo", lambda: self.salta(1), 34, _("Next"))
         pulsante("rec", "rec", self.registra, 24, _("Record"))
         pulsante("repeat", "repeat", self._menu_ripeti, 24, _("Repeat"))
-        pulsante("shuffle", "shuffle", lambda: self.mpris_shuffle(not self.shuffle_attivo), 24, _("Shuffle"))
+        self.shuffle_button = pulsante("shuffle", "shuffle", lambda: self.mpris_shuffle(not self.shuffle_attivo), 24, _("Shuffle"))
+        self.shuffle_button.setCheckable(True)
+        self.shuffle_button.setStyleSheet("QPushButton:checked{background:%s;border-radius:8px}" % SCELTO)
         controlli.addStretch(1)
         pulsante("favorite", "favorite_off", self._preferito_in_onda, 24, _("Favorite"))
         pulsante("fullscreen", "pieno", self.schermo_intero, 24, _("Fullscreen"))
@@ -531,6 +533,8 @@ class MainWindow(QMainWindow):
         self._pulsante_download_sub = None
         self.ripeti = self.sessione.config.get("ripeti", "")
         self.shuffle_attivo = bool(self.sessione.config.get("shuffle"))
+        self.shuffle_button.setChecked(self.shuffle_attivo)
+        self.shuffle_button.setToolTip(_("Shuffle on") if self.shuffle_attivo else _("Shuffle"))
         self._epg_rifare = False
         self._epg_sessione = self.sessione
         self._thread_epg = _CaricaGuide(self._epg_sessione)
@@ -2641,6 +2645,9 @@ class MainWindow(QMainWindow):
 
     def mpris_shuffle(self, attivo):
         self.shuffle_attivo = bool(attivo)
+        if hasattr(self, "shuffle_button"):
+            self.shuffle_button.setChecked(self.shuffle_attivo)
+            self.shuffle_button.setToolTip(_("Shuffle on") if self.shuffle_attivo else _("Shuffle"))
         if hasattr(self, "azione_shuffle"):
             self.azione_shuffle.setChecked(self.shuffle_attivo)
         self.sessione.config["shuffle"] = self.shuffle_attivo
