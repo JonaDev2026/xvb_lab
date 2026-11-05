@@ -122,7 +122,8 @@ class Cursore(QWidget):
 
 from PySide6.QtCore import QTimer, QPoint, QRect, QSize
 from PySide6.QtGui import QFontMetrics, QPixmap
-from PySide6.QtWidgets import (
+from core.epg import nome_piatto
+\nSCORRE = object()\n\nfrom PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QFrame,
     QScrollArea, QToolButton, QLineEdit, QListWidget, QListWidgetItem,
     QAbstractItemView, QMenu
