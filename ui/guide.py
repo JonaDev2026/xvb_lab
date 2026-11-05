@@ -1,188 +1,72 @@
-import time
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QColor, QPainter, QPen
+from PySide6.QtWidgets import QWidget, QLineEdit
 
-from PySide6.QtCore import Qt, QTimer, QRectF, Signal
-from PySide6.QtGui import QColor, QPainter, QPen, QBrush
-from core.constants import FONDO, PANNELLO, TASTO, TESTO, GRIGIO, ACCENTO
+
+from PySide6.QtCore import QTimer, QPoint, QRect, QSize
+from PySide6.QtGui import QFontMetrics, QPixmap, QImage, QIcon, QFont, QCursor, QPolygon
+import time
+from core.epg import nome_piatto
+from core.colors import colore_sfondo_guida
 from i18n import _
+
+SCORRE = object()
+
 from PySide6.QtWidgets import (
-    QDialog, QWidget, QGridLayout, QScrollArea, QAbstractScrollArea,
-    QScrollBar, QLabel
+    QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QFrame,
+    QScrollArea, QToolButton, QLineEdit, QListWidget, QListWidgetItem,
+    QAbstractItemView, QMenu, QStyledItemDelegate
 )
 
 
-class _TelaGuida(QWidget):
-    clicked = Signal(float, float)
-
-    def __init__(self, guida, tipo):
-        super().__init__()
-        self.guida = guida
-        self.tipo = tipo
-        self.setMouseTracking(True)
-
-    def mousePressEvent(self, evento):
-        if evento.button() == Qt.LeftButton:
-            self.clicked.emit(evento.position().x(), evento.position().y())
-        super().mousePressEvent(evento)
-
-    def paintEvent(self, evento):
-        p = QPainter(self)
-        p.setRenderHint(QPainter.Antialiasing)
-        g = self.guida
-        if self.tipo == "nomi":
-            p.fillRect(evento.rect(), QColor(g.fondo))
-            self._nomi(p)
-        elif self.tipo == "testa":
-            p.fillRect(evento.rect(), QColor(g.pannello))
-            self._testa(p)
-        else:
-            p.fillRect(evento.rect(), QColor(g.fondo))
-            self._programmi(p)
-
-    def _testa(self, p):
-        g = self.guida
-        p.setPen(QPen(QColor("#3a3a3a"), 1))
-        t = g.da
-        while t <= g.fino:
-            x = g.x_di(t)
-            p.drawLine(round(x), g.TESTA - 6, round(x), g.TESTA)
-            p.setPen(QColor(g.grigio))
-            p.drawText(round(x + 6), 19, time.strftime("%H:%M", time.localtime(t)))
-            p.setPen(QPen(QColor("#3a3a3a"), 1))
-            t += 1800
-        x = g.x_di(time.time())
-        p.setPen(QPen(QColor(g.accento), 2))
-        p.drawLine(round(x), g.TESTA - 8, round(x), g.TESTA)
-
-    def _nomi(self, p):
-        g = self.guida
-        for i, (nome, url, ide, programmi) in enumerate(g.righe):
-            y = i * g.RIGA
-            fondo = g.pannello if i % 2 else g.fondo
-            p.fillRect(0, y, g.NOMI, g.RIGA, QColor(fondo))
-            logo = g.app.logo_di(url) if hasattr(g.app, "logo_di") else None
-            if logo is not None:
-                p.drawPixmap(8, y + (g.RIGA - logo.height()) // 2, logo)
-            else:
-                colore = g.app.colore_canale(nome, url) if hasattr(g.app, "colore_canale") else g.accento
-                p.setBrush(QColor(colore))
-                p.setPen(Qt.NoPen)
-                p.drawEllipse(12, y + (g.RIGA - 14) // 2, 14, 14)
-            p.setPen(QColor(g.testo))
-            p.drawText(g.LOGO_L + 18, y, g.NOMI - g.LOGO_L - 24, g.RIGA,
-                       Qt.AlignVCenter | Qt.AlignLeft, nome[:18])
-
-    def _programmi(self, p):
-        g = self.guida
-        largo = int(g.x_di(g.fino)) + 20
-        alto = max(1, len(g.righe)) * g.RIGA + 20
-        p.setPen(QPen(QColor("#2a2a2a"), 1))
-        t = g.da
-        while t <= g.fino:
-            x = round(g.x_di(t))
-            p.drawLine(x, 0, x, alto)
-            t += 1800
-        adesso = time.time()
-        for i, (nome, url, ide, programmi) in enumerate(g.righe):
-            y0, y1 = i * g.RIGA, (i + 1) * g.RIGA
-            fondo = g.pannello if i % 2 else g.fondo
-            p.fillRect(0, y0, largo, g.RIGA, QColor(fondo))
-            colore = g.app.colore_canale(nome, url)
-            for a, b, titolo in programmi:
-                xa, xb = max(g.x_di(a), 0), g.x_di(b)
-                in_onda = a <= adesso < b
-                blocco = g._colore_onda(colore, fondo) if in_onda else g.tasto
-                p.fillRect(QRectF(xa + 1, y0 + 6, max(0, xb - xa - 2), g.RIGA - 12),
-                           QColor(blocco))
-                if xb - xa > 30:
-                    testo = titolo
-                    while testo and len(testo) * 7 > xb - xa - 14:
-                        testo = testo[:-1]
-                    if testo != titolo and len(testo) > 2:
-                        testo = testo[:-1] + "…"
-                    p.setPen(QColor("#ffffff" if in_onda else g.testo))
-                    p.drawText(QRectF(xa + 8, y0, max(0, xb - xa - 14), g.RIGA),
-                               Qt.AlignVCenter | Qt.AlignLeft, testo)
-        x = round(g.x_di(adesso))
-        p.setPen(QPen(QColor(g.accento), 2))
-        p.drawLine(x, 0, x, alto)
-
-
 class Guida(QDialog):
-    ORA = 300
-    RIGA = 64
-    NOMI = 250
-    TESTA = 28
-    LOGO_L = 32
+    ORA, RIGA, NOMI, TESTA = 300, 64, 250, 28
 
-    def __init__(self, app, colori=None):
-        super().__init__(app.root if hasattr(app, "root") else app)
+    def __init__(self, app):
+        super().__init__(app.root)
         self.app = app
-        c = colori or {}
-        self.fondo = c.get("fondo", FONDO)
-        self.pannello = c.get("pannello", PANNELLO)
-        self.tasto = c.get("tasto", TASTO)
-        self.testo = c.get("testo", TESTO)
-        self.grigio = c.get("grigio", GRIGIO)
-        self.accento = c.get("accento", "#bb86fc")
-        self.LOGO_L = c.get("logo_l", self.LOGO_L)
-        self.setWindowTitle(c.get("titolo", _("TV guide")))
+        self.setWindowTitle(_("TV guide"))
         self.resize(1100, 620)
         self.setMinimumSize(700, 300)
-        griglia = QGridLayout(self)
-        griglia.setContentsMargins(0, 0, 0, 0)
-        griglia.setSpacing(0)
-        angolo = QWidget(self)
-        angolo.setFixedSize(self.NOMI, self.TESTA)
-        angolo.setStyleSheet("background:%s" % self.pannello)
-        griglia.addWidget(angolo, 0, 0)
-        self.testata_scroll = QScrollArea(self)
-        self.testata_scroll.setWidgetResizable(False)
-        self.testata_scroll.setFixedHeight(self.TESTA)
-        self.testata_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.testata_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.testata = _TelaGuida(self, "testa")
-        self.testata.setFixedHeight(self.TESTA)
-        self.testata_scroll.setWidget(self.testata)
-        griglia.addWidget(self.testata_scroll, 0, 1)
-        self.nomi_scroll = QScrollArea(self)
-        self.nomi_scroll.setWidgetResizable(False)
-        self.nomi_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.nomi_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.nomi = _TelaGuida(self, "nomi")
-        self.nomi_scroll.setWidget(self.nomi)
-        griglia.addWidget(self.nomi_scroll, 1, 0)
-        self.programmi_scroll = QScrollArea(self)
-        self.programmi_scroll.setWidgetResizable(False)
-        self.programmi_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.programmi_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.tela = _TelaGuida(self, "programmi")
-        self.programmi_scroll.setWidget(self.tela)
-        griglia.addWidget(self.programmi_scroll, 1, 1)
-        self.sbx = QScrollBar(Qt.Horizontal, self)
-        self.sby = QScrollBar(Qt.Vertical, self)
-        griglia.addWidget(self.sbx, 2, 1)
-        griglia.addWidget(self.sby, 1, 2)
-        self.sbx.valueChanged.connect(self._x)
-        self.sby.valueChanged.connect(self._y)
-        self.programmi_scroll.horizontalScrollBar().valueChanged.connect(self.sbx.setValue)
-        self.programmi_scroll.verticalScrollBar().valueChanged.connect(self.sby.setValue)
-        self._scroll_nomi = self.nomi_scroll.verticalScrollBar()
-        self._scroll_testata = self.testata_scroll.horizontalScrollBar()
-        self.da = int(time.time() // 1800 * 1800) - 1800
+        self.da = int(__import__("time").time() // 1800 * 1800) - 1800
         self.fino = self.da + 6 * 3600
         self.righe = []
+        griglia = QHBoxLayout(self)
+        griglia.setContentsMargins(0, 0, 0, 0)
+        self.nomi = QListWidget(self)
+        self.nomi.setFixedWidth(self.NOMI)
+        self.nomi.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self.tela = _TelaGuida(self)
+        self.area_tela = QScrollArea(self)
+        self.area_tela.setWidgetResizable(False)
+        self.area_tela.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.area_tela.setWidget(self.tela)
+        self.testa = _TestaGuida(self)
+        self.area_testa = QScrollArea(self)
+        self.area_testa.setWidgetResizable(False)
+        self.area_testa.setFixedHeight(self.TESTA + 2)
+        self.area_testa.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.area_testa.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.area_testa.setWidget(self.testa)
+        destra = QVBoxLayout()
+        destra.setContentsMargins(0, 0, 0, 0)
+        destra.setSpacing(0)
+        destra.addWidget(self.area_testa)
+        destra.addWidget(self.area_tela, 1)
+        griglia.addWidget(self.nomi)
+        griglia.addLayout(destra, 1)
+        self.nomi.verticalScrollBar().valueChanged.connect(self.area_tela.verticalScrollBar().setValue)
+        self.area_tela.verticalScrollBar().valueChanged.connect(self.nomi.verticalScrollBar().setValue)
+        self.area_tela.horizontalScrollBar().valueChanged.connect(self.area_testa.horizontalScrollBar().setValue)
         self.raccogli()
-        self.tela.clicked.connect(self._clic)
-        self.nomi.clicked.connect(self._clic)
         self._timer = QTimer(self)
         self._timer.timeout.connect(self.ridisegna)
         self._timer.start(30000)
-        self.ridisegna()
+        self.nomi.itemClicked.connect(self._clic_nome)
 
     def raccogli(self):
         self.righe = []
         for nome, url, ide in self.app.canali:
-            from core.epg import nome_piatto
             k = ide if ide and ide in self.app.epg else self.app.epg_nomi.get(nome_piatto(nome))
             if not k:
                 continue
@@ -190,49 +74,117 @@ class Guida(QDialog):
                     if b > self.da and a < self.fino]
             if prog:
                 self.righe.append((nome, url, ide, prog))
+        self.nomi.clear()
+        for nome, url, ide, prog in self.righe:
+            voce = QListWidgetItem(nome)
+            logo = self.app.logo_di(url) if hasattr(self.app, "logo_di") else None
+            if logo is not None:
+                voce.setIcon(QIcon(logo))
+            voce.setSizeHint(QSize(self.NOMI, self.RIGA))
+            self.nomi.addItem(voce)
+        self.tela.setMinimumSize(6 * self.ORA, max(1, len(self.righe)) * self.RIGA + 20)
+        self.testa.setMinimumSize(6 * self.ORA, self.TESTA)
 
     def x_di(self, t):
         return (t - self.da) / 3600.0 * self.ORA
 
-    def _colore_onda(self, colore, fondo, alfa=0.40):
-        try:
-            a = QColor(colore)
-            b = QColor(fondo)
-            return QColor(int(a.red() * alfa + b.red() * (1 - alfa)),
-                          int(a.green() * alfa + b.green() * (1 - alfa)),
-                          int(a.blue() * alfa + b.blue() * (1 - alfa))).name()
-        except Exception:
-            return "#252030"
-
     def ridisegna(self):
         self.raccogli()
-        largo = int(self.x_di(self.fino)) + 20
-        alto = max(1, len(self.righe)) * self.RIGA + 20
-        self.tela.resize(largo, alto)
-        self.nomi.resize(self.NOMI, alto)
-        self.testata.resize(largo, self.TESTA)
-        self.testata_scroll.horizontalScrollBar().setRange(0, max(0, largo - self.testata_scroll.viewport().width()))
-        self.sbx.setRange(0, max(0, largo - self.programmi_scroll.viewport().width()))
-        self.sby.setRange(0, max(0, alto - self.programmi_scroll.viewport().height()))
-        self.nomi.update()
         self.tela.update()
-        self.testata.update()
+        self.testa.update()
 
-    def _x(self, valore):
-        self.programmi_scroll.horizontalScrollBar().setValue(valore)
-        self.testata.update()
-        self.testata_scroll.horizontalScrollBar().setValue(valore)
+    def disegna(self):
+        self.ridisegna()
 
-    def _y(self, valore):
-        self.programmi_scroll.verticalScrollBar().setValue(valore)
-        self.nomi_scroll.verticalScrollBar().setValue(valore)
-
-    def _clic(self, x, y):
-        i = int(y // self.RIGA)
+    def _clic_nome(self, item):
+        i = self.nomi.row(item)
         if 0 <= i < len(self.righe):
-            nome, url, ide, _ = self.righe[i]
-            if hasattr(self.app, "apri_canale_guida"):
-                self.app.apri_canale_guida(nome, url, ide)
-            else:
-                self.app.apri(nome, url, ide)
-            QTimer.singleShot(400, self.ridisegna)
+            self._apri(i)
+
+    def _apri(self, i):
+        nome, url, ide, _prog = self.righe[i]
+        if hasattr(self.app, "apri_canale_guida"):
+            self.app.apri_canale_guida(nome, url, ide)
+        else:
+            self.app.apri(nome, url, ide)
+        QTimer.singleShot(400, self.tela.update)
+
+    def chiudi(self):
+        self.close()
+
+
+class _TelaGuida(QWidget):
+    def __init__(self, guida):
+        super().__init__()
+        self.guida = guida
+        self.setMinimumSize(6 * guida.ORA, 1)
+
+    def paintEvent(self, evento):
+        from PySide6.QtGui import QPainter, QPen
+        import time
+        g, p = self.guida, QPainter(self)
+        p.fillRect(self.rect(), QColor("#1c1b22"))
+        altezza = max(1, len(g.righe)) * g.RIGA
+        t = g.da
+        while t <= g.fino:
+            x = g.x_di(t)
+            p.setPen(QPen(QColor("#2a2a2a"), 1))
+            p.drawLine(round(x), 0, round(x), altezza)
+            p.setPen(QColor("#9e9e9e"))
+            p.drawText(round(x + 6), 18, time.strftime("%H:%M", time.localtime(t)))
+            t += 1800
+        adesso = time.time()
+        for i, (nome, url, ide, prog) in enumerate(g.righe):
+            y0 = i * g.RIGA
+            p.fillRect(0, y0, self.width(), g.RIGA, QColor("#1c1b22"))
+            colore = QColor(g.app.colore_canale(nome, url))
+            for a, b, titolo in prog:
+                xa, xb = max(g.x_di(a), 0), g.x_di(b)
+                in_onda = a <= adesso < b
+                fondo = "#1c1b22" if i % 2 else "#1c1b22"
+                sfondo = QColor(colore_sfondo_guida(colore.name(), fondo, 0.40)) if in_onda else QColor("#2c2c2c")
+                p.fillRect(QRect(round(xa + 1), y0 + 6, max(1, round(xb - xa - 2)), g.RIGA - 12), sfondo)
+                if xb - xa > 30:
+                    p.setPen(QColor("#ffffff" if in_onda else "#e0e0e0"))
+                    testo = QFontMetrics(p.font()).elidedText(titolo, Qt.ElideRight, max(0, round(xb - xa - 14)))
+                    p.drawText(round(xa + 8), y0 + g.RIGA // 2 + 5, testo)
+        x = g.x_di(adesso)
+        p.setPen(QPen(QColor("#bb86fc"), 2))
+        p.drawLine(round(x), 0, round(x), altezza)
+        p.end()
+
+    def mousePressEvent(self, e):
+        g = self.guida
+        i = int(e.position().y() // g.RIGA)
+        if 0 <= i < len(g.righe):
+            g._apri(i)
+
+
+class _TestaGuida(QWidget):
+    def __init__(self, guida):
+        super().__init__()
+        self.guida = guida
+        self.setFixedHeight(guida.TESTA)
+
+    def paintEvent(self, evento):
+        import time
+        p = QPainter(self)
+        p.fillRect(self.rect(), QColor("#1c1b22"))
+        t = self.guida.da
+        while t <= self.guida.fino:
+            x = self.guida.x_di(t)
+            p.setPen(QPen(QColor("#3a3a3a"), 1))
+            p.drawLine(round(x), self.guida.TESTA - 6, round(x), self.guida.TESTA)
+            p.setPen(QColor("#9e9e9e"))
+            p.drawText(round(x + 6), 19, time.strftime("%H:%M", time.localtime(t)))
+            t += 1800
+        x = round(self.guida.x_di(time.time()))
+        p.setPen(Qt.NoPen)
+        p.setBrush(QColor("#bb86fc"))
+        p.drawPolygon(QPolygon([
+            QPoint(x - 6, self.guida.TESTA - 8),
+            QPoint(x + 6, self.guida.TESTA - 8),
+            QPoint(x, self.guida.TESTA)
+        ]))
+
+
