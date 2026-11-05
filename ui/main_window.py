@@ -1045,7 +1045,7 @@ class MainWindow(QMainWindow):
                     text=" " + categoria)
                 self.el_liste.item(figlio, valore=("__favorite__", categoria))
         self.el_liste.item(iptv, valore=("__iptv__", None))
-        self.el_liste.item(epg, valore=("__epg__", None))
+        self.el_liste.item(epg, valore=("__epg_folder__", None))
         self.el_liste.item(m3u, valore=("__m3u__", None))
         self.el_liste.item(locale, valore=("__local__", None))
 
