@@ -32,7 +32,38 @@ class QtWidgetTests(unittest.TestCase):
             self.assertEqual(risultati[0][1], "")
             self.assertEqual(risultati[0][0]["__importati__"], preparati)
             prepara.assert_called_once_with(
-                root, [("Imported Film (2022)", percorso, None)], {})
+                root, [("Imported Film (2022)", percorso, None)], {}, [])
+
+    def test_imported_media_inside_configured_folder_are_not_prepared_twice(self):
+        with tempfile.TemporaryDirectory() as root:
+            percorso = os.path.join(root, "Film.mkv")
+            with open(percorso, "wb") as stream:
+                stream.write(b"video")
+            elementi = [("Film", percorso, None)]
+            preparati = [("Film", percorso, None, "Video", root, "")]
+            risultati = []
+            with patch("ui.main_window.media_in", return_value=elementi), patch("ui.main_window._prepara_file_cartella", return_value=preparati) as prepara:
+                worker = _ScansionaCartelle([root], {}, [percorso], ())
+                worker.completato.connect(lambda dati, errore: risultati.append((dati, errore)))
+                worker.run()
+            self.assertEqual(risultati[0][1], "")
+            self.assertEqual(risultati[0][0][root], preparati)
+            self.assertEqual(risultati[0][0]["__importati__"], [])
+            prepara.assert_called_once()
+
+    def test_startup_worker_results_add_imported_media_to_session(self):
+        with patch("ui.main_window.MpvVideo", side_effect=RuntimeError("libmpv unavailable")):
+            window = MainWindow()
+            percorso = "/tmp/Imported Film.mkv"
+            elemento = ("Imported Film", percorso, None, "Video", "/tmp", "2022")
+            with patch.object(window, "_riempi_liste"), patch.object(window, "_riempi_elenco"):
+                window._cartelle_configurate_scansionate({"__importati__": [elemento]}, "")
+            self.assertIn(
+                ("Imported Film", percorso, None, "Video", "__importati__"),
+                window.sessione.canali)
+            self.assertEqual(window.sottotitoli[percorso], "2022")
+            window.close()
+            self.app.processEvents()
 
     def test_main_window_module_imports(self):
         self.assertTrue(MainWindow)
