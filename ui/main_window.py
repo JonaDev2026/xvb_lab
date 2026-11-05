@@ -276,6 +276,8 @@ class MainWindow(QMainWindow):
         self.ripeti = self.sessione.config.get("ripeti", "")
         self.velocita = 1
         self.shuffle_attivo = bool(self.sessione.config.get("shuffle"))
+        self._ordine_vero = None
+        self._ordine_shuffle = None
         self.setStyleSheet(
             (
                 "QMainWindow,QWidget{background:%s;color:%s}"
@@ -1902,6 +1904,9 @@ class MainWindow(QMainWindow):
                                          and voce[4] not in ("__favorite__", "__favorite_music__", "__favorite_video__")))
                                  and (categoria is None or voce[3] == categoria)
                                  and (not ricerca or ricerca.casefold() in (voce[0] + " " + self.sottotitoli.get(voce[1], "") + " " + voce[1]).casefold())]
+        if self.shuffle_attivo and self._ordine_shuffle:
+            ordine = {percorso: i for i, percorso in enumerate(self._ordine_shuffle)}
+            self._canali_visibili.sort(key=lambda voce: ordine.get(voce[1], len(ordine)))
         for i, voce in enumerate(self._canali_visibili):
             nome, url, ide, gruppo, _lista = voce
             sotto = self.sottotitoli.get(url) or gruppo
@@ -2768,16 +2773,26 @@ class MainWindow(QMainWindow):
             return
         if self._indice_canale < 0:
             self._indice_canale = 0
-        if self.shuffle_attivo and len(self._canali_visibili) > 1:
-            candidati = [i for i in range(len(self._canali_visibili)) if i != self._indice_canale]
-            self._indice_canale = random.choice(candidati)
         else:
             self._indice_canale = (self._indice_canale + direzione) % len(self._canali_visibili)
         voce = self._canali_visibili[self._indice_canale]
         self.apri(voce[1], nome=voce[0], ide=voce[2])
 
     def mpris_shuffle(self, attivo):
-        self.shuffle_attivo = bool(attivo)
+        attivo = bool(attivo)
+        if attivo == self.shuffle_attivo:
+            return
+        self.shuffle_attivo = attivo
+        self._ordine_shuffle = None
+        if attivo and self._canali_visibili and all(os.path.isabs(v[1]) for v in self._canali_visibili):
+            self._ordine_vero = list(self._canali_visibili)
+            mischiati = list(self._canali_visibili)
+            random.shuffle(mischiati)
+            in_onda = [v for v in mischiati if v[1] == self.file_in_onda]
+            mischiati = in_onda + [v for v in mischiati if v[1] != self.file_in_onda]
+            self._ordine_shuffle = [v[1] for v in mischiati]
+        elif not attivo:
+            self._ordine_vero = None
         if hasattr(self, "shuffle_button"):
             self.shuffle_button.setChecked(self.shuffle_attivo)
             self.shuffle_button.setToolTip(_("Shuffle on") if self.shuffle_attivo else _("Shuffle"))
@@ -2785,8 +2800,9 @@ class MainWindow(QMainWindow):
             self.azione_shuffle.setChecked(self.shuffle_attivo)
         self.sessione.config["shuffle"] = self.shuffle_attivo
         scrivi_config(self.sessione.config)
+        if hasattr(self, "elenco"):
+            self._riempi_elenco()
         self._aggiorna_mpris()
-
 
     def _aggiorna_azioni_ripeti(self):
         for chiave, azione in getattr(self, "azioni_ripeti", {}).items():
