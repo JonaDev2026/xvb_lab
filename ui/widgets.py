@@ -555,7 +555,9 @@ class Guida(QDialog):
                 self.righe.append((nome, url, ide, prog))
         self.nomi.clear()
         for nome, url, ide, prog in self.righe:
-            self.nomi.addItem(nome)
+            voce = QListWidgetItem(nome)
+            voce.setSizeHint(QSize(self.NOMI, self.RIGA))
+            self.nomi.addItem(voce)
         self.tela.setMinimumSize(6 * self.ORA, max(1, len(self.righe)) * self.RIGA + 20)
         self.testa.setMinimumSize(6 * self.ORA, self.TESTA)
 
