@@ -134,6 +134,8 @@ class MpvVideo(QOpenGLWidget):
         lib.mpv_free.argtypes = [ctypes.c_void_p]
         lib.mpv_wait_event.argtypes = [ctypes.c_void_p, ctypes.c_double]
         lib.mpv_wait_event.restype = ctypes.c_void_p
+        lib.mpv_request_event.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int]
+        lib.mpv_request_event.restype = ctypes.c_int
         lib.mpv_render_context_create.argtypes = [
             ctypes.POINTER(ctypes.c_void_p), ctypes.c_void_p,
             ctypes.POINTER(MpvVideo.RenderParam)]
@@ -187,6 +189,15 @@ class MpvVideo(QOpenGLWidget):
         if rc < 0:
             self.chiudi()
             raise MpvError("Inizializzazione libmpv fallita: %d" % rc)
+        for evento in (
+            self.MPV_EVENT_SHUTDOWN, self.MPV_EVENT_START_FILE,
+            self.MPV_EVENT_END_FILE, self.MPV_EVENT_FILE_LOADED,
+            self.MPV_EVENT_PLAYBACK_RESTART,
+        ):
+            esito = self._lib.mpv_request_event(self._mpv, evento, 1)
+            if esito < 0:
+                self.chiudi()
+                raise MpvError("Impossibile attivare evento mpv %d: %d" % (evento, esito))
         self._lib.mpv_set_property_string(self._mpv, b"window-dragging", b"no")
         self._lib.mpv_set_property_string(self._mpv, b"audio-display", b"embedded-first")
 
