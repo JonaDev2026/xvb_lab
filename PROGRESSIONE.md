@@ -299,3 +299,10 @@ Commit: `aebfa92`. Nessun test runtime eseguito.
 - La preparazione dei metadati/tag avviene ancora dopo la scansione e resta da separare dal thread grafico per librerie molto grandi.
 
 Commit: `b3f2b68`. Nessun test runtime eseguito.
+
+
+- Ottimizzata anche la preparazione dei metadati locali: lettura dei tag audio, fallback dai percorsi, titoli/anni video e sottotitoli Music/Video avvengono ora nei worker di scansione, non nel thread grafico.
+- Il risultato trasferito alla UI contiene già nome, percorso, categoria e sottotitolo; la finestra non ripete la lettura dei tag né la scansione filesystem.
+- La stessa preparazione viene usata sia da Open folder sia dal drag & drop multiplo.
+
+Commit: `c689417`. Nessun test runtime eseguito.
