@@ -154,6 +154,21 @@ class QtWidgetTests(unittest.TestCase):
             window.close()
             self.assertFalse(window._timer_mpris.isActive())
             self.app.processEvents()
+    def test_temporary_urls_are_removed_from_config_on_exit(self):
+        with patch("ui.main_window.MpvVideo", side_effect=RuntimeError("libmpv unavailable")):
+            window = MainWindow()
+            temporaneo = "https://example.test/live.m3u8"
+            salvato = "https://example.test/saved.m3u8"
+            window.sessione.config["url_aperti"] = [temporaneo]
+            window.sessione.config["nomi_url"] = {temporaneo: "Temporary", salvato: "Saved"}
+            with patch("ui.main_window.copertina_url", return_value="/tmp/temp-cover.jpg"), \\
+                 patch("ui.main_window.os.remove") as rimuovi:
+                window._via_url_temporanei()
+                rimuovi.assert_called_once_with("/tmp/temp-cover.jpg")
+            self.assertEqual(window.sessione.config["url_aperti"], [])
+            self.assertEqual(window.sessione.config["nomi_url"], {salvato: "Saved"})
+            window.close()
+            self.app.processEvents()
 
 if __name__ == "__main__":
     unittest.main()
