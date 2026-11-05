@@ -585,3 +585,10 @@ Avvicinare l'albero Local alla struttura della Stable 4.4.4, mantenendo la confi
 
 - Codice pubblicato su GitHub.
 - Compilazione e verifica audio locale ancora da eseguire.
+
+
+### 2026-11-05 — Sincronizzazione file importati e navigazione
+
+- L'apertura diretta di un file tramite Media → Open file ora registra il file corrente nella navigazione Local.
+- Previous/Next può quindi operare anche dopo l'apertura diretta di un file importato, se presente nella lista visibile.
+- Modifica pubblicata su GitHub; compilazione e verifica locale ancora da eseguire.
