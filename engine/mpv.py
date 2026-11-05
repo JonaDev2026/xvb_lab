@@ -2,8 +2,19 @@ import ctypes
 import ctypes.util
 from core.constants import UA
 from PySide6.QtCore import Qt, QTimer, Signal
-from PySide6.QtGui import QOpenGLContext
+from PySide6.QtGui import QOpenGLContext, QSurfaceFormat
 from PySide6.QtOpenGLWidgets import QOpenGLWidget
+
+
+class _MpvEvent(ctypes.Structure):
+    _fields_ = [("event_id", ctypes.c_int), ("error", ctypes.c_int),
+                ("reply_userdata", ctypes.c_uint64), ("data", ctypes.c_void_p)]
+
+
+class _MpvEndFile(ctypes.Structure):
+    _fields_ = [("reason", ctypes.c_int), ("error", ctypes.c_int),
+                ("playlist_entry_id", ctypes.c_int64),
+                ("playlist_insert_id", ctypes.c_int64)]
 
 
 class MpvError(RuntimeError):
@@ -21,6 +32,12 @@ class MpvVideo(QOpenGLWidget):
     MPV_RENDER_PARAM_FLIP_Y = 4
     MPV_RENDER_PARAM_BLOCK_FOR_TARGET_TIME = 5
     MPV_RENDER_UPDATE_FRAME = 1
+    MPV_EVENT_NONE = 0
+    MPV_EVENT_SHUTDOWN = 1
+    MPV_EVENT_START_FILE = 6
+    MPV_EVENT_END_FILE = 7
+    MPV_EVENT_FILE_LOADED = 8
+    MPV_EVENT_PLAYBACK_RESTART = 21
 
     class RenderParam(ctypes.Structure):
         _fields_ = [("type", ctypes.c_int), ("data", ctypes.c_void_p)]
@@ -41,6 +58,11 @@ class MpvVideo(QOpenGLWidget):
 
     def __init__(self, parent=None, options=None):
         super().__init__(parent)
+        formato = QSurfaceFormat()
+        formato.setRenderableType(QSurfaceFormat.OpenGL)
+        formato.setVersion(3, 2)
+        formato.setProfile(QSurfaceFormat.CoreProfile)
+        self.setFormat(formato)
         self.setUpdateBehavior(QOpenGLWidget.NoPartialUpdate)
         self.setFocusPolicy(Qt.StrongFocus)
         self._lib = self._carica_lib()
@@ -165,7 +187,7 @@ class MpvVideo(QOpenGLWidget):
         fbo = self.OpenGLFBO(
             int(self.defaultFramebufferObject()),
             int(self.width() * self.devicePixelRatioF()),
-            int(self.height() * self.devicePixelRatioF()), 0)
+            int(self.height() * self.devicePixelRatioF()), 0x8058)
         flip = ctypes.c_int(1)
         params = (self.RenderParam * 3)(
             self.RenderParam(self.MPV_RENDER_PARAM_OPENGL_FBO,
@@ -230,10 +252,19 @@ class MpvVideo(QOpenGLWidget):
         if not self._mpv:
             return
         for _ in range(32):
-            evento = self._lib.mpv_wait_event(self._mpv, 0.0)
-            if not evento:
+            puntatore = self._lib.mpv_wait_event(self._mpv, 0.0)
+            if not puntatore:
                 break
-
+            evento = ctypes.cast(puntatore, ctypes.POINTER(_MpvEvent)).contents
+            if evento.event_id == self.MPV_EVENT_NONE:
+                break
+            dati = {"id": evento.event_id, "errore": evento.error,
+                    "userdata": evento.reply_userdata}
+            if evento.event_id == self.MPV_EVENT_END_FILE and evento.data:
+                fine = ctypes.cast(evento.data, ctypes.POINTER(_MpvEndFile)).contents
+                dati["motivo"] = fine.reason
+                dati["errore_file"] = fine.error
+            self.evento.emit(dati)
 
 
     @property
