@@ -215,6 +215,39 @@ class QtWidgetTests(unittest.TestCase):
             window.close()
             self.app.processEvents()
 
+    def test_epg_sidebar_context_menu_restores_rename_and_remove(self):
+        with patch("ui.main_window.MpvVideo", side_effect=RuntimeError("libmpv unavailable")):
+            window = MainWindow()
+            url = "https://example.test/guide.xml"
+            window.sessione.config["epg"] = [url]
+            window._riempi_liste()
+            item = window.el_liste.item_by_id("epg:0")
+            viste = []
+            with patch.object(window.el_liste, "itemAt", return_value=item), \
+                    patch.object(QMenu, "exec", autospec=True,
+                                 side_effect=lambda menu, _pos: viste.extend(
+                                     action.text() for action in menu.actions())):
+                window._menu_liste(QPoint(2, 2))
+            self.assertIn("Rename...", viste)
+            self.assertIn("Remove guide", viste)
+            window.close()
+            self.app.processEvents()
+
+    def test_epg_rename_is_persisted_and_reflected_in_sidebar(self):
+        with patch("ui.main_window.MpvVideo", side_effect=RuntimeError("libmpv unavailable")):
+            window = MainWindow()
+            url = "https://example.test/renamed-guide.xml"
+            window.sessione.config["epg"] = [url]
+            with patch.object(window, "_chiedi_testo", return_value="My Guide"), \
+                    patch("ui.main_window.scrivi_config"), \
+                    patch.object(window, "_riempi_liste") as refill:
+                window.rinomina_guida(url)
+            self.assertEqual(window.sessione.config["epg_nomi_utente"][url], "My Guide")
+            self.assertEqual(window.nome_guida(url), "My Guide")
+            refill.assert_called_once()
+            window.close()
+            self.app.processEvents()
+
     def test_main_window_module_imports(self):
         self.assertTrue(MainWindow)
 
