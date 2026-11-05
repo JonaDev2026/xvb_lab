@@ -1556,10 +1556,8 @@ class MainWindow(QMainWindow):
         if self._thread_epg.isRunning():
             self._epg_rifare = True
             return
-        self.sessione.epg = {}
-        self.sessione.epg_nomi = {}
         self._epg_sessione = self.sessione
-        self._thread_epg = _CaricaGuide(self._epg_sessione)
+        self._thread_epg = _CaricaGuide(self._epg_sessione, silenzioso)
         self._thread_epg.completato.connect(self._epg_pronto)
         self._thread_epg.errore.connect(self._epg_errore)
         self._thread_epg.start()
