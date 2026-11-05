@@ -46,3 +46,22 @@ def font_desktop_sistema():
     except Exception:
         pass
     return None, "normal", "normal"
+
+QUI = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_FONT_DIR = os.path.join(QUI, "fonts")
+_FONT_STATIC_DIR = os.path.join(_FONT_DIR, "static")
+CARATTERE = None
+STILE_CARATTERE = "normal"
+NOME_PX = 17
+SOTTO_PX = 15
+
+
+def percorso_google_sans(peso="Regular", corsivo=False):
+    suffisso = "Italic" if corsivo else ""
+    nome = "GoogleSans-" + peso + suffisso + ".ttf"
+    percorso = os.path.join(_FONT_STATIC_DIR, nome)
+    if os.path.isfile(percorso):
+        return percorso
+    nome = "GoogleSans_17pt-" + peso + suffisso + ".ttf"
+    percorso = os.path.join(_FONT_STATIC_DIR, nome)
+    return percorso if os.path.isfile(percorso) else None
