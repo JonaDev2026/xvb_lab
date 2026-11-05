@@ -21,7 +21,8 @@ class QtWidgetTests(unittest.TestCase):
         with patch("ui.main_window.MpvVideo", side_effect=RuntimeError("libmpv unavailable")):
             window = MainWindow()
             self.assertIsNone(window.player)
-            self.assertGreaterEqual(window._layout_principale.indexOf(window.barra), 0)
+            self.assertEqual(window._layout_principale.indexOf(window.avviso), 1)
+            self.assertEqual(window._layout_principale.indexOf(window.barra), 2)
             window.close()
             self.app.processEvents()
 
@@ -32,6 +33,7 @@ class QtWidgetTests(unittest.TestCase):
             self.assertIs(window.barra.parentWidget(), window.video)
             window._disattiva_overlay()
             self.assertIs(window.barra.parentWidget(), window._centrale)
+            self.assertEqual(window._layout_principale.indexOf(window.barra), 2)
             window.close()
             self.app.processEvents()
 
