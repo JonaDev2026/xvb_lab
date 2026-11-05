@@ -3344,7 +3344,7 @@ class MainWindow(QMainWindow):
             return
         self._fase_hud = (self._fase_hud + 1) % 12
         hud.set_state(timer_testo, rec_testo, self._fase_hud)
-        hud.posiziona(self.split, self.schermo_attivo)
+        hud.posiziona(getattr(self, "split", False), getattr(self, "schermo_attivo", 0))
         if not self._timer_hud.isActive():
             self._timer_hud.start()
 
@@ -4380,6 +4380,7 @@ class MainWindow(QMainWindow):
         self.player2.setParent(None)
         self.player2.deleteLater()
         self.player2 = None
+        self._posiziona_overlay()
 
     def pip_si_no(self):
         if self.pip_window is not None:
