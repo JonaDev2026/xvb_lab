@@ -322,6 +322,9 @@ class MainWindow(QMainWindow):
         self._timer_orologio.timeout.connect(
             lambda: self.orologio.setText(time.strftime("%a %d %b  %H:%M")))
         self._timer_orologio.start(30000)
+        self._timer_info = QTimer(self)
+        self._timer_info.timeout.connect(self.aggiorna_info_canale)
+        self._timer_info.start(30000)
 
         self._pieno = False
         self.player2 = None
@@ -1591,6 +1594,20 @@ class MainWindow(QMainWindow):
         self._aggiorna_azioni_ripeti()
         self._aggiorna_mpris()
 
+
+    def aggiorna_info_canale(self):
+        if self.registrando:
+            self._mostra_rec()
+            return
+        if not self.file_in_onda:
+            return
+        programma = self._programma_corrente()
+        if programma:
+            self.riga_stato.setText("%s  ·  %s" % (self.nome_in_onda, programma[2]))
+        else:
+            self.riga_stato.setText(self.nome_in_onda)
+        self.elenco.viewport().update()
+
     def _programma_corrente(self):
         if not self.ide_in_onda and not self.nome_in_onda:
             return None
@@ -2084,6 +2101,7 @@ class MainWindow(QMainWindow):
         self._timer_player.stop()
         self._timer_rec.stop()
         self._timer_dischi.stop()
+        self._timer_info.stop()
         self._timer_refresh.stop()
         if self._worker_liste and self._worker_liste.isRunning():
             self._worker_liste.wait(35000)
