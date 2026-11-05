@@ -3,7 +3,7 @@ import unittest
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtWidgets import QApplication, QLabel
+from PySide6.QtWidgets import QApplication, QLabel, QVBoxLayout
 from ui.widgets import Ricerca, Cursore, Elenco, Finestrella, Tendina, Guida
 from ui.main_window import MainWindow
 
@@ -42,7 +42,10 @@ class QtWidgetTests(unittest.TestCase):
         self.assertFalse(widget.exists(iid))
 
     def test_dialog_and_popup_construction(self):
-        dialog = Finestrella(None, "Title", lambda parent: parent.layout().addWidget(QLabel("Body")))
+        def corpo(parent):
+            layout = QVBoxLayout(parent)
+            layout.addWidget(QLabel("Body"))
+        dialog = Finestrella(None, "Title", corpo)
         self.assertEqual(dialog.windowTitle(), "Title")
         popup = Tendina(None)
         self.assertFalse(popup.aperta())
