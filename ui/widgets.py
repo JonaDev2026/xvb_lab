@@ -556,6 +556,8 @@ class Guida(QDialog):
         self.nomi.clear()
         for nome, url, ide, prog in self.righe:
             self.nomi.addItem(nome)
+        self.tela.setMinimumSize(6 * self.ORA, max(1, len(self.righe)) * self.RIGA + 20)
+        self.testa.setMinimumSize(6 * self.ORA, self.TESTA)
 
     def x_di(self, t):
         return (t - self.da) / 3600.0 * self.ORA
