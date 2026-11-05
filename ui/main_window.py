@@ -113,6 +113,8 @@ class MainWindow(QMainWindow):
         self.config.setdefault("folders", [])
         self.config.setdefault("imported", [])
         self.config.setdefault("recent", [])
+        self.config.setdefault("volume", 100)
+        self.config.setdefault("muted", False)
         self._scan_threads = []
         self._metadata_threads = []
         self._media_tree_items = {}
@@ -210,6 +212,8 @@ class MainWindow(QMainWindow):
         self._clock.timeout.connect(self._update_clock)
         self._clock.start(1000)
         self._update_clock()
+        self.engine.command("set_property", "volume", str(self.volume_slider.value()))
+        self.engine.command("set_property", "mute", "yes" if self.config.get("muted", False) else "no")
 
     def _icon(self, name):
         path = self.icons_dir / f"{name}.png"
@@ -457,11 +461,13 @@ class MainWindow(QMainWindow):
         controls.addWidget(self._tool_button("setting", "Quality", enabled=False))
         self.volume_slider = QSlider(Qt.Orientation.Horizontal)
         self.volume_slider.setRange(0, 100)
-        self.volume_slider.setValue(100)
+        self.volume_slider.setValue(max(0, min(100, int(self.config.get("volume", 100)))))
         self.volume_slider.setFixedWidth(85)
         self.volume_slider.valueChanged.connect(self.set_volume)
+        self.volume_slider.sliderReleased.connect(self._save_volume)
         controls.addWidget(self.volume_slider)
-        self.volume_button = self._tool_button("volume", "Mute", self.toggle_mute)
+        muted = bool(self.config.get("muted", False))
+        self.volume_button = self._tool_button("volume_off" if muted else "volume", "Unmute" if muted else "Mute", self.toggle_mute)
         controls.addWidget(self.volume_button)
         outer.addWidget(self.control_bar)
 
@@ -1003,8 +1009,17 @@ class MainWindow(QMainWindow):
     def set_volume(self, value):
         self.engine.command("set_property", "volume", str(value))
 
+    def _save_volume(self):
+        self.config["volume"] = self.volume_slider.value()
+        save_config(self.config)
+
     def toggle_mute(self):
-        self.engine.command("cycle", "mute")
+        muted = not bool(self.config.get("muted", False))
+        self.config["muted"] = muted
+        self.engine.command("set_property", "mute", "yes" if muted else "no")
+        self.volume_button.setIcon(self._icon("volume_off" if muted else "volume"))
+        self.volume_button.setToolTip("Unmute" if muted else "Mute")
+        save_config(self.config)
 
     def toggle_fullscreen(self):
         self.showNormal() if self.isFullScreen() else self.showFullScreen()
