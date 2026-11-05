@@ -3226,6 +3226,9 @@ class MainWindow(QMainWindow):
             self._aggiorna_mpris()
 
     def ferma(self):
+        self.annulla_timer_spegnimento(silenzioso=True)
+        if self.registrando:
+            self.ferma_registrazione()
         player = self._attivo()
         if player:
             player.ferma()
