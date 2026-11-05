@@ -259,3 +259,5 @@ Non eseguiti test grafici o prove di rendering. La dissolvenza originale dello s
 - La sfumatura colorata del canale viene mantenuta anche nella barra sovrapposta semitrasparente.
 
 - Aggiornato il test Qt della finestra principale per verificare la nuova collocazione della barra in overlay nel layout normale, invece della vecchia barra esterna.
+
+- Allineata la barra overlay alle coordinate originali: altezza 96 px, progress a y=30 e riga comandi da y=38.
