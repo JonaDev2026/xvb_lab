@@ -375,3 +375,16 @@ Commit: `05268c1`.
 - GitHub Actions sul commit `aadc7d6` ha superato compilazione e suite di regressione/Qt.
 
 Commit: `bad83bc`, `f2e96f0`, `7cbc8cc`, `c277eda`, `aadc7d6`.
+
+
+## Ripristino della navigazione delle registrazioni
+
+- I nodi canale/data dell'albero Registrazioni ora aprono l'elenco dei programmi registrati in quella giornata, come nella Stable; le singole registrazioni continuano ad aprirsi direttamente.
+- L'elenco centrale mostra titolo e orario, mantiene la categoria di registrazione e usa il colore del canale registrato.
+- Ripristinata la ricerca asincrona della durata dei file locali con `ffprobe`: quando una riga ha una posizione salvata ma manca la durata, la durata viene calcolata in un worker Qt e la barra di avanzamento viene ridisegnata.
+- Gli stati necessari a lista e worker vengono inizializzati prima del primo aggiornamento grafico, evitando accessi prematuri durante il paint.
+- Completato anche il trasferimento del nome originale contenuto nell'header gzip XMLTV nella configurazione; il nome di fallback della guida ora usa la stessa regola della Stable.
+- Separato il controllo EPG dal timer delle playlist: il timer playlist non forza più un ricaricamento delle guide ogni 30 minuti; il controllo EPG dedicato rispetta la cache di sei ore e il limite di un'ora fra i tentativi.
+- Aggiunti test Qt per la selezione dei gruppi di registrazioni, la richiesta asincrona della durata e l'inizializzazione anticipata degli stati. GitHub Actions sul commit `d05273e` ha superato compilazione e suite di regressione/Qt.
+
+Commit: `e0d9104`, `dbbd49e`, `aae3fb8`, `4e2d5d3`, `e2d1ac8`, `631865e`, `6efe1ce`, `0ad0334`, `a1dff0d`, `a6b62e9`, `ecd4cf9`, `d05273e`.
