@@ -1,4 +1,4 @@
-from PySide6.QtCore import Qt, QUrl, QThread, Signal, QTimer
+from PySide6.QtCore import Qt, QUrl, QThread, Signal, QTimer, QSize
 from PySide6.QtGui import QAction, QKeySequence, QIcon, QDesktopServices, QPixmap
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QFrame, QVBoxLayout, QHBoxLayout, QLabel, QDialog,
@@ -182,26 +182,60 @@ class MainWindow(QMainWindow):
         comandi = QVBoxLayout(self.barra)
         comandi.setContentsMargins(12, 5, 12, 5)
         comandi.setSpacing(5)
-        controlli = QHBoxLayout()
-        self.stop_button = QPushButton("■", self.barra)
-        self.precedente_button = QPushButton("◀", self.barra)
-        self.play_button = QPushButton("▶", self.barra)
-        self.successivo_button = QPushButton("▶|", self.barra)
-        for b in (self.stop_button, self.precedente_button, self.play_button, self.successivo_button):
-            b.setFixedSize(38, 38)
-            controlli.addWidget(b)
-        controlli.addStretch(1)
-        self.volume = QSlider(Qt.Horizontal, self.barra)
-        self.volume.setRange(0, 100)
-        self.volume.setValue(int(self.sessione.config.get("volume", 100)))
-        self.volume.setFixedWidth(120)
-        controlli.addWidget(QLabel("Volume", self.barra))
-        controlli.addWidget(self.volume)
-        comandi.addLayout(controlli)
+        comandi.addWidget(self.posizione if hasattr(self, "posizione") else QWidget(self.barra)) if False else None
         self.posizione = QSlider(Qt.Horizontal, self.barra)
         self.posizione.setRange(0, 1000)
+        self.posizione.setFixedHeight(10)
+        self.posizione.setStyleSheet(
+            "QSlider::groove:horizontal{height:2px;background:#4a4a4a}"
+            "QSlider::sub-page:horizontal{background:#ffffff}"
+            "QSlider::handle:horizontal{width:0;height:0;border:0}")
+        self.posizione.sliderReleased.connect(self._seek)
         comandi.addWidget(self.posizione)
-        root.addWidget(self.barra)
+
+        controlli = QHBoxLayout()
+        controlli.setSpacing(4)
+        self._pulsanti = {}
+
+        def pulsante(chiave, nome, callback, lato=24, etichetta=None):
+            b = QPushButton(self.barra)
+            percorso = os.path.join("icone", nome + ".png")
+            if os.path.isfile(percorso):
+                b.setIcon(QIcon(percorso))
+                b.setIconSize(QSize(lato, lato))
+                b.setFixedSize(lato + 10, lato + 10)
+            else:
+                b.setText(etichetta or nome)
+                b.setFixedSize(max(34, lato + 10), lato + 10)
+            b.setToolTip(etichetta or nome)
+            b.setCursor(Qt.PointingHandCursor)
+            b.clicked.connect(callback)
+            self._pulsanti[chiave] = b
+            controlli.addWidget(b)
+            return b
+
+        pulsante("precedente", "prima", lambda: self.salta(-1), 34, _("Previous"))
+        pulsante("indietro", "-10", lambda: self.avanza(-10), 24, "-10")
+        self.play_button = pulsante("play", "play", self.pausa, 48, _("Play"))
+        pulsante("stop", "stop", self.ferma, 34, _("Stop"))
+        pulsante("avanti", "+10", lambda: self.avanza(10), 24, "+10")
+        pulsante("successivo", "dopo", lambda: self.salta(1), 34, _("Next"))
+        pulsante("rec", "rec", self.registra, 24, _("Record"))
+        pulsante("repeat", "repeat", self._ciclo_ripeti, 24, _("Repeat"))
+        pulsante("shuffle", "shuffle", lambda: self.mpris_shuffle(not self.shuffle_attivo), 24, _("Shuffle"))
+        controlli.addStretch(1)
+        pulsante("pip", "pip", self.pip_si_no, 24, "PiP")
+        pulsante("split", "setting", self.split_si_no, 24, _("Split screen"))
+        pulsante("sidebar", "playlist", self._sidebar, 24, _("Playlists"))
+        pulsante("fullscreen", "pieno", self.schermo_intero, 24, _("Fullscreen"))
+        pulsante("mute", "volume", self._muto, 24, _("Mute"))
+        self.volume = QSlider(Qt.Horizontal, self.barra)
+        self.volume.setRange(0, 100)
+        self.volume.setValue(int(self.sessione.config.get("volume", 85)))
+        self.volume.setFixedWidth(85)
+        controlli.addWidget(self.volume)
+        comandi.addLayout(controlli)
+
 
         self.riga_stato = QLabel("XVB", centrale)
         self.riga_stato.setFixedHeight(28)
