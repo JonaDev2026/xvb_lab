@@ -133,8 +133,8 @@ class QtWidgetTests(unittest.TestCase):
             viste = []
             with patch.object(window.elenco, "itemAt", return_value=item), \
                     patch.object(window.elenco, "row", return_value=0), \
-                    patch.object(QMenu, "exec", autospec=True,
-                                 side_effect=lambda menu, _pos: viste.extend(
+                    patch.object(QMenu, "exec",
+                                 new=lambda menu, _pos: viste.extend(
                                      action.text() for action in menu.actions())):
                 window._menu_canale(QPoint(2, 2))
             self.assertIn("Rename...", viste)
@@ -154,8 +154,8 @@ class QtWidgetTests(unittest.TestCase):
             viste = []
             with patch.object(window.elenco, "itemAt", return_value=item), \
                     patch.object(window.elenco, "row", return_value=0), \
-                    patch.object(QMenu, "exec", autospec=True,
-                                 side_effect=lambda menu, _pos: viste.extend(
+                    patch.object(QMenu, "exec",
+                                 new=lambda menu, _pos: viste.extend(
                                      action.text() for action in menu.actions())):
                 window._menu_canale(QPoint(2, 2))
             self.assertIn("Set cover...", viste)
@@ -226,8 +226,8 @@ class QtWidgetTests(unittest.TestCase):
             item = window.el_liste.item_by_id("epg:0")
             viste = []
             with patch.object(window.el_liste, "itemAt", return_value=item), \
-                    patch.object(QMenu, "exec", autospec=True,
-                                 side_effect=lambda menu, _pos: viste.extend(
+                    patch.object(QMenu, "exec",
+                                 new=lambda menu, _pos: viste.extend(
                                      action.text() for action in menu.actions())):
                 window._menu_liste(QPoint(2, 2))
             self.assertIn("Rename...", viste)
