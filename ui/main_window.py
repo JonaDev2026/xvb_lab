@@ -1,8 +1,9 @@
 from PySide6.QtCore import Qt, QUrl, QThread, Signal, QTimer, QSize
-from PySide6.QtGui import QAction, QKeySequence, QIcon, QDesktopServices, QPixmap
+from PySide6.QtGui import QAction, QKeySequence, QIcon, QDesktopServices, QPixmap, QShortcut
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QFrame, QVBoxLayout, QHBoxLayout, QLabel, QDialog, QMenu,
-    QPushButton, QFileDialog, QInputDialog, QMessageBox, QSlider, QTreeWidget, QTreeWidgetItem
+    QPushButton, QFileDialog, QInputDialog, QMessageBox, QSlider, QTreeWidget, QTreeWidgetItem,
+    QApplication, QLineEdit, QTextEdit, QPlainTextEdit, QAbstractSpinBox, QComboBox
 )
 from engine.mpv import MpvVideo
 from ui.widgets import Cursore, Elenco, Finestrella, Ricerca, Guida, Tendina
@@ -385,6 +386,52 @@ class MainWindow(QMainWindow):
         self.applica_filtri_audio()
         self._volume(self.volume.value())
         self.aggiorna_periodico()
+        self.elenco.salta = self.salta
+        self.elenco.avanza = self.avanza
+        self._installa_scorciatoie()
+
+
+    def _focus_blocca_tasti(self):
+        focus = QApplication.focusWidget()
+        if isinstance(focus, (QLineEdit, QTextEdit, QPlainTextEdit, QAbstractSpinBox)):
+            return True
+        if isinstance(focus, QComboBox) and focus.isEditable():
+            return True
+        if focus is self.elenco or focus is self.el_liste:
+            return True
+        if focus is not None and (self.elenco.isAncestorOf(focus) or self.el_liste.isAncestorOf(focus)):
+            return True
+        return False
+
+    def _installa_scorciatoie(self):
+        associazioni = (
+            (QKeySequence(Qt.Key_M), self._muto),
+            (QKeySequence(Qt.Key_Plus), lambda: self._regola("audio-delay", 0.1)),
+            (QKeySequence(Qt.Key_Minus), lambda: self._regola("audio-delay", -0.1)),
+            (QKeySequence(Qt.Key_Up), lambda: self.volume.set(self.volume.get() + 5)),
+            (QKeySequence(Qt.Key_Down), lambda: self.volume.set(self.volume.get() - 5)),
+            (QKeySequence(Qt.Key_Left), lambda: self.salta(-1)),
+            (QKeySequence(Qt.Key_Right), lambda: self.salta(1)),
+            (QKeySequence("Shift+Left"), lambda: self.avanza(-10)),
+            (QKeySequence("Shift+Right"), lambda: self.avanza(10)),
+            (QKeySequence(Qt.Key_PageUp), lambda: self.salta(-1)),
+            (QKeySequence(Qt.Key_PageDown), lambda: self.salta(1)),
+            (QKeySequence(Qt.Key_F11), self.schermo_intero),
+            (QKeySequence(Qt.Key_Escape), self._escape),
+        )
+        self._scorciatoie = []
+        for sequenza, callback in associazioni:
+            scorciatoia = QShortcut(sequenza, self)
+            scorciatoia.setContext(Qt.WindowShortcut)
+            scorciatoia.activated.connect(
+                lambda f=callback: None if self._focus_blocca_tasti() else f())
+            self._scorciatoie.append(scorciatoia)
+
+    def _escape(self):
+        if self.pip_window is not None:
+            self.esci_pip()
+        elif self.isFullScreen():
+            self.schermo_intero()
 
 
     def _aggiorna_player(self):
