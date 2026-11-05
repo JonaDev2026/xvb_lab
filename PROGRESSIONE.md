@@ -233,6 +233,7 @@ Sostituire la finestra dimostrativa con la prima struttura grafica ricavata dire
 - Aggiunta la barra notifiche da 42 px, inizialmente nascosta.
 - Mantenuti i colori principali rilevati nel sorgente Stable.
 - Le voci non ancora trasferite sono disabilitate: la presenza grafica di una voce non viene considerata implementazione della relativa funzione.
+- La gerarchia dei menu è stata rifinita per corrispondere alla disposizione originale delle voci e delle intestazioni.
 
 **Verifica**
 
