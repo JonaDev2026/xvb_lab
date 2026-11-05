@@ -136,6 +136,9 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("XVB v" + VERSIONE)
         self.resize(1280, 720)
         self.setMinimumSize(800, 480)
+        self.sessione = Sessione()
+        self.ripeti = self.sessione.config.get("ripeti", "")
+        self.shuffle_attivo = bool(self.sessione.config.get("shuffle"))
         self.setStyleSheet(
             (
                 "QMainWindow,QWidget{background:%s;color:%s}"
@@ -169,9 +172,6 @@ class MainWindow(QMainWindow):
         sx.setContentsMargins(8, 8, 8, 8)
         sx.setSpacing(6)
         self.root = self
-        self.sessione = Sessione()
-        self.ripeti = self.sessione.config.get("ripeti", "")
-        self.shuffle_attivo = bool(self.sessione.config.get("shuffle"))
         self.tag_cache = leggi_tag()
         self.sottotitoli = {}
         self.colori = leggi_colori()
