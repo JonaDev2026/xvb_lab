@@ -629,3 +629,40 @@ Avvicinare l'albero Local alla struttura della Stable 4.4.4, mantenendo la confi
 
 - Codice pubblicato su GitHub.
 - Compilazione e controllo visivo/funzionale sul sistema locale ancora da eseguire.
+
+
+### 2026-11-05 — Ripristino delle metriche grafiche Stable 4.4.4
+
+**Obiettivo**
+
+Allineare le dimensioni fondamentali dell'interfaccia Qt ai valori effettivi della Stable, evitando misure inventate o approssimative.
+
+**File creati o modificati**
+
+- `ui/metrics.py` — costanti centralizzate per dimensioni e misure dell'interfaccia.
+- `ui/main_window.py` — applicazione delle metriche ai pannelli, alle righe elenco, alle barre e allo stato.
+
+**Modifiche**
+
+- Finestra iniziale 1280×720.
+- Pannello sinistro minimo 300 px e destro minimo 220 px.
+- Loghi della lista media 72×56 px e righe da 64 px, come nella Stable (`LOGO_L`, `LOGO_A`, `RIGA_ELENCO`).
+- Righe della sidebar playlist da 32 px, coerenti con `PUNTO + 8` della Stable.
+- Barra comandi 96 px, notifica 42 px e barra di stato 28 px.
+- Testo della barra di stato a 12 px.
+- Le misure sono ora in un modulo UI dedicato e non sparse nella finestra.
+
+**Verifica**
+
+- Modifiche applicate al repository GitHub.
+- Compilazione e resa grafica non ancora verificate sul computer locale.
+
+**Commit**
+
+- `d9ab6a78e01ac261418d76e6b6e552c09bd305e5` — modulo metriche.
+- `3aacf8de0587bedda1d52aaffcc8397f51dce15e` — applicazione metriche.
+
+**Stato e prossimo passaggio**
+
+- Metriche principali allineate ai valori Stable.
+- Restano da trasferire fedelmente struttura, componenti e comportamento dei due alberi e della barra di riproduzione.
