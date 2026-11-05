@@ -518,7 +518,16 @@ class MainWindow(QMainWindow):
         self._finestra_guida.show()
 
     def colore_canale(self, nome, url):
-        return "#a78bfa"
+        if url.startswith(REGISTRAZIONI + os.sep):
+            return colore_di(os.path.basename(os.path.dirname(url)))
+        if os.path.isabs(url):
+            try:
+                posizione = next(i for i, voce in enumerate(self.sessione.canali) if voce[1] == url)
+            except StopIteration:
+                posizione = 0
+            return SCALA_FILE[posizione % len(SCALA_FILE)]
+        return (self.sessione.config.get("colori_canali", {}).get(url)
+                or self.colori.get(url) or colore_di(nome))
 
     def apri_canale_guida(self, nome, url, ide=None):
         self.apri(url)
