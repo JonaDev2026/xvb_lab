@@ -118,12 +118,11 @@ class Elenco(QListWidget):
             self.clear()
             self.voci, self.posto, self.dati, self.scelta = [], {}, {}, None
             return
-        for iid in map(str, iids):
-            if iid not in self.dati:
-                continue
+        validi = [str(iid) for iid in iids if str(iid) in self.dati]
+        for iid in sorted(validi, key=lambda valore: self.posto[valore], reverse=True):
             row = self.posto[iid]
             self.takeItem(row)
-            self.voci.remove(iid)
+            self.voci.pop(row)
             del self.dati[iid]
             if self.scelta == iid:
                 self.scelta = None
