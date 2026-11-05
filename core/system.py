@@ -18,6 +18,8 @@ def font_desktop_sistema():
                 comando, text=True, stderr=subprocess.DEVNULL, timeout=2
             ).strip()
             parti = shlex.split(valore)
+            if len(parti) == 1:
+                parti = parti[0].split()
             if not parti:
                 continue
             if re.fullmatch(r"\d+(?:\.\d+)?", parti[-1]):
