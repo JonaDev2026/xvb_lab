@@ -3001,10 +3001,11 @@ class MainWindow(QMainWindow):
             self.apri_split()
 
     def apri_split(self):
-        if self.player is None or self.pip_window is not None:
+        if self.player is None or self.pip_window is not None or self.isFullScreen():
             return
         try:
             self.player2 = MpvVideo(self.video, options={"mute": "yes"})
+            self.player2.imposta("volume", self.volume.get())
             self.player2.imposta("audio-device", self.sessione.config.get("audio_device", "auto"))
             self.player2.installEventFilter(self)
             self.video_layout.addWidget(self.player2, 1)
