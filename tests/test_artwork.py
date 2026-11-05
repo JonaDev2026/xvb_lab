@@ -20,6 +20,16 @@ class ArtworkTests(unittest.TestCase):
             self.assertIsNotNone(immagine)
             self.assertEqual(immagine.size, (32, 32))
 
+    def test_premultiplied_alpha(self):
+        from PIL import Image
+        image = Image.new("RGBA", (1, 1), (200, 100, 50, 128))
+        result = artwork.premoltiplica(image)
+        r, g, b, a = result.getpixel((0, 0))
+        self.assertEqual(a, 128)
+        self.assertLessEqual(r, 101)
+        self.assertLessEqual(g, 51)
+        self.assertLessEqual(b, 26)
+
     def test_quality_labels_and_colors(self):
         self.assertEqual(artwork.qualita(2160, 0), ("2160p", "#bf5af2"))
         self.assertEqual(artwork.qualita(1080, 0), ("1080p", "#30d158"))
