@@ -824,7 +824,9 @@ class MainWindow(QMainWindow):
         finestra.setWindowTitle(_("Audio equalizer"))
         finestra.setModal(True)
         finestra.setStyleSheet("QDialog{background:#1c1b22;color:#e0e0e0}")
-        col = QHBoxLayout(finestra)
+        layout = QVBoxLayout(finestra)
+        col = QHBoxLayout()
+        layout.addLayout(col)
         slider = []
         for frequenza, valore in zip(("31", "62", "125", "250", "500", "1k", "2k", "4k", "8k", "16k"), originali):
             cella = QVBoxLayout()
@@ -844,8 +846,6 @@ class MainWindow(QMainWindow):
         comandi.addStretch(1)
         comandi.addWidget(cancel)
         comandi.addWidget(ok)
-        layout = QVBoxLayout(finestra)
-        layout.addLayout(col)
         layout.addLayout(comandi)
         flat.clicked.connect(lambda: [s.setValue(0) for s in slider])
         cancel.clicked.connect(finestra.reject)
