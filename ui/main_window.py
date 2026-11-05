@@ -305,8 +305,9 @@ class MainWindow(QMainWindow):
             "canali": [(n, p, i) for n, p, i, _c, _l in nuovi],
             "categorie": {p: "Local" for _n, p, _i, _c, _l in nuovi},
         })
-        self.selettore_lista.addItem(os.path.basename(cartella), cartella)
-        self.selettore_lista.setCurrentIndex(self.selettore_lista.count() - 1)
+        self._riempi_liste()
+        self._percorso_attivo, self._categoria_attiva = cartella, None
+        self._riempi_elenco()
         self.riga_stato.setText("%d media files" % len(nuovi))
 
     def informazioni(self):
