@@ -40,6 +40,21 @@ from urllib.parse import urlparse, quote
 from urllib.request import Request, urlopen
 
 
+class _ScansionaCartella(QThread):
+    completato = Signal(str, object, str)
+
+    def __init__(self, cartella):
+        super().__init__()
+        self.cartella = cartella
+
+    def run(self):
+        try:
+            elementi = media_in(self.cartella)
+            self.completato.emit(self.cartella, elementi, "")
+        except Exception as errore:
+            self.completato.emit(self.cartella, [], str(errore))
+
+
 class _CaricaGuide(QThread):
     completato = Signal()
     errore = Signal(str)
@@ -2061,10 +2076,10 @@ class MainWindow(QMainWindow):
             return None
         return None
 
-    def _media_locale(self, cartella):
+    def _media_locale(self, cartella, elementi=None):
         gia = {voce[1] for voce in self.sessione.canali}
         nuovi = []
-        for nome, percorso, ide in media_in(cartella):
+        for nome, percorso, ide in (media_in(cartella) if elementi is None else elementi):
             if percorso in gia:
                 continue
             estensione = os.path.splitext(percorso)[1][1:].lower()
@@ -2091,9 +2106,29 @@ class MainWindow(QMainWindow):
         cartella = QFileDialog.getExistingDirectory(self, _("Open folder"))
         if not cartella:
             return
-        nuovi = self._media_locale(cartella)
+        workers = self.__dict__.setdefault("_scan_workers", [])
+        if any(w.cartella == cartella and w.isRunning() for w in workers):
+            return
+        self.riga_stato.setText(_("Loading %s...") % os.path.basename(cartella.rstrip(os.sep)))
+        worker = _ScansionaCartella(cartella)
+        worker.completato.connect(self._cartella_scansionata)
+        worker.finished.connect(lambda w=worker: self._rimuovi_worker_scansione(w))
+        workers.append(worker)
+        worker.start()
+
+    def _rimuovi_worker_scansione(self, worker):
+        workers = self.__dict__.setdefault("_scan_workers", [])
+        if worker in workers:
+            workers.remove(worker)
+        worker.deleteLater()
+
+    def _cartella_scansionata(self, cartella, elementi, errore):
+        if errore:
+            self.riga_stato.setText(_("Unable to open folder: %s") % errore)
+            return
+        nuovi = self._media_locale(cartella, elementi)
         if not nuovi:
-            self.riga_stato.setText("No media files found")
+            self.riga_stato.setText(_("No media files found"))
             return
         self.sessione.canali.extend(nuovi)
         cartelle = self.sessione.config.setdefault("cartelle", [])
@@ -2109,7 +2144,7 @@ class MainWindow(QMainWindow):
         self._riempi_liste()
         self._percorso_attivo, self._categoria_attiva = cartella, None
         self._riempi_elenco()
-        self.riga_stato.setText("%d media files" % len(nuovi))
+        self.riga_stato.setText(_("%d media files") % len(nuovi))
 
     def informazioni(self):
         QMessageBox.about(self, "XVB", _("XVB Player 4.4.4"))
@@ -3680,6 +3715,9 @@ class MainWindow(QMainWindow):
         self._timer_volume.stop()
         self._timer_rec.stop()
         self._timer_dischi.stop()
+        for worker in self.__dict__.get("_scan_workers", []):
+            if worker.isRunning():
+                worker.wait(30000)
         self._timer_info.stop()
         if self.registrando:
             self.ferma_registrazione()
