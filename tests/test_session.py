@@ -36,6 +36,19 @@ class SessionTests(unittest.TestCase):
         self.assertEqual(sessione.canali[1][3], "Altri")
         self.assertEqual(NOMI_URL["https://example.test/live.m3u"], "Example Live")
 
+    def test_loads_and_persists_name_embedded_in_gzip_guide(self):
+        sessione = Sessione.__new__(Sessione)
+        sessione.config = {"epg": ["https://example.test/guide.xml.gz"]}
+        sessione.epg = {}
+        sessione.epg_nomi = {}
+        with patch("core.session.prendi_epg", return_value="/tmp/guide-cache"), \\
+             patch("core.session.nome_dentro", return_value="xmltv-original.xml"), \\
+             patch("core.session.leggi_epg", return_value=({"news": "news.id"}, {"news.id": [(1, 2, "News")]})), \\
+             patch("core.session.scrivi_config") as scrivi:
+            sessione.carica_guide()
+        self.assertEqual(sessione.config["epg_nomi"]["https://example.test/guide.xml.gz"], "xmltv-original.xml")
+        self.assertEqual(sessione.epg_nomi, {"news": "news.id"})
+        scrivi.assert_called_once_with(sessione.config)
 
 if __name__ == "__main__":
     unittest.main()
