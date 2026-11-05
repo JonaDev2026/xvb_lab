@@ -126,6 +126,7 @@ from PySide6.QtCore import QTimer, QPoint, QRect, QSize
 from PySide6.QtGui import QFontMetrics, QPixmap, QImage, QIcon, QFont
 from core.epg import nome_piatto
 from core.colors import colore_sfondo_guida
+from i18n import _
 
 SCORRE = object()
 
