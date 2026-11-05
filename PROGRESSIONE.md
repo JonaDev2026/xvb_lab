@@ -440,3 +440,14 @@ Commit: `bb2b853`, `89525ea`, `38480ad`, `d0e3817`, `ea1a835`, `3d4b525`.
 - Aggiunti test per contenuto invariato con timestamp modificato e per contenuto effettivamente cambiato. GitHub Actions sul commit `4bd53e1` ha superato compilazione e suite di regressione/Qt.
 
 Commit: `8182298`, `c1420ed`, `4bd53e1`.
+
+
+## Coerenza dei dati EPG durante i refresh
+
+- Prima di rileggere le guide vengono svuotate le cache globali delle icone programma, evitando che immagini associate a vecchi orari restino visibili.
+- Se l'ultima guida viene rimossa o non resta alcuna guida configurata, nomi e programmi precedenti vengono azzerati.
+- I refresh automatici sono silenziosi: se tutte le sorgenti non sono raggiungibili, l'ultima guida valida resta disponibile; un caricamento manuale senza guide valide azzera invece i dati.
+- La finestra mantiene i dati EPG correnti fino al completamento del nuovo caricamento, evitando una schermata vuota durante il download.
+- Aggiunti test per cache icone obsolete, rimozione dell'ultima guida e refresh silenzioso offline. GitHub Actions sul commit `1fb22e1` ha superato compilazione e suite di regressione/Qt.
+
+Commit: `cb7ca50`, `aee97e1`, `79c21d0`, `15a08b1`, `0f4f605`, `bd31ee5`, `1fb22e1`.
