@@ -1,6 +1,7 @@
 from PySide6.QtCore import Qt, QSize, Signal
 from PySide6.QtGui import QColor, QFont, QPainter, QPen, QPixmap, QImage
 from PySide6.QtWidgets import QListWidget, QListWidgetItem, QStyledItemDelegate, QStyle
+from core.constants import FONDO, PANNELLO, TESTO, GRIGIO, SCELTO, ZEBRA, IN_ONDA, PUNTO
 
 
 _ROLE = Qt.UserRole + 41
@@ -138,15 +139,15 @@ class Elenco(QListWidget):
         self.tinte = set()
         self.tag_configurazioni = {}
         self.corti = {}
-        self.pannello = kw.pop("pannello", "#1c1b22")
-        self.fondo = kw.pop("fondo", "#121212")
-        self.testo = kw.pop("testo", "#e0e0e0")
-        self.grigio = kw.pop("grigio", "#9e9e9e")
-        self.scelto = kw.pop("scelto", "#0071e3")
-        self.zebra = kw.pop("zebra", "#2b2a33")
-        self.onda = kw.pop("onda", "#42414d")
+        self.pannello = kw.pop("pannello", PANNELLO)
+        self.fondo = kw.pop("fondo", FONDO)
+        self.testo = kw.pop("testo", TESTO)
+        self.grigio = kw.pop("grigio", GRIGIO)
+        self.scelto = kw.pop("scelto", SCELTO)
+        self.zebra = kw.pop("zebra", ZEBRA)
+        self.onda = kw.pop("onda", IN_ONDA)
         self.colonna = kw.pop("colonna", 44)
-        self.punto = kw.pop("punto", 12)
+        self.punto = kw.pop("punto", PUNTO)
         self.nome_px = kw.pop("nome_px", 14)
         self.sotto_px = kw.pop("sotto_px", 11)
         self.altezza_riga = kw.pop("altezza_riga", 48)
