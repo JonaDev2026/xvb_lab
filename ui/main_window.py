@@ -231,6 +231,16 @@ class MainWindow(QMainWindow):
             return
         self.sessione.config["buffer"] = chiave
         scrivi_config(self.sessione.config)
+        for player in (self.player, self.player2):
+            if player:
+                for nome, valore in (("demuxer-max-bytes", voce[2] * 1048576),
+                                     ("demuxer-max-back-bytes", voce[3] * 1048576),
+                                     ("demuxer-readahead-secs", voce[4]),
+                                     ("cache-pause-wait", voce[5])):
+                    try:
+                        player.imposta(nome, valore)
+                    except Exception:
+                        pass
         self.riga_stato.setText("Buffer: " + voce[1])
 
     def _azione(self, nome, callback, scorciatoia=None):
