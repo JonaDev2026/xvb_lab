@@ -120,7 +120,7 @@ class Cursore(QWidget):
             p.drawLine(x0, y, round(x), y)
 
 
-from PySide6.QtCore import QTimer, QPoint, QRect
+from PySide6.QtCore import QTimer, QPoint, QRect, QSize
 from PySide6.QtGui import QFontMetrics, QPixmap
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QFrame,
@@ -368,7 +368,7 @@ class Elenco(QListWidget):
         if d.get("image") is not None and hasattr(d["image"], "toImage"):
             item.setIcon(d["image"])
         item.setBackground(QColor("#202025") if self.posto[iid] % 2 else QColor("#1b1b1f"))
-        item.setSizeHint(item.sizeHint().__class__(self.viewport().width(), 58 if sotto else 42))
+        item.setSizeHint(QSize(self.viewport().width(), 58 if sotto else 42))
 
     def delete(self, *iids):
         if not iids:
@@ -413,7 +413,7 @@ class Elenco(QListWidget):
             self.setCurrentItem(item)
             if vedi:
                 self.scrollToItem(item)
-        self.event_generate("<<TreeviewSelect>>")
+        self.treeviewSelect.emit()
 
     def selection_remove(self, iid):
         if self.scelta == str(iid):
