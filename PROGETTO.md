@@ -385,9 +385,9 @@ Questa fase è il blocco tecnico più importante. Non iniziare a trasferire tutt
 - [ ] PiP, split screen, selezione schermo e HUD.
 
 ### Fase 7 — Integrazione desktop e robustezza
-- [ ] MPRIS e tasti multimediali.
-- [ ] Drag & drop e apertura da file manager.
-- [ ] Singola istanza e socket locale.
+- [x] MPRIS e tasti multimediali.
+- [x] Drag & drop e apertura da file manager.
+- [x] Singola istanza e socket locale.
 - [ ] Test di stabilità, prestazioni e recupero errori.
 - [ ] Test X11 e Wayland su sessioni reali.
 
