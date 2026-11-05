@@ -548,6 +548,8 @@ class MainWindow(QMainWindow):
         self.fine_rec = 0.0
         self.piano = None
         self._guida_selezionata = None
+        self._registrazioni_attive = []
+        self.reg_in_uso = None
         self._timer_rec = QTimer(self)
         self._timer_rec.timeout.connect(self.controlla_registrazione)
         self._timer_rec.start(1000)
@@ -1765,6 +1767,8 @@ class MainWindow(QMainWindow):
                 gruppo = self.el_liste.insert(
                     registrazioni_root, "end", iid="registrazioni:%d" % indice,
                     text=" %s · %s" % (canale, data))
+                self.el_liste.item("registrazioni:%d" % indice,
+                                   valore=("__recordings_group__", (canale, giorno)))
                 for j, (ora, titolo, percorso) in enumerate(file_registrati):
                     estensione = os.path.splitext(percorso)[1].lower()
                     icona = "music" if estensione == ".mka" else "player"
@@ -1875,6 +1879,9 @@ class MainWindow(QMainWindow):
             self._guida_selezionata = self._categoria_attiva
             self.riga_stato.setText(self.nome_guida(self._guida_selezionata))
             return
+        if self._percorso_attivo == "__recordings_group__":
+            self.mostra_registrazioni(self._categoria_attiva)
+            return
         if self._percorso_attivo == "__recording__":
             self.apri(self._categoria_attiva, nome=os.path.basename(self._categoria_attiva))
             return
@@ -1892,6 +1899,22 @@ class MainWindow(QMainWindow):
     def _filtra(self, *_):
         self._riempi_elenco()
 
+    def mostra_registrazioni(self, chiave):
+        chiave = tuple(chiave)
+        voci = dict(registrazioni()).get(chiave, [])
+        self.reg_in_uso = chiave
+        self._percorso_attivo = "__recordings__"
+        self._categoria_attiva = None
+        self._registrazioni_attive = [
+            (titolo, percorso, None, ora, "__recordings__")
+            for ora, titolo, percorso in voci
+        ]
+        for ora, _titolo, percorso in voci:
+            self.sottotitoli[percorso] = ora
+        self._riempi_elenco()
+        self.riga_stato.setText(_("%s - %d recordings") % (
+            "%s %s" % chiave, len(voci)))
+
     def _riempi_elenco(self):
         if not hasattr(self, "elenco"):
             return
@@ -1904,6 +1927,8 @@ class MainWindow(QMainWindow):
                     for url in self.url_di(categoria)]
         elif percorso == "__importati__":
             base = [voce for voce in self.sessione.canali if voce[4] == "__importati__"]
+        elif percorso == "__recordings__":
+            base = self._registrazioni_attive
         elif percorso == "__media_folder__":
             cartella = getattr(self, "_cartella_media_attiva", "")
             base = [voce for voce in self.sessione.canali
@@ -1976,6 +2001,8 @@ class MainWindow(QMainWindow):
 
 
     def colore_canale(self, nome, url):
+        if url.startswith(REGISTRAZIONI + os.sep):
+            return colore_di(os.path.basename(os.path.dirname(url)))
         if os.path.isabs(url):
             try:
                 posizione = next(i for i, voce in enumerate(self.sessione.canali) if voce[1] == url)
