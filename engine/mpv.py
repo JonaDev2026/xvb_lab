@@ -94,6 +94,15 @@ class MPVEngine:
             return False
         return bool(value.value)
 
+    def get_double(self, name):
+        if not self._handle:
+            return None
+        value = ctypes.c_double()
+        result = self._lib.mpv_get_property(self._handle, name.encode("utf-8"), 5, ctypes.byref(value))
+        if result < 0:
+            return None
+        return float(value.value)
+
     def close(self):
         if self._handle:
             self._lib.mpv_terminate_destroy(self._handle)
