@@ -27,13 +27,25 @@ def percorso_istanza(nuova_istanza):
         "xvb-lab-%d.sock" % os.getpid())
 
 
+def _errore_avvio(logger, titolo, errore):
+    logger.exception(titolo)
+    QMessageBox.critical(
+        None, "XVB - Errore di avvio",
+        "%s\n\n%s\n\nDettagli: ~/.local/state/xvb/xvb.log" %
+        (titolo, errore))
+
+
 def main():
     configura_logging()
     logger = logging.getLogger("xvb")
     app = QApplication([sys.argv[0]])
     app.setApplicationName("XVB")
     argomenti, nuova_istanza = argomenti_avvio(sys.argv[1:])
-    server = porta_unica(argomenti, percorso_istanza(nuova_istanza))
+    try:
+        server = porta_unica(argomenti, percorso_istanza(nuova_istanza))
+    except Exception as errore:
+        _errore_avvio(logger, "Impossibile inizializzare l'istanza XVB.", errore)
+        return 1
     if server is None:
         logger.info("Richiesta inoltrata a un'istanza XVB già attiva")
         print("XVB è già in esecuzione: richiesta di attivazione inviata.", flush=True)
@@ -41,11 +53,7 @@ def main():
     try:
         finestra = MainWindow()
     except Exception as errore:
-        logger.exception("Errore durante la creazione della finestra principale")
-        QMessageBox.critical(
-            None, "XVB - Errore di avvio",
-            "Impossibile aprire la finestra principale.\n\n%s\n\n"
-            "Dettagli: ~/.local/state/xvb/xvb.log" % errore)
+        _errore_avvio(logger, "Impossibile creare la finestra principale.", errore)
         server.close()
         return 1
     server.files.connect(finestra.apri_da_fuori)
