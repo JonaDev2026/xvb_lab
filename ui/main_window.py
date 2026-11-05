@@ -553,6 +553,8 @@ class MainWindow(QMainWindow):
         audio.addAction(self._azione(_("Subtitles on/off"), lambda: self._ciclo("sub-visibility")))
         audio.addAction(self._azione("Subtitle delay +100 ms", lambda: self._regola("sub-delay", 0.1)))
         audio.addAction(self._azione("Subtitle delay -100 ms", lambda: self._regola("sub-delay", -0.1)))
+        audio.addAction(self._azione(_("Subtitle size +"), lambda: self._regola("sub-scale", 0.1)))
+        audio.addAction(self._azione(_("Subtitle size -"), lambda: self._regola("sub-scale", -0.1)))
         audio.addAction(self._azione("Audio delay +100 ms", lambda: self._regola("audio-delay", 0.1)))
         audio.addAction(self._azione("Audio delay -100 ms", lambda: self._regola("audio-delay", -0.1)))
         audio.addSeparator()
