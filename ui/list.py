@@ -1,9 +1,28 @@
 from PySide6.QtCore import Qt, QSize, Signal
-from PySide6.QtGui import QColor, QFont, QPainter, QPen
+from PySide6.QtGui import QColor, QFont, QPainter, QPen, QPixmap, QImage
 from PySide6.QtWidgets import QListWidget, QListWidgetItem, QStyledItemDelegate, QStyle
 
 
 _ROLE = Qt.UserRole + 41
+
+
+def _pixmap(immagine):
+    if immagine is None:
+        return None
+    if isinstance(immagine, QPixmap):
+        return immagine
+    if isinstance(immagine, QImage):
+        return QPixmap.fromImage(immagine)
+    if hasattr(immagine, "convert") and hasattr(immagine, "size"):
+        try:
+            rgba = immagine.convert("RGBA")
+            dati = rgba.tobytes()
+            image = QImage(dati, rgba.width, rgba.height, rgba.width * 4,
+                           QImage.Format_RGBA8888)
+            return QPixmap.fromImage(image.copy())
+        except Exception:
+            return None
+    return None
 
 
 class _VoceDelegate(QStyledItemDelegate):
@@ -34,7 +53,7 @@ class _VoceDelegate(QStyledItemDelegate):
             try:
                 img, titolo = e.poster_di(d.get("iid"), r.width() - 8, poster_h)
                 if img is not None:
-                    painter.drawPixmap(r.x() + 4, r.y() + 3, img)
+                    painter.drawPixmap(r.x() + 4, r.y() + 3, _pixmap(img))
                 elif titolo:
                     painter.setPen(QColor(e.grigio))
                     painter.drawText(r.adjusted(8, 0, -8, -e.altezza_riga),
@@ -44,8 +63,10 @@ class _VoceDelegate(QStyledItemDelegate):
         logo = d.get("logo") or d.get("image")
         if e.segno == "logo" and logo is not None:
             try:
-                painter.drawPixmap(r.x() + (e.colonna - logo.width()) // 2,
-                                   y + (e.altezza_riga - logo.height()) // 2, logo)
+                pix = _pixmap(logo)
+                if pix is not None:
+                    painter.drawPixmap(r.x() + (e.colonna - pix.width()) // 2,
+                                       y + (e.altezza_riga - pix.height()) // 2, pix)
             except Exception:
                 pass
         nome, _, sotto = (d.get("text") or "").partition("\n")
@@ -54,7 +75,9 @@ class _VoceDelegate(QStyledItemDelegate):
         x = r.x() + (e.colonna if e.segno == "logo" else 8)
         if e.segno == "dot" and d.get("image") is not None:
             try:
-                painter.drawPixmap(r.x() + 4, y + 2, d["image"])
+                pix = _pixmap(d["image"])
+                if pix is not None:
+                    painter.drawPixmap(r.x() + 4, y + 2, pix)
                 x += e.punto + 8
             except Exception:
                 pass
