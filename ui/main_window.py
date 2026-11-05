@@ -137,6 +137,7 @@ class MainWindow(QMainWindow):
         self.resize(1280, 720)
         self.setMinimumSize(800, 480)
         self.sessione = Sessione()
+        self.setWindowFlag(Qt.WindowStaysOnTopHint, bool(self.sessione.config.get("in_cima")))
         self.ripeti = self.sessione.config.get("ripeti", "")
         self.shuffle_attivo = bool(self.sessione.config.get("shuffle"))
         self.setStyleSheet(
@@ -511,6 +512,11 @@ class MainWindow(QMainWindow):
                           sopra=True, chi=pulsante)
 
     def _sidebar(self):
+        if self.isFullScreen():
+            stato = getattr(self, "_sidebar_prima", (True, True))
+            mostra = not all(stato)
+            self._sidebar_prima = (mostra, mostra)
+            return
         mostra = self.sinistra.isHidden() and self.destra.isHidden()
         self.sinistra.setVisible(mostra)
         self.destra.setVisible(mostra)
@@ -2310,6 +2316,99 @@ class MainWindow(QMainWindow):
             self.riga_stato.setText("XVB")
             self._icona_preferito()
             self._aggiorna_mpris()
+
+    def _messaggio_temporaneo(self, testo):
+        self.riga_stato.setText(testo)
+        QTimer.singleShot(2500, self.aggiorna_info_canale)
+
+    def ritardo_audio(self, di):
+        url = self.file_in_onda
+        player = self._attivo()
+        if not url or player is None:
+            return
+        try:
+            valore = round(float(player.leggi("audio-delay") or 0.0) + di, 1)
+            player.imposta("audio-delay", valore)
+        except Exception:
+            return
+        ritardi = self.sessione.config.setdefault("ritardo", {})
+        if abs(valore) < 0.05:
+            ritardi.pop(url, None)
+        else:
+            ritardi[url] = valore
+        scrivi_config(self.sessione.config)
+        self._messaggio_temporaneo(_("audio delay %+.1fs") % valore)
+
+    def azzera_ritardo(self):
+        player = self._attivo()
+        if player is None:
+            return
+        try:
+            valore = float(player.leggi("audio-delay") or 0.0)
+        except (TypeError, ValueError):
+            valore = 0.0
+        if valore:
+            self.ritardo_audio(-valore)
+
+    def ritardo_sottotitoli(self, di):
+        url = self.file_in_onda
+        player = self._attivo()
+        if not url or player is None:
+            self._messaggio_temporaneo(_("nothing is playing"))
+            return
+        try:
+            valore = round(float(player.leggi("sub-delay") or 0.0) + di, 1)
+            player.imposta("sub-delay", valore)
+        except Exception:
+            self._messaggio_temporaneo(_("nothing is playing"))
+            return
+        ritardi = self.sessione.config.setdefault("ritardo_sub", {})
+        if abs(valore) < 0.05:
+            ritardi.pop(url, None)
+        else:
+            ritardi[url] = valore
+        scrivi_config(self.sessione.config)
+        self._messaggio_temporaneo(_("subtitle delay %+.1fs") % valore)
+
+    def scala_sottotitoli(self, di):
+        url = self.file_in_onda
+        player = self._attivo()
+        if not url or player is None:
+            self._messaggio_temporaneo(_("nothing is playing"))
+            return
+        try:
+            valore = min(3.0, max(0.5, round(float(player.leggi("sub-scale") or 1.0) + di, 1)))
+            player.imposta("sub-scale", valore)
+        except Exception:
+            self._messaggio_temporaneo(_("nothing is playing"))
+            return
+        scale = self.sessione.config.setdefault("scala_sub", {})
+        if abs(valore - 1.0) < 0.05:
+            scale.pop(url, None)
+        else:
+            scale[url] = valore
+        scrivi_config(self.sessione.config)
+        self._messaggio_temporaneo(_("subtitle size %d%%") % round(valore * 100))
+
+    def azzera_sottotitoli(self):
+        player = self._attivo()
+        if player is None:
+            return
+        try:
+            player.imposta("sub-delay", 0.0)
+            player.imposta("sub-scale", 1.0)
+        except Exception:
+            pass
+        url = self.file_in_onda
+        if url:
+            self.sessione.config.setdefault("ritardo_sub", {}).pop(url, None)
+            self.sessione.config.setdefault("scala_sub", {}).pop(url, None)
+            scrivi_config(self.sessione.config)
+        self._messaggio_temporaneo(_("subtitle delay %+.1fs") % 0.0)
+
+    def dona(self):
+        if not QDesktopServices.openUrl(QUrl(DONA)):
+            self._messaggio_temporaneo(_("cannot open %s") % DONA)
 
     def _volume(self, valore):
         player = self._attivo()
