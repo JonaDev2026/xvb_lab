@@ -508,3 +508,24 @@ Avvicinare l'albero Local alla struttura della Stable 4.4.4, mantenendo la confi
 - Cache tag: `c2d317c136a546aecbcc87993ff8a5ffce64e657`
 - Visualizzazione: `6264f52113b08f508e10172904a1679cbde5687e`
 - Correzione righe e ricerca: `7e1e492001f5d61f95186bf139f1b11fe57b80c3`
+
+
+### 2026-11-05 — Copertine musicali nella libreria Local
+
+**Modifiche**
+
+- Le copertine incorporate nei file audio vengono estratte tramite Mutagen.
+- Vengono riconosciute anche le immagini `cover`, `folder` e quelle con lo stesso nome del brano.
+- Le immagini vengono memorizzate in `~/.cache/xvb-lab/covers` per evitare estrazioni ripetute.
+- Le copertine vengono caricate nell'interfaccia Qt dopo il completamento del worker, senza creare QPixmap nel thread di scansione.
+- Se non è disponibile una copertina, resta l'icona musicale esistente.
+
+**Verifica**
+
+- Codice pubblicato su GitHub.
+- Compilazione e controllo visivo ancora da eseguire localmente.
+
+**Commit**
+
+- Cache copertine: `ea76d57599796bfb1600a31207709524c77b2d65`
+- Visualizzazione copertine: `f18d862467b29acb3092e5140aff0c947d74bf6e`
