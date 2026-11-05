@@ -1564,8 +1564,20 @@ class MainWindow(QMainWindow):
         self.canali = [(n, u, ide) for n, u, ide, _cat, _lista in self.sessione.canali]
         self.epg = self.sessione.epg
         self.epg_nomi = self.sessione.epg_nomi
-        self._finestra_guida = Guida(self)
-        self._finestra_guida.show()
+        finestra = getattr(self, "_finestra_guida", None)
+        if finestra is not None:
+            try:
+                finestra.showNormal()
+                finestra.raise_()
+                finestra.activateWindow()
+                return
+            except RuntimeError:
+                self._finestra_guida = None
+        finestra = Guida(self)
+        finestra.setAttribute(Qt.WA_DeleteOnClose, True)
+        finestra.destroyed.connect(lambda *_: setattr(self, "_finestra_guida", None))
+        self._finestra_guida = finestra
+        finestra.show()
 
 
     def metti_copertina(self, dove):
