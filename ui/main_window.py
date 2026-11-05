@@ -2,7 +2,7 @@ from PySide6.QtCore import Qt, QUrl, QThread, Signal, QTimer
 from PySide6.QtGui import QAction, QKeySequence, QIcon
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QFrame, QVBoxLayout, QHBoxLayout, QLabel,
-    QPushButton, QFileDialog, QInputDialog, QMessageBox, QSlider, QComboBox
+    QPushButton, QFileDialog, QInputDialog, QMessageBox, QSlider, QTreeWidget, QTreeWidgetItem
 )
 from engine.mpv import MpvVideo
 from ui.widgets import Elenco, Ricerca, Guida
@@ -67,23 +67,14 @@ class MainWindow(QMainWindow):
         self.canali = [(n, u, ide) for n, u, ide, _cat, _lista in self.sessione.canali]
         self.epg = self.sessione.epg
         self.epg_nomi = self.sessione.epg_nomi
-        self.selettore_lista = QComboBox(self.sinistra)
-        self.selettore_lista.addItem("All playlists", None)
-        for lista in self.sessione.liste:
-            self.selettore_lista.addItem(lista["nome"], lista["percorso"])
-        sx.addWidget(self.selettore_lista)
-        self.selettore_categoria = QComboBox(self.sinistra)
-        self.selettore_categoria.addItem("All categories", None)
-        sx.addWidget(self.selettore_categoria)
+        self._percorso_attivo = None
+        self._categoria_attiva = None
         self.cerca = Ricerca(self.sinistra, self._filtra, vuota="Search")
         sx.addWidget(self.cerca)
         self.elenco = Elenco(self.sinistra)
         self.elenco.singolo = self._seleziona_canale
         self.elenco.itemDoubleClicked.connect(self._apri_selezionato)
         sx.addWidget(self.elenco, 1)
-        self.selettore_lista.currentIndexChanged.connect(self._cambia_lista)
-        self.selettore_categoria.currentIndexChanged.connect(self._filtra)
-        self._cambia_lista()
         self._riempi_elenco()
 
         self.video = QWidget(self.contenuto)
@@ -104,10 +95,20 @@ class MainWindow(QMainWindow):
         self.destra.setFixedWidth(220)
         dx = QVBoxLayout(self.destra)
         dx.setContentsMargins(8, 8, 8, 8)
-        self.info_canale = QLabel("XVB", self.destra)
-        self.info_canale.setWordWrap(True)
-        dx.addWidget(self.info_canale)
-        dx.addStretch(1)
+        self.et_liste = QLabel("Playlists", self.destra)
+        self.et_liste.setStyleSheet("color:#9e9e9e")
+        dx.addWidget(self.et_liste)
+        self.el_liste = QTreeWidget(self.destra)
+        self.el_liste.setHeaderHidden(True)
+        self.el_liste.setRootIsDecorated(True)
+        self.el_liste.setIndentation(14)
+        self.el_liste.setStyleSheet(
+            "QTreeWidget{background:#1c1b22;border:0;color:#e0e0e0}"
+            "QTreeWidget::item{height:32px}"
+            "QTreeWidget::item:selected{background:#42414d;color:#e9ddff}")
+        self.el_liste.itemClicked.connect(self._scegli_voce_liste)
+        dx.addWidget(self.el_liste, 1)
+        self._riempi_liste()
 
         riga.addWidget(self.sinistra)
         riga.addWidget(self.video, 1)
@@ -236,14 +237,25 @@ class MainWindow(QMainWindow):
     def apri_canale_guida(self, nome, url, ide=None):
         self.apri(url)
 
-    def _cambia_lista(self, _indice=None):
-        percorso = self.selettore_lista.currentData()
-        self.selettore_categoria.blockSignals(True)
-        self.selettore_categoria.clear()
-        self.selettore_categoria.addItem("All categories", None)
-        for categoria in self.sessione.categorie(percorso):
-            self.selettore_categoria.addItem(categoria, categoria)
-        self.selettore_categoria.blockSignals(False)
+
+    def _riempi_liste(self):
+        self.el_liste.clear()
+        for lista in self.sessione.liste:
+            radice = QTreeWidgetItem([lista["nome"]])
+            radice.setData(0, Qt.UserRole, (lista["percorso"], None))
+            self.el_liste.addTopLevelItem(radice)
+            categorie = sorted(set(lista["categorie"].values()), key=str.casefold)
+            for categoria in categorie:
+                voce = QTreeWidgetItem([categoria])
+                voce.setData(0, Qt.UserRole, (lista["percorso"], categoria))
+                radice.addChild(voce)
+            radice.setExpanded(True)
+
+    def _scegli_voce_liste(self, item, _colonna=0):
+        dati = item.data(0, Qt.UserRole)
+        if not dati:
+            return
+        self._percorso_attivo, self._categoria_attiva = dati
         self._riempi_elenco()
 
     def _filtra(self, *_):
