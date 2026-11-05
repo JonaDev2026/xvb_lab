@@ -293,3 +293,30 @@ Trasferire in XVB Lab il primo flusso reale della sezione Local della Stable 4.4
 
 - Primo flusso della libreria locale scritto, non ancora collaudato.
 - Proseguire trasferendo la gerarchia e le interazioni dell'albero laterale della Stable, poi completare la libreria e le sue funzioni.
+
+
+### 2026-11-05 — Gerarchia della libreria Local
+
+**Obiettivo**
+
+Avvicinare l'albero Local alla struttura della Stable 4.4.4, mantenendo la configurazione autonoma di Lab.
+
+**Modifiche**
+
+- Le cartelle importate vengono mostrate con il conteggio dei file audio/video trovati nella scansione.
+- Le sottocartelle immediate che contengono media vengono aggiunte come nodi figli, con conteggio e icona coerente con il contenuto prevalente.
+- La selezione di una sottocartella avvia la scansione della sola sottocartella.
+- La sezione Imported media mostra i singoli file come nodi selezionabili, oltre al nodo complessivo.
+- I percorsi continuano a essere salvati esclusivamente nella configurazione di XVB Lab.
+
+**Verifica**
+
+- Modifica pubblicata su GitHub.
+- Non ancora compilata o provata localmente dopo questo commit.
+- I conteggi e i nodi delle sottocartelle vengono aggiornati quando la cartella principale viene selezionata e completata la scansione.
+- Restano da trasferire le immagini vinile originali, la cache persistente, i metadati, le azioni contestuali e il resto delle interazioni della Stable.
+
+**Commit**
+
+- UI: `ea322f9115d52bbee5a5cfc055dc3b21dc263036`
+- Verifica locale: in attesa del pull e del collaudo sul computer di sviluppo.
