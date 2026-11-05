@@ -3643,7 +3643,7 @@ class MainWindow(QMainWindow):
                 worker.wait(12000)
         if self._artist_worker and self._artist_worker.isRunning():
             self._artist_worker.requestInterruption()
-            self._artist_worker.wait(3000)
+            self._artist_worker.wait(20000)
         self.artwork_artista.salva_cache()
         scrivi_tag(self.tag_cache)
         if self.pip_window is not None:
