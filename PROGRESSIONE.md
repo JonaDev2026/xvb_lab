@@ -507,8 +507,10 @@ Commit: `c868b66`, `9fe7995`, `7493e57`, `94586e1`, `b55c041`.
 - Per i file locali sono disponibili assegnazione/rimozione copertina; le azioni Preferiti già presenti restano disponibili.
 - Il nome personalizzato viene applicato alla lista e alla barra di stato senza sostituire il nome originale usato per identificare il canale e associare l'EPG.
 - Ripristinata anche la rinomina delle guide EPG dal menu contestuale della sidebar; il nome utente viene mostrato nell'albero e resta separato dal nome sorgente.
-- Aggiunti nove test Qt per menu IPTV, menu file locali, persistenza/ripristino del nome, colore manuale, nome mostrato nella barra di stato, rinomina delle guide e gestione delle copertine locali.
+- Aggiunti tredici test Qt per menu IPTV, menu file locali, persistenza/ripristino del nome, colore manuale, nome mostrato nella barra di stato, rinomina delle guide, gestione delle copertine locali e navigazione URL.
 - Commit implementazione: `ef77c63`, `8819662`. Commit test: `1e1ee10`, `6db5b0f`.
 - Ripristinato il percorso copertina della Stable per i media locali: immagine accanto al file con nome base `.jpg`, conversione JPEG e priorità della copertina locale nella lista; le URL continuano a usare la cache dedicata.
 - Aggiunti due test per il percorso locale/remoto e il salvataggio/lettura effettiva della copertina. Commit implementazione: `75fe379`, `8758cfa`. Commit test: `ff42e48`.
+- Ripristinato l'albero URL della Stable: cartelle Podcast, Music, Radio, IP cam, Film, Video e Temporary, con selezione della categoria, apertura diretta, nomi personalizzati e menu contestuale già collegato.
+- Aggiunti due test per la costruzione dell'albero URL e la navigazione tra categorie/indirizzi. Commit implementazione: `ac8321a`. Commit test: `8d737e2`.
 - Verifica CI dei nuovi commit: in attesa; nessuna prova runtime su X11/Wayland è stata eseguita.
