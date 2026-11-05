@@ -18,6 +18,7 @@ from core.playlists import liste_in_cartella, BUFFER, LOGHI, NOMI_URL, CACHE_LIS
 from core.colors import CACHE_LOGHI, leggi_colori, scrivi_colori, colore_di, colore_dal_logo
 from core.constants import SCALA_FILE
 from core.discs import dischi, cd_audio, dvd_cifrato, e_dvd, titolo_da_etichetta
+from core.recordings import registrazioni
 import os
 import re
 import time
@@ -794,6 +795,9 @@ class MainWindow(QMainWindow):
         if not dati:
             return
         self._percorso_attivo, self._categoria_attiva = dati
+        if self._percorso_attivo == "__recording__":
+            self.apri(self._categoria_attiva, nome=os.path.basename(self._categoria_attiva))
+            return
         if self._percorso_attivo == "__dvd__":
             self.apri_dvd(self._categoria_attiva)
             return
