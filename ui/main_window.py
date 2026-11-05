@@ -3165,6 +3165,9 @@ class MainWindow(QMainWindow):
             evento.ignore()
 
     def apri_da_fuori(self, percorsi):
+        self.showNormal()
+        self.raise_()
+        self.activateWindow()
         file_media = []
         cartelle = []
         liste = []
