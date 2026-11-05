@@ -169,10 +169,16 @@ def disco(colore, lato=PUNTO, alta=None, dentro=None):
         return None
     percorso = os.path.join(QUI, "icone", "disco.png")
     if os.path.isfile(percorso):
-        from .image import carica_logo
-        immagine = carica_logo(percorso, lato, alta or lato, dentro)
-        if immagine is not None:
-            return immagine
+        try:
+            immagine = Image.open(percorso).convert("RGBA")
+            larghezza, altezza = lato, alta or lato
+            scala = min((dentro or larghezza) / float(max(1, immagine.width)), (dentro or altezza) / float(max(1, immagine.height)))
+            immagine = immagine.resize((max(1, int(immagine.width * scala)), max(1, int(immagine.height * scala))), Image.Resampling.LANCZOS)
+            riquadro = Image.new("RGBA", (larghezza, altezza), (0, 0, 0, 0))
+            riquadro.alpha_composite(immagine, ((larghezza - immagine.width) // 2, (altezza - immagine.height) // 2))
+            return riquadro
+        except Exception:
+            pass
     scala = 4
     immagine = Image.new("RGBA", (lato * scala, lato * scala), (0, 0, 0, 0))
     disegno = ImageDraw.Draw(immagine)
