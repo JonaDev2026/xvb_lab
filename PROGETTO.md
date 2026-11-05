@@ -426,6 +426,7 @@ XVB Lab potrà essere considerata equivalente alla Stable solo quando:
 - [x] Widget UI suddivisi in moduli: `ui/search.py`, `ui/dialogs.py`, `ui/list.py`, `ui/guide.py`.
 - [x] Albero laterale Qt6 in `ui/sidebar.py`, collegato a playlist M3U/categorie, guide EPG, libreria locale, dischi, registrazioni, preferiti e cartelle URL salvate/temporanee (Podcast, Music, Radio, IP cam, Film, Video).
 - [x] Controlli player, seek, volume, repeat, shuffle, preferiti, fullscreen, PiP e split screen collegati alle funzioni presenti nel controller.
+- [x] HUD video Qt per timer di spegnimento e registrazione, con indicatore REC pulsante e posizionamento sullo schermo attivo in modalità split.
 - [x] Test di regressione presenti in `tests/` e workflow CI configurato.
 - [x] Aggiornamento automatico delle guide EPG ripristinato: controllo ogni 30 minuti, cache remota di sei ore e rilevamento delle modifiche ai file locali, con test CI superati.
 - [x] Refresh EPG silenzioso conserva l'ultima guida valida se le sorgenti sono offline; cache icone e dati vengono azzerati correttamente quando le guide sono rimosse.
@@ -442,7 +443,7 @@ XVB Lab potrà essere considerata equivalente alla Stable solo quando:
 
 - [ ] Confronto puntuale di ogni metodo trasferito con il corpo della Stable, non solo con l'inventario.
 - [ ] Migrazione completa dei metodi rimanenti della classe `TV`.
-- [ ] Parità completa di menu, menu contestuali, barra overlay, HUD, finestre e scorciatoie.
+- [ ] Parità completa di menu, menu contestuali, barra overlay, finestre e scorciatoie.
 - [ ] Verifica di tutti i flussi end-to-end: IPTV, EPG, registrazioni, musica, video, dischi, CD, telecamere e sottotitoli.
 - [ ] Verifica del rendering e della stabilità libmpv in sessioni X11 e Wayland reali.
 - [ ] Esecuzione dei test e collaudo completo.
