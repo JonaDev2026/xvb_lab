@@ -210,6 +210,9 @@ class Tendina(QFrame):
         self.altrove = None
         self.fuori_da = None
         self.aveva_fuoco = False
+        self._watch_timer = QTimer(self)
+        self._watch_timer.setInterval(150)
+        self._watch_timer.timeout.connect(self._sorveglia)
         self.setObjectName("xvbTendina")
         self.setStyleSheet(
             "QFrame#xvbTendina{background:#1c1b22;border:1px solid #51466b}"
@@ -273,7 +276,7 @@ class Tendina(QFrame):
         self.show()
         self.setFocus()
         self.finestra_era = self.root.geometry()
-        self._sorveglia()
+        self._watch_timer.start()
 
     def _riga(self, layout, voce):
         testo, cosa = voce
@@ -293,10 +296,8 @@ class Tendina(QFrame):
         if self.root.geometry() != self.finestra_era:
             self.chiudi()
             return
-        self._watch_timer = QTimer(self)
-        self._watch_timer.setSingleShot(True)
-        self._watch_timer.timeout.connect(self._sorveglia)
-        self._watch_timer.start(150)
+        if not self._watch_timer.isActive():
+            self._watch_timer.start()
 
     def accendi(self, riga, a, b, si):
         riga.setStyleSheet("background:#51466b" if si else "background:#1c1b22")
@@ -311,6 +312,7 @@ class Tendina(QFrame):
     def chiudi(self):
         if not self.isVisible():
             return
+        self._watch_timer.stop()
         f, self.al_chiudere = self.al_chiudere, None
         self.hide()
         self.top = None
