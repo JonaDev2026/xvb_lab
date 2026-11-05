@@ -351,11 +351,12 @@ class MainWindow(QMainWindow):
 
 
     def _aggiorna_player(self):
-        if not self.player:
+        player = self._attivo()
+        if not player:
             return
         try:
-            posizione = self.player.leggi("time-pos")
-            durata = self.player.leggi("duration")
+            posizione = player.leggi("time-pos")
+            durata = player.leggi("duration")
             if posizione and durata and not self.posizione.isSliderDown():
                 totale = float(durata)
                 if totale > 0:
