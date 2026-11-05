@@ -361,8 +361,8 @@ Questa fase è il blocco tecnico più importante. Non iniziare a trasferire tutt
 ### Fase 4 — EPG e registrazioni
 - [ ] Parser XMLTV.
 - [ ] Unione guide e associazione canali.
-- [ ] Finestra guida.
-- [ ] Programmi attuali/successivi.
+- [x] Finestra guida.
+- [x] Programmi attuali/successivi.
 - [ ] Registrazione immediata.
 - [ ] Programmazione e gestione registrazioni.
 
