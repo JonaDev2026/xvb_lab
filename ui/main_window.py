@@ -12,7 +12,7 @@ from core.media import media_in, AUDIO
 from core.tags import leggi_tag, tag_di, scrivi_tag
 from core.metadata import titolo_anno, dal_percorso, copertina_url, copertina_dentro, poster_film
 from integrations.mpris import avvia_mpris
-from core.config import scrivi_config, CARTELLE_LISTE, REGISTRAZIONI, leggi_config
+from core.config import scrivi_config, CARTELLE_LISTE, REGISTRAZIONI, leggi_config, QUI
 from i18n import _, imposta_lingua, LINGUE
 from core.playlists import liste_in_cartella, BUFFER, LOGHI
 from core.colors import CACHE_LOGHI, leggi_colori, scrivi_colori, colore_di, colore_dal_logo
@@ -199,7 +199,7 @@ class MainWindow(QMainWindow):
 
         def pulsante(chiave, nome, callback, lato=24, etichetta=None):
             b = QPushButton(self.barra)
-            percorso = os.path.join("icone", nome + ".png")
+            percorso = os.path.join(QUI, "icone", nome + ".png")
             if os.path.isfile(percorso):
                 b.setIcon(QIcon(percorso))
                 b.setIconSize(QSize(lato, lato))
@@ -672,7 +672,7 @@ class MainWindow(QMainWindow):
             self.el_liste.insert(dischi_root, "end", iid=iid, text=" CD Audio · %d tracks" % tracce)
             self.el_liste.item(iid, valore=("__cd__", dispositivo))
         iptv = self.el_liste.insert("", "end", iid="iptv", text=" IPTV",
-                                    image=QPixmap("icone/tv.png"), open=True)
+                                    image=QPixmap(os.path.join(QUI, "icone", "tv.png")), open=True)
         epg = self.el_liste.insert(iptv, "end", iid="epg",
                                    text=" EPG (%d)" % len(self.sessione.config.get("epg", [])),
                                    open=bool(self.sessione.config.get("epg")))
@@ -690,7 +690,7 @@ class MainWindow(QMainWindow):
             iid = "lista:%d" % indice
             nodo = self.el_liste.insert(
                 padre, "end", iid=iid, text=" " + lista["nome"],
-                image=QPixmap("icone/player.png") if locale_lista else None,
+                image=QPixmap(os.path.join(QUI, "icone", "player.png")) if locale_lista else None,
                 open=locale_lista)
             self.el_liste.item(iid, valore=(lista["percorso"], None))
             categorie = sorted(set(lista["categorie"].values()), key=str.casefold)
@@ -1318,7 +1318,7 @@ class MainWindow(QMainWindow):
             player.ferma()
             self.file_in_onda = None
             self.nome_in_onda = ""
-            self.play_button.setIcon(QIcon(os.path.join("icone", "play.png")))
+            self.play_button.setIcon(QIcon(os.path.join(QUI, "icone", "play.png")))
             self.play_button.setToolTip(_("Play"))
             self.riga_stato.setText("XVB")
             self._aggiorna_mpris()
