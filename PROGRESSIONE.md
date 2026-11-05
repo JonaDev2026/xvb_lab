@@ -350,3 +350,6 @@ Commit: `a11fdc2`. La verifica runtime resta rinviata al pull concordato.
 - La navigazione IPTV resta sequenziale, come nella Stable.
 
 Commit: `b799089`, `39cca51`. Nessun test runtime eseguito.
+
+
+- Corretto il salvataggio della posizione per non interrompere il ciclo player quando la configurazione contiene dati non validi: il ripristino gestisce gli errori senza bloccare gli eventi libmpv.
