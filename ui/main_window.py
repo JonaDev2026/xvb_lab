@@ -273,7 +273,7 @@ class _ScaricaCopertine(QThread):
     avanzamento = Signal(int, int)
     completato = Signal(int, int, object, object)
 
-    def __init__(self, file_, chiave, zitto, info, tag_cache, cartelle=()):
+    def __init__(self, file_, chiave, zitto, info, tag_cache, cartelle=(), importati=()):
         super().__init__()
         self.file = None if file_ is None else list(file_)
         self.chiave = chiave
@@ -281,6 +281,7 @@ class _ScaricaCopertine(QThread):
         self.info = dict(info or {})
         self.tag_cache = tag_cache
         self.cartelle = list(cartelle)
+        self.importati = list(importati)
 
     def run(self):
         if self.file is None:
@@ -290,6 +291,8 @@ class _ScaricaCopertine(QThread):
                     file_.extend(voce[1] for voce in media_in(cartella))
                 except Exception:
                     continue
+            file_.extend(percorso for percorso in self.importati
+                         if os.path.isfile(percorso))
         else:
             file_ = self.file
         fatti = nuove = 0
@@ -1225,7 +1228,8 @@ class MainWindow(QMainWindow):
             return
         worker = _ScaricaCopertine(
             file_, chiave, zitto, self.info, self.tag_cache,
-            self.sessione.config.get("cartelle", []))
+            self.sessione.config.get("cartelle", []),
+            self.sessione.config.get("importati", []))
         worker.avanzamento.connect(self._avanzamento_copertine)
         worker.completato.connect(
             lambda fatti, nuove, info, percorso, w=worker:
