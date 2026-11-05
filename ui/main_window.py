@@ -1354,12 +1354,12 @@ class MainWindow(QMainWindow):
         if not self.file_in_onda or not self.nome_in_onda:
             self.riga_stato.setText("Open the channel to record first")
             return
-        inizio, ok = QInputDialog.getText(self, _("Schedule"), _("Start (HH:MM):"),
-                                          text=time.strftime("%H:%M"))
-        if not ok or not inizio:
+        inizio = self._chiedi_testo(_("Schedule"), _("Start (HH:MM):"),
+                                     time.strftime("%H:%M"))
+        if not inizio:
             return
-        fine, ok = QInputDialog.getText(self, _("Schedule"), _("End (HH:MM):"))
-        if not ok or not fine:
+        fine = self._chiedi_testo(_("Schedule"), _("End (HH:MM):"))
+        if not fine:
             return
         try:
             t0 = self.ora_di(inizio)
@@ -1420,8 +1420,8 @@ class MainWindow(QMainWindow):
             self.apri(percorso)
 
     def apri_url(self):
-        url, ok = QInputDialog.getText(self, _("Open URL"), "URL")
-        if ok and url.strip():
+        url = self._chiedi_testo(_("Open URL"), "URL")
+        if url and url.strip():
             self.apri(url.strip())
 
     def apri(self, percorso, url=None, ide=None, nome=None):
