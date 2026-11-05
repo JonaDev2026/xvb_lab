@@ -887,11 +887,14 @@ class MainWindow(QMainWindow):
         iptv = self.el_liste.insert("", "end", iid="iptv", text=" IPTV",
                                     image=QPixmap(os.path.join(QUI, "icone", "tv.png")), open=True)
         self.el_liste.item(iptv, valore=("__iptv__", None))
+        guide_config = self.sessione.config.get("epg", [])
+        if isinstance(guide_config, str):
+            guide_config = [guide_config] if guide_config else []
         epg = self.el_liste.insert(iptv, "end", iid="epg",
-                                   text=" EPG (%d)" % len(self.sessione.config.get("epg", [])),
-                                   open=bool(self.sessione.config.get("epg")))
+                                   text=" EPG (%d)" % len(guide_config),
+                                   open=bool(guide_config))
         self.el_liste.item(epg, valore=("__epg_folder__", None))
-        for indice, guida in enumerate(self.sessione.config.get("epg", [])):
+        for indice, guida in enumerate(guide_config):
             iid = "epg:%d" % indice
             self.el_liste.insert(epg, "end", iid=iid,
                                  text=" " + os.path.basename(str(guida)))
