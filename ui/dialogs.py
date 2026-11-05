@@ -1,76 +1,75 @@
-from PySide6.QtCore import Qt, QTimer, QPoint
-from PySide6.QtGui import QCursor
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QColor, QPainter, QPen
+from PySide6.QtWidgets import QWidget, QLineEdit
+
+
+from PySide6.QtCore import QTimer, QPoint, QRect, QSize
+from PySide6.QtGui import QFontMetrics, QPixmap, QImage, QIcon, QFont, QCursor, QPolygon
+import time
+from core.epg import nome_piatto
+from core.colors import colore_sfondo_guida
+from i18n import _
+
+SCORRE = object()
+
 from PySide6.QtWidgets import (
-    QDialog, QFrame, QHBoxLayout, QLabel, QLineEdit, QPushButton,
-    QVBoxLayout, QWidget, QScrollArea, QMenu
+    QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QFrame,
+    QScrollArea, QToolButton, QLineEdit, QListWidget, QListWidgetItem,
+    QAbstractItemView, QMenu, QStyledItemDelegate
 )
 
 
 class Finestrella(QDialog):
     def __init__(self, root, titolo, corpo, chiedi=None, valore="",
-                 ok=None, annulla=None, larga=420, domanda=False,
-                 maschera=False, colori=None):
+                 ok=None, annulla=None, larga=420, domanda=False, maschera=False):
         super().__init__(root)
-        c = colori or {}
-        pannello = c.get("pannello", "#1c1b22")
-        cerca = c.get("cerca", "#42414d")
-        testo = c.get("testo", "#e0e0e0")
-        grigio = c.get("grigio", "#9e9e9e")
-        accento = c.get("accento", "#bb86fc")
-        scelto = c.get("scelto", "#0071e3")
         self.setWindowTitle(titolo)
         self.setModal(True)
         self.setWindowFlag(Qt.WindowContextHelpButtonHint, False)
-        self.setFixedWidth(larga)
+        self.setFixedSize(larga, self.sizeHint().height())
         self.risposta = None
-        self._colori = (pannello, cerca, testo, grigio, accento, scelto)
-        self.setStyleSheet("QDialog{background:%s;color:%s}" % (pannello, testo))
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(22, 18, 22, 16)
-        layout.setSpacing(8)
-        contenuto = QWidget(self)
-        corpo(contenuto)
-        layout.addWidget(contenuto)
+        self.setStyleSheet(
+            "QDialog{background:#1c1b22;color:#e0e0e0}"
+            "QLabel{color:#e0e0e0}"
+            "QLineEdit{background:#42414d;color:#e0e0e0;border:1px solid #393943;"
+            "border-radius:5px;padding:7px;selection-background-color:#bb86fc}"
+            "QPushButton{background:#42414d;color:#e0e0e0;border:0;border-radius:5px;padding:7px 16px}"
+            "QPushButton:hover{background:#51466b}"
+            "QPushButton[primary=true]{background:#bb86fc;color:#17131f}"
+        )
+        self.contenuto = QVBoxLayout(self)
+        self.contenuto.setContentsMargins(22, 18, 22, 16)
+        self.contenuto.setSpacing(8)
+        corpo(self)
         self.casella = None
         if chiedi is not None:
             etichetta = QLabel(chiedi, self)
-            etichetta.setStyleSheet("color:%s" % grigio)
-            layout.addWidget(etichetta)
+            etichetta.setStyleSheet("color:#9e9e9e")
+            self.contenuto.addWidget(etichetta)
             self.casella = QLineEdit(self)
             self.casella.setText(valore)
             self.casella.setEchoMode(QLineEdit.Password if maschera else QLineEdit.Normal)
+            self.contenuto.addWidget(self.casella)
             self.casella.selectAll()
-            self.casella.setStyleSheet(
-                "QLineEdit{background:%s;color:%s;border:1px solid %s;padding:7px}" %
-                (cerca, testo, scelto))
-            layout.addWidget(self.casella)
         riga = QHBoxLayout()
         riga.addStretch(1)
-        def bottone(etichetta, callback, primario=False):
-            b = QPushButton(etichetta, self)
-            b.setCursor(Qt.PointingHandCursor)
-            b.setStyleSheet(
-                "QPushButton{background:%s;color:%s;border:0;padding:6px 16px}"
-                "QPushButton:hover{background:%s}" %
-                ((c.get("in_onda", accento) if primario else cerca),
-                 (c.get("testo_onda", "#ffffff") if primario else testo), scelto))
-            b.clicked.connect(callback)
-            riga.addWidget(b)
-            return b
-        bottone(ok or "OK", self.va_bene, True)
         if chiedi is not None or domanda:
-            bottone(annulla or "Cancel", self.lascia)
-        layout.addLayout(riga)
-        self.setMinimumWidth(max(360, larga))
+            b = QPushButton(annulla or "Cancel", self)
+            b.clicked.connect(self.lascia)
+            riga.addWidget(b)
+        b = QPushButton(ok or "OK", self)
+        b.setProperty("primary", True)
+        b.clicked.connect(self.va_bene)
+        riga.addWidget(b)
+        self.contenuto.addLayout(riga)
+        self.setFixedWidth(larga)
         self.adjustSize()
+        if root is not None:
+            self.move(root.frameGeometry().center() - self.rect().center())
         if self.casella:
             self.casella.setFocus()
-        QTimer.singleShot(0, self._centra)
-
-    def _centra(self):
-        parent = self.parentWidget()
-        if parent:
-            self.move(parent.frameGeometry().center() - self.rect().center())
+        else:
+            self.setFocus()
 
     def va_bene(self):
         self.risposta = self.casella.text() if self.casella is not None else True
@@ -80,95 +79,181 @@ class Finestrella(QDialog):
         self.risposta = None
         self.reject()
 
+    def chiudi_dopo(self):
+        self.accept()
 
-class Tendina:
+
+class Tendina(QFrame):
     ALTA = 30
 
-    def __init__(self, root, colori=None):
+    def __init__(self, root):
+        super().__init__(None, Qt.Popup | Qt.FramelessWindowHint)
         self.root = root
-        self.menu = None
+        self.top = None
         self.al_chiudere = None
         self.chi = None
         self.altrove = None
-        self.colori = colori or {}
+        self.fuori_da = None
+        self.aveva_fuoco = False
+        self._watch_timer = QTimer(self)
+        self._watch_timer.setInterval(150)
+        self._watch_timer.timeout.connect(self._sorveglia)
+        self._layout = QVBoxLayout(self)
+        self._layout.setContentsMargins(1, 1, 1, 1)
+        self._layout.setSpacing(0)
+        self.setObjectName("xvbTendina")
+        self.setStyleSheet(
+            "QFrame#xvbTendina{background:#1c1b22;border:1px solid #51466b}"
+            "QPushButton{background:transparent;color:#e0e0e0;text-align:left;"
+            "border:0;padding:5px 12px;min-height:20px}"
+            "QPushButton:hover{background:#51466b;color:white}"
+            "QPushButton:disabled{color:#9e9e9e}"
+        )
 
     def aperta(self):
-        return self.menu is not None
+        return self.isVisible()
 
-    def apri(self, x, y, voci, sopra=False, destra=False,
-             al_chiudere=None, chi=None, altrove=None):
+    def apri(self, x, y, voci, sopra=False, destra=False, al_chiudere=None,
+             chi=None, altrove=None):
         self.chiudi()
         self.al_chiudere, self.chi, self.altrove = al_chiudere, chi, altrove
-        pannello = self.colori.get("pannello", "#1c1b22")
-        testo = self.colori.get("testo", "#e0e0e0")
-        grigio = self.colori.get("grigio", "#9e9e9e")
-        accento = self.colori.get("accento", "#bb86fc")
-        scelto = self.colori.get("scelto", "#0071e3")
-        menu = QMenu(self.root)
-        menu.setStyleSheet(
-            "QMenu{background:%s;color:%s;border:1px solid %s;padding:3px}"
-            "QMenu::item{padding:7px 18px 7px 12px;min-height:16px}"
-            "QMenu::item:selected{background:%s;color:#fff}"
-            "QMenu::item:disabled{color:%s}"
-            "QMenu::separator{height:1px;background:%s;margin:4px 9px}" %
-            (pannello, testo, scelto, scelto, grigio, scelto))
-        def aggiungi(lista):
-            for voce in lista:
-                if voce is None:
-                    menu.addSeparator()
-                elif voce and voce[0] is SCORRE:
-                    _, elementi, righe = voce
-                    sotto = menu.addMenu("")
-                    sotto.setTitle("More")
-                    for elemento in elementi:
-                        if elemento is None:
-                            sotto.addSeparator()
-                        else:
-                            et, azione = elemento
-                            spunta = et.startswith("*  ")
-                            et = et[3:] if et[:3] in ("*  ", "   ") else et
-                            a = sotto.addAction(("✓  " if spunta else "   ") + et)
-                            a.setEnabled(bool(azione))
-                            if azione:
-                                a.triggered.connect(azione)
-                else:
-                    et, azione = voce
-                    spunta = et.startswith("*  ")
-                    et = et[3:] if et[:3] in ("*  ", "   ") else et
-                    a = menu.addAction(("✓  " if spunta else "") + et)
-                    a.setEnabled(bool(azione))
-                    if azione:
-                        a.triggered.connect(azione)
-        aggiungi(voci)
-        menu.aboutToHide.connect(self._chiusa)
-        self.menu = menu
-        menu.ensurePolished()
-        pos = QPoint(x, y)
-        if sopra:
-            pos.setY(y - menu.sizeHint().height())
+        layout = self._layout
+        while layout.count():
+            voce_layout = layout.takeAt(0)
+            widget = voce_layout.widget()
+            if widget is not None:
+                widget.deleteLater()
+            elif voce_layout.layout() is not None:
+                voce_layout.layout().deleteLater()
+        piatte = []
+        for voce in voci:
+            if voce and voce[0] is SCORRE:
+                piatte.extend(voce[1])
+            else:
+                piatte.append(voce)
+        larghezza = max([QFontMetrics(self.font()).horizontalAdvance(
+            v[0][3:] if v[0][:3] in ("*  ", "   ") else v[0]) + 70
+            for v in piatte if v] + [180])
+        for voce in voci:
+            if voce is None:
+                linea = QFrame(self)
+                linea.setFrameShape(QFrame.HLine)
+                linea.setStyleSheet("color:#51466b;margin:4px 10px")
+                layout.addWidget(linea)
+            elif voce[0] is SCORRE:
+                lista, numero = voce[1], voce[2]
+                area = QScrollArea(self)
+                area.setWidgetResizable(True)
+                area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+                area.setMaximumHeight(max(3, numero) * self.ALTA)
+                contenitore = QWidget()
+                col = QVBoxLayout(contenitore)
+                col.setContentsMargins(0, 0, 0, 0)
+                col.setSpacing(0)
+                selezionata = None
+                for indice, elemento in enumerate(lista):
+                    bottone = self._riga(col, elemento)
+                    if elemento and elemento[0].startswith("*  ") and selezionata is None:
+                        selezionata = indice
+                area.setWidget(contenitore)
+                layout.addWidget(area)
+                if selezionata is not None:
+                    QTimer.singleShot(
+                        0, lambda a=area, i=selezionata, n=numero:
+                        a.verticalScrollBar().setValue(
+                            max(0, (i - n // 2) * self.ALTA)))
+            else:
+                self._riga(layout, voce)
+        self.setMinimumWidth(larghezza)
+        self.adjustSize()
+        pos = QPoint(x, y - self.height() if sopra else y)
         if destra:
-            pos.setX(x - menu.sizeHint().width())
-        menu.popup(pos)
+            pos.setX(x - self.width())
+        screen = self.root.screen().availableGeometry()
+        pos.setX(max(screen.left(), min(pos.x(), screen.right() - self.width() + 1)))
+        pos.setY(max(screen.top(), min(pos.y(), screen.bottom() - self.height() + 1)))
+        self.move(pos)
+        self.top = self
+        self.show()
+        self.setFocus()
+        self.finestra_era = self.root.geometry()
+        self._watch_timer.start()
 
-    def _chiusa(self):
-        self.menu = None
-        callback, self.al_chiudere = self.al_chiudere, None
-        self.chi = None
-        if callback:
-            callback()
+    def _riga(self, layout, voce):
+        testo, cosa = voce
+        spunta = testo.startswith("*  ")
+        if testo[:3] in ("*  ", "   "):
+            testo = testo[3:]
+        b = QPushButton(("✓   " if spunta else "    ") + testo, self)
+        b.setFixedHeight(self.ALTA)
+        b.setEnabled(bool(cosa))
+        if cosa:
+            b.clicked.connect(lambda _=False, c=cosa: self.scegli(c))
+        layout.addWidget(b)
+        return b
+
+    def _sorveglia(self):
+        if not self.isVisible():
+            return
+        if self.root.geometry() != self.finestra_era:
+            self.chiudi()
+            return
+        posizione = QCursor.pos()
+        def contiene(widget):
+            if widget is None or not widget.isVisible():
+                return False
+            return widget.frameGeometry().contains(posizione)
+        if contiene(self) or contiene(self.chi):
+            self.fuori_da = None
+        elif self.altrove:
+            try:
+                if self.altrove(posizione.x(), posizione.y(), subito=True):
+                    return
+            except TypeError:
+                if self.altrove(posizione.x(), posizione.y()):
+                    return
+            if self.fuori_da is None:
+                self.fuori_da = time.monotonic()
+            elif time.monotonic() - self.fuori_da > 2.0:
+                self.chiudi()
+                return
+        elif self.fuori_da is None:
+            self.fuori_da = time.monotonic()
+        elif time.monotonic() - self.fuori_da > 2.0:
+            self.chiudi()
+            return
+
+    def accendi(self, riga, a, b, si):
+        riga.setStyleSheet("background:#51466b" if si else "background:#1c1b22")
 
     def scegli(self, cosa):
         self.chiudi()
         QTimer.singleShot(40, cosa)
 
+    def fuori(self, ev=None):
+        self.chiudi()
+
+    def hideEvent(self, evento):
+        if self.top is self:
+            self._watch_timer.stop()
+            self.top = None
+            callback, self.al_chiudere = self.al_chiudere, None
+            self.chiusa = (self.chi, time.time())
+            self.chi = None
+            if callback:
+                QTimer.singleShot(0, callback)
+        super().hideEvent(evento)
+
     def chiudi(self):
-        menu, self.menu = self.menu, None
-        if menu:
-            menu.close()
-            menu.deleteLater()
+        if not self.isVisible():
+            return
+        self._watch_timer.stop()
+        self.top = None
         callback, self.al_chiudere = self.al_chiudere, None
+        self.chiusa = (self.chi, time.time())
+        self.chi = None
+        self.hide()
         if callback:
             callback()
 
 
-SCORRE = object()
