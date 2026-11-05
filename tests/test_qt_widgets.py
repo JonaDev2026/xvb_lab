@@ -141,7 +141,7 @@ class QtWidgetTests(unittest.TestCase):
             window.close()
             self.app.processEvents()
     def test_status_bar_shows_current_and_next_epg_program(self):
-        with patch("ui.main_window.MpvVideo", side_effect=RuntimeError("libmpv unavailable")), \\
+        with patch("ui.main_window.MpvVideo", side_effect=RuntimeError("libmpv unavailable")), \
              patch("ui.main_window.time.time", return_value=150):
             window = MainWindow()
             window.nome_in_onda = "News"
