@@ -46,6 +46,8 @@ class FolderScanWorker(QObject):
                 imported = scan_imported(self.value)
                 batches = (imported[index:index + 30] for index in range(0, len(imported), 30))
             for batch in batches:
+                if QThread.currentThread().isInterruptionRequested():
+                    break
                 items.extend(batch)
                 self.batch_ready.emit(batch, self.source, self.value, self.token)
             self.finished.emit(items, None, self.source, self.value, self.token)
@@ -627,6 +629,8 @@ class MainWindow(QMainWindow):
                 item.setForeground(0, QBrush())
 
     def _scan_source(self, source, value):
+        for previous in self._scan_threads:
+            previous.requestInterruption()
         self._scan_token = getattr(self, "_scan_token", 0) + 1
         token = self._scan_token
         self._active_source = (source, value)
@@ -648,6 +652,8 @@ class MainWindow(QMainWindow):
         thread.start()
 
     def _append_media_batch(self, items, source, value, token):
+        if getattr(self, "_closing", False):
+            return
         if token != getattr(self, "_scan_token", None):
             return
         if getattr(self, "_active_source", None) != (source, value):
@@ -661,6 +667,8 @@ class MainWindow(QMainWindow):
             self.media_tree.addTopLevelItem(item)
 
     def _show_media_items(self, items, error, source, value, token):
+        if getattr(self, "_closing", False):
+            return
         if token != getattr(self, "_scan_token", None):
             return
         if getattr(self, "_active_source", None) != (source, value):
@@ -775,6 +783,18 @@ class MainWindow(QMainWindow):
         self.clock_status.setText(QDateTime.currentDateTime().toString("ddd dd MMM  HH:mm"))
 
     def closeEvent(self, event):
+        self._closing = True
+        for thread in self._scan_threads:
+            thread.requestInterruption()
+        running = [thread for thread in self._scan_threads if thread.isRunning()]
+        for thread in running:
+            thread.wait(1000)
+        running = [thread for thread in self._scan_threads if thread.isRunning()]
+        if running:
+            event.ignore()
+            QTimer.singleShot(100, self.close)
+            return
         self.video.close_render_context()
         self.engine.close()
+        event.accept()
         super().closeEvent(event)
