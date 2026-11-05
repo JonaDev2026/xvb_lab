@@ -129,7 +129,7 @@ class Cursore(QWidget):
 
 
 from PySide6.QtCore import QTimer, QPoint, QRect, QSize
-from PySide6.QtGui import QFontMetrics, QPixmap, QImage, QIcon, QFont, QCursor
+from PySide6.QtGui import QFontMetrics, QPixmap, QImage, QIcon, QFont, QCursor, QPolygon
 import time
 from core.epg import nome_piatto
 from core.colors import colore_sfondo_guida
@@ -726,9 +726,19 @@ class _TestaGuida(QWidget):
         t = self.guida.da
         while t <= self.guida.fino:
             x = self.guida.x_di(t)
+            p.setPen(QPen(QColor("#3a3a3a"), 1))
+            p.drawLine(round(x), self.guida.TESTA - 6, round(x), self.guida.TESTA)
             p.setPen(QColor("#9e9e9e"))
             p.drawText(round(x + 6), 19, time.strftime("%H:%M", time.localtime(t)))
             t += 1800
+        x = round(self.guida.x_di(time.time()))
+        p.setPen(Qt.NoPen)
+        p.setBrush(QColor("#bb86fc"))
+        p.drawPolygon(QPolygon([
+            QPoint(x - 6, self.guida.TESTA - 8),
+            QPoint(x + 6, self.guida.TESTA - 8),
+            QPoint(x, self.guida.TESTA)
+        ]))
 
 
 class _ElencoDelegate(QStyledItemDelegate):
