@@ -13,7 +13,7 @@ from ui.backdrop import Sfondo
 from core.artist_artwork import ArtistArtwork
 from ui.handle import Maniglia
 from core.session import Sessione
-from core.media import media_in, AUDIO, e_media, tipo_preferiti, titolo_url, PREF_IPTV, PREF_MUSICA, PREF_VIDEO
+from core.media import media_in, AUDIO, e_media, tipo_preferiti, titolo_url, PREF_IPTV, PREF_MUSICA, PREF_VIDEO, durata_di
 from core.tags import leggi_tag, tag_di, scrivi_tag
 from core.metadata import titolo_anno, dal_percorso, copertina_url, copertina_dentro, poster_film
 from integrations.mpris import avvia_mpris
@@ -64,6 +64,16 @@ def _prepara_file_cartella(cartella, elementi, tag_cache):
     risultato.sort(key=lambda voce: str(voce[0]).strip().casefold())
     return risultato
 
+
+class _DurataFile(QThread):
+    completato = Signal(str, object)
+
+    def __init__(self, percorso):
+        super().__init__()
+        self.percorso = percorso
+
+    def run(self):
+        self.completato.emit(self.percorso, durata_di(self.percorso))
 
 class _ScansionaCartelle(QThread):
     completato = Signal(object, str)
@@ -550,6 +560,8 @@ class MainWindow(QMainWindow):
         self._guida_selezionata = None
         self._registrazioni_attive = []
         self.reg_in_uso = None
+        self._durate_cercate = set()
+        self._durata_workers = []
         self._timer_rec = QTimer(self)
         self._timer_rec.timeout.connect(self.controlla_registrazione)
         self._timer_rec.start(1000)
@@ -1899,6 +1911,28 @@ class MainWindow(QMainWindow):
     def _filtra(self, *_):
         self._riempi_elenco()
 
+    def cerca_durata(self, percorso):
+        if percorso in self._durate_cercate:
+            return
+        self._durate_cercate.add(percorso)
+        worker = _DurataFile(percorso)
+        worker.completato.connect(self._durata_pronta)
+        worker.finished.connect(lambda w=worker: self._rimuovi_worker_durata(w))
+        self._durata_workers.append(worker)
+        worker.start()
+
+    def _durata_pronta(self, percorso, durata):
+        if not durata:
+            return
+        self.sessione.config.setdefault("durate", {})[percorso] = round(float(durata), 1)
+        scrivi_config(self.sessione.config)
+        self.elenco.ridisegna_colonna()
+
+    def _rimuovi_worker_durata(self, worker):
+        if worker in self._durata_workers:
+            self._durata_workers.remove(worker)
+        worker.deleteLater()
+
     def mostra_registrazioni(self, chiave):
         chiave = tuple(chiave)
         voci = dict(registrazioni()).get(chiave, [])
@@ -2220,6 +2254,8 @@ class MainWindow(QMainWindow):
                 durata = durate.get(url)
                 if posizione is not None and durata:
                     return max(0.0, min(1.0, float(posizione) / float(durata)))
+                if posizione is not None and not durata:
+                    self.cerca_durata(url)
                 return None
             chiave = ide if ide and ide in self.sessione.epg else self.sessione.epg_nomi.get(
                 __import__("core.epg", fromlist=["nome_piatto"]).nome_piatto(nome))
@@ -3923,6 +3959,9 @@ class MainWindow(QMainWindow):
         for worker in self.__dict__.get("_scan_workers", []):
             if worker.isRunning():
                 worker.wait(30000)
+        for worker in list(self._durata_workers):
+            if worker.isRunning():
+                worker.wait(16000)
         self._timer_info.stop()
         if self.registrando:
             self.ferma_registrazione()
