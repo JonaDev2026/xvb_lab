@@ -182,12 +182,12 @@ class QtWidgetTests(unittest.TestCase):
                     stream.write(b"image")
                 scaricati.append(destinazione)
 
-            with patch("ui.main_window.FILE_INFO", info_file), \\
-                 patch("ui.main_window.FILE_PROVATI", tried_file), \\
-                 patch("ui.main_window.TMDB_CHIAVE", "test-key"), \\
+            with patch("ui.main_window.FILE_INFO", info_file), \
+                 patch("ui.main_window.FILE_PROVATI", tried_file), \
+                 patch("ui.main_window.TMDB_CHIAVE", "test-key"), \
                  patch("ui.main_window.info_tmdb", return_value={
-                     "poster": "https://example.test/poster.jpg", "generi": ["18"]}), \\
-                 patch("ui.main_window.generi_tmdb", return_value={"18": "Drama"}), \\
+                     "poster": "https://example.test/poster.jpg", "generi": ["18"]}), \
+                 patch("ui.main_window.generi_tmdb", return_value={"18": "Drama"}), \
                  patch("ui.main_window.scarica_in", side_effect=scarica):
                 worker = _ScaricaCopertine([film], root, False, {}, {}, [])
                 risultati = []
