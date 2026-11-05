@@ -537,3 +537,19 @@ Avvicinare l'albero Local alla struttura della Stable 4.4.4, mantenendo la confi
 - Le immagini personalizzate del singolo brano hanno priorità sulle copertine generiche della cartella.
 - Dopo la modifica, l'icona della traccia viene aggiornata senza una nuova scansione completa.
 - Modifiche scritte su GitHub; compilazione e comportamento grafico non ancora verificati localmente.
+
+
+### 2026-11-05 — Navigazione Previous/Next nella libreria Local
+
+**Modifiche**
+
+- I pulsanti Previous e Next ora navigano tra i file visibili nella lista Local.
+- La navigazione segue l'ordinamento corrente e rispetta il filtro di ricerca.
+- I pulsanti si abilitano o disabilitano in base alla posizione del brano corrente.
+- Il cambio di sorgente azzera il riferimento alla posizione precedente, evitando di navigare nella coda della cartella appena lasciata.
+- La navigazione non modifica i file originali e non attiva ancora la riproduzione automatica a fine traccia.
+
+**Verifica**
+
+- Modifica pubblicata su GitHub.
+- Compilazione e prova locale ancora da eseguire.
