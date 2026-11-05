@@ -250,3 +250,5 @@ Non eseguiti test grafici o prove di rendering. La dissolvenza originale dello s
 - Il completamento di un file locale richiama la sequenza successiva; gli errori di stream fanno avanzare il canale con limite di tentativi, azzerato quando la riproduzione riprende.
 - Ripristinata la gestione specifica dei DVD non riproducibili, senza saltare automaticamente a un altro contenuto.
 - In caso di errore persistente viene mostrato lo sfondo invece di lasciare il riquadro del video in stato nero.
+
+- Ripristinato l'indicatore di buffering animato nella barra di stato: usa l'icona originale `loading.png`, ruotata ogni 50 ms quando libmpv segnala `paused-for-cache`.
