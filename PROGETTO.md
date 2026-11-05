@@ -430,6 +430,7 @@ XVB Lab potrà essere considerata equivalente alla Stable solo quando:
 - [x] Albero Registrazioni collegato alla lista centrale per gruppo canale/data; durata dei file locali calcolata in background per le barre di avanzamento. Test Qt e CI superati.
 - [x] MPRIS aggiornato ogni secondo con metadati locali, programma EPG e copertine/loghi; timer gestito in apertura e chiusura. Test Qt e CI superati.
 - [x] Avvio a istanza singola con inoltro file tramite socket Unix; apertura iniziale di playlist M3U, file e cartelle da riga di comando. Test CI superati.
+- [x] File e playlist inoltrati da istanze successive selezionano/aprono il contenuto e riportano la finestra in primo piano; URL temporanee e copertine vengono ripulite alla chiusura.
 - [x] Corretto l'ordine di inizializzazione dello stato in `MainWindow`; compilazione e suite di test Qt/regressione superate dalla CI sul commit `05268c1`.
 
 ### Lavoro ancora aperto
