@@ -16,6 +16,7 @@ from core.playlists import liste_in_cartella, BUFFER
 import os
 import re
 import time
+import random
 
 
 class _CaricaGuide(QThread):
@@ -169,6 +170,8 @@ class MainWindow(QMainWindow):
         root.addWidget(self.riga_stato)
 
         self.stop_button.clicked.connect(self.ferma)
+        self.precedente_button.clicked.connect(lambda: self.salta(-1))
+        self.successivo_button.clicked.connect(lambda: self.salta(+1))
         self.play_button.clicked.connect(self.pausa)
         self.volume.valueChanged.connect(self._volume)
         self.posizione.sliderReleased.connect(self._seek)
@@ -192,8 +195,8 @@ class MainWindow(QMainWindow):
         self.mpv = self.player
         self._mpris = avvia_mpris(self)
         self._indice_canale = -1
-        self.ripeti = ""
-        self.shuffle_attivo = False
+        self.ripeti = self.sessione.config.get("ripeti", "")
+        self.shuffle_attivo = bool(self.sessione.config.get("shuffle"))
         self._epg_sessione = self.sessione
         self._thread_epg = _CaricaGuide(self._epg_sessione)
         self._thread_epg.completato.connect(self._epg_pronto)
@@ -647,7 +650,11 @@ class MainWindow(QMainWindow):
             return
         if self._indice_canale < 0:
             self._indice_canale = 0
-        self._indice_canale = (self._indice_canale + direzione) % len(self._canali_visibili)
+        if self.shuffle_attivo and len(self._canali_visibili) > 1:
+            candidati = [i for i in range(len(self._canali_visibili)) if i != self._indice_canale]
+            self._indice_canale = random.choice(candidati)
+        else:
+            self._indice_canale = (self._indice_canale + direzione) % len(self._canali_visibili)
         voce = self._canali_visibili[self._indice_canale]
         self.apri(voce[1], nome=voce[0], ide=voce[2])
 
