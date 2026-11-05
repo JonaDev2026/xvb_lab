@@ -427,6 +427,7 @@ XVB Lab potrà essere considerata equivalente alla Stable solo quando:
 - [x] Albero laterale Qt6 in `ui/sidebar.py`, collegato a playlist M3U/categorie, guide EPG, libreria locale, dischi, registrazioni, preferiti e cartelle URL salvate/temporanee (Podcast, Music, Radio, IP cam, Film, Video).
 - [x] Controlli player, seek, volume, repeat, shuffle, preferiti, fullscreen, PiP e split screen collegati alle funzioni presenti nel controller.
 - [x] HUD video Qt per timer di spegnimento e registrazione, con indicatore REC pulsante e posizionamento sullo schermo attivo in modalità split.
+- [x] Interazione diretta sul video: clic sinistro Play/Pause e doppio clic fullscreen, mantenendo il cambio schermo attivo in modalità split.
 - [x] Test di regressione presenti in `tests/` e workflow CI configurato.
 - [x] Aggiornamento automatico delle guide EPG ripristinato: controllo ogni 30 minuti, cache remota di sei ore e rilevamento delle modifiche ai file locali, con test CI superati.
 - [x] Refresh EPG silenzioso conserva l'ultima guida valida se le sorgenti sono offline; cache icone e dati vengono azzerati correttamente quando le guide sono rimosse.
