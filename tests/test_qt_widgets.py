@@ -21,6 +21,9 @@ class QtWidgetTests(unittest.TestCase):
         with patch("ui.main_window.MpvVideo", side_effect=RuntimeError("libmpv unavailable")):
             window = MainWindow()
             self.assertIsNone(window.player)
+            self.assertEqual(window.nome_in_onda, "")
+            self.assertIsNone(window.ide_in_onda)
+            self.assertIsNone(window.file_in_onda)
             self.assertEqual(window._layout_principale.indexOf(window.avviso), 1)
             self.assertIs(window.barra.parentWidget(), window.video)
             self.assertTrue(window._overlay_attivo)
