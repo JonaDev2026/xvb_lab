@@ -1810,11 +1810,17 @@ class MainWindow(QMainWindow):
             player.imposta("audio-files", "[]")
             if percorso.startswith("http://") or percorso.startswith("https://"):
                 ritardi = self.sessione.config.get("ritardo", {})
-                player.imposta("audio-delay", float(ritardi.get(percorso, 0.0)))
-                player.imposta(
-                    "stream-lavf-o",
-                    "" if "jmp2.uk" in percorso else
-                    "reconnect=1,reconnect_streamed=1,reconnect_on_network_error=1,reconnect_delay_max=10")
+                try:
+                    player.imposta("audio-delay", float(ritardi.get(percorso, 0.0)))
+                except Exception:
+                    pass
+                try:
+                    player.imposta(
+                        "stream-lavf-o",
+                        "" if "jmp2.uk" in percorso else
+                        "reconnect=1,reconnect_streamed=1,reconnect_on_network_error=1,reconnect_delay_max=10")
+                except Exception:
+                    pass
                 self.applica_chiave(percorso, player)
                 self._stream_player = player
                 self.riga_stato.setText(_("looking for %s qualities...") % self.nome_in_onda)
@@ -1853,7 +1859,10 @@ class MainWindow(QMainWindow):
         if chiave:
             opzioni += ",cenc_decryption_key=" + chiave
         if player:
-            player.imposta("demuxer-lavf-o", opzioni)
+            try:
+                player.imposta("demuxer-lavf-o", opzioni)
+            except Exception:
+                pass
 
     def _stream_pronto(self, player, url, elenco, errore=""):
         if self.file_in_onda != url:
@@ -1882,7 +1891,10 @@ class MainWindow(QMainWindow):
         if not player or not self.varianti:
             return
         _banda, video, _audio, _altezza, master = self.varianti[indice]
-        player.imposta("audio-files", "[]")
+        try:
+            player.imposta("audio-files", "[]")
+        except Exception:
+            pass
         try:
             os.makedirs(CACHE_VARIANTE, exist_ok=True)
             nome = "variante2.m3u8" if self.split and player is self.player2 else "variante.m3u8"
