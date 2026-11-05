@@ -1,4 +1,5 @@
 import hashlib
+import shutil
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QTimer, QDateTime, QThread, QObject, Signal, QSize
@@ -368,6 +369,8 @@ class MainWindow(QMainWindow):
         self.media_tree.setIconSize(QSize(48, 48))
         self.media_tree.setIndentation(16)
         self.media_tree.setAlternatingRowColors(False)
+        self.media_tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.media_tree.customContextMenuRequested.connect(self.media_context_menu)
         self.media_tree.itemDoubleClicked.connect(self.play_selected_media)
         self.search.textChanged.connect(self.filter_media)
         left_layout.addWidget(self.media_tree, 1)
@@ -804,6 +807,57 @@ class MainWindow(QMainWindow):
             query = self.search.text().casefold().strip()
             item.setHidden(bool(query) and query not in item.text(0).casefold())
         self.media_tree.sortItems(0, Qt.SortOrder.AscendingOrder)
+
+    def media_context_menu(self, position):
+        item = self.media_tree.itemAt(position)
+        if item is None:
+            return
+        path = item.data(0, Qt.ItemDataRole.UserRole)
+        if not path or not Path(path).is_file():
+            return
+        menu = QMenu(self)
+        set_cover = menu.addAction("Set cover...")
+        cover_files = [Path(path).with_suffix(ext) for ext in (".jpg", ".jpeg", ".png")]
+        existing = next((cover for cover in cover_files if cover.is_file()), None)
+        remove_cover = menu.addAction("Remove cover") if existing else None
+        chosen = menu.exec(self.media_tree.viewport().mapToGlobal(position))
+        if chosen == set_cover:
+            image, _ = QFileDialog.getOpenFileName(
+                self, "Choose cover", str(Path(path).parent),
+                "Images (*.jpg *.jpeg *.png *.webp)"
+            )
+            if image:
+                source = Path(image)
+                destination = Path(path).with_suffix(source.suffix.lower())
+                try:
+                    for cover in cover_files:
+                        if cover != destination and cover.exists():
+                            cover.unlink()
+                    shutil.copyfile(source, destination)
+                    self._refresh_media_cover(path)
+                except OSError as error:
+                    QMessageBox.warning(self, "Cover", str(error))
+        elif remove_cover is not None and chosen == remove_cover:
+            try:
+                existing.unlink()
+                self._refresh_media_cover(path)
+            except OSError as error:
+                QMessageBox.warning(self, "Cover", str(error))
+
+    def _refresh_media_cover(self, path):
+        item = self._media_tree_items.get(path)
+        if item is None:
+            return
+        cover_path = cache_cover_art(path)
+        if cover_path:
+            pixmap = QPixmap(cover_path)
+            if not pixmap.isNull():
+                item.setIcon(0, QIcon(pixmap.scaled(
+                    48, 48, Qt.AspectRatioMode.KeepAspectRatio,
+                    Qt.TransformationMode.SmoothTransformation
+                )))
+        else:
+            item.setIcon(0, self._icon("music"))
 
     def filter_media(self, text):
         query = text.casefold().strip()
