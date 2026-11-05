@@ -569,3 +569,19 @@ Avvicinare l'albero Local alla struttura della Stable 4.4.4, mantenendo la confi
 
 - Modifiche pubblicate su GitHub.
 - Compilazione e prova locale ancora da eseguire.
+
+
+### 2026-11-05 — Volume e mute persistenti
+
+**Modifiche**
+
+- Il volume viene ripristinato dalla configurazione all'avvio.
+- Il valore scelto viene salvato quando si rilascia il cursore, evitando scritture continue durante il trascinamento.
+- Lo stato mute viene ripristinato all'avvio e salvato a ogni cambio.
+- L'icona e il suggerimento del pulsante mute si aggiornano tra Mute e Unmute.
+- Le proprietà vengono applicate direttamente a libmpv.
+
+**Verifica**
+
+- Codice pubblicato su GitHub.
+- Compilazione e verifica audio locale ancora da eseguire.
