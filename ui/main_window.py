@@ -3,7 +3,7 @@ from PySide6.QtGui import QAction, QKeySequence, QIcon, QDesktopServices, QPixma
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QFrame, QVBoxLayout, QHBoxLayout, QLabel, QDialog, QMenu,
     QPushButton, QFileDialog, QInputDialog, QMessageBox, QSlider, QTreeWidget, QTreeWidgetItem,
-    QApplication, QLineEdit, QTextEdit, QPlainTextEdit, QAbstractSpinBox, QComboBox,
+    QApplication, QColorDialog, QLineEdit, QTextEdit, QPlainTextEdit, QAbstractSpinBox, QComboBox,
     QListWidget, QListWidgetItem, QStackedLayout
 )
 from engine.mpv import MpvVideo
@@ -2292,6 +2292,7 @@ class MainWindow(QMainWindow):
                     if voce[4] == cartella or voce[1].startswith(cartella.rstrip(os.sep) + os.sep)]
         else:
             base = self.sessione.canali
+        nomi_personalizzati = self.sessione.config.get("nomi_canali", {})
         self._canali_visibili = [voce for voce in base
                                  if (percorso is None or percorso in ("__media_folder__", "__url__")
                                      or voce[4] == percorso
@@ -2300,7 +2301,9 @@ class MainWindow(QMainWindow):
                                          and not os.path.isdir(voce[4])
                                          and voce[4] not in ("__favorite__", "__favorite_music__", "__favorite_video__")))
                                  and (categoria is None or voce[3] == categoria)
-                                 and (not ricerca or ricerca.casefold() in (voce[0] + " " + self.sottotitoli.get(voce[1], "") + " " + voce[1]).casefold())]
+                                 and (not ricerca or ricerca.casefold() in (
+                                     voce[0] + " " + nomi_personalizzati.get(voce[1], "") + " "
+                                     + self.sottotitoli.get(voce[1], "") + " " + voce[1]).casefold())]
         percorsi_visibili = {voce[1] for voce in self._canali_visibili}
         if self._ordine_shuffle and not percorsi_visibili.intersection(self._ordine_shuffle):
             self._ordine_shuffle = None
@@ -2319,7 +2322,8 @@ class MainWindow(QMainWindow):
         for i, voce in enumerate(self._canali_visibili):
             nome, url, ide, gruppo, _lista = voce
             sotto = self.sottotitoli.get(url) or gruppo
-            self.elenco.insert("", "end", iid=str(i), text=nome + "\n" + sotto,
+            visualizzato = self.nome_canale(nome, url)
+            self.elenco.insert("", "end", iid=str(i), text=visualizzato + "\n" + sotto,
                                colore=self.colore_canale(nome, url), logo=self.logo_di(url),
                                tags=("onda",) if url == self.file_in_onda else ())
 
@@ -2344,7 +2348,7 @@ class MainWindow(QMainWindow):
             return
         voce = self._canali_visibili[int(selezione[0])]
         self._indice_canale = int(selezione[0])
-        self.riga_stato.setText(voce[0])
+        self.riga_stato.setText(self.nome_canale(voce[0], voce[1]))
         self.apri(voce[1], nome=voce[0], ide=voce[2])
 
     def _apri_selezionato(self, _item=None):
@@ -2513,20 +2517,76 @@ class MainWindow(QMainWindow):
         if not 0 <= indice < len(self._canali_visibili):
             return
         voce = self._canali_visibili[indice]
+        nome, url = voce[0], voce[1]
+        if self._percorso_attivo == "__recordings__" or url.startswith(REGISTRAZIONI + os.sep):
+            return
+        if url.startswith("cdda://"):
+            return
         tipo = self._tipo_preferito(voce)
-        if tipo == PREF_IPTV:
-            preferiti = self.sessione.preferiti
-        elif tipo == PREF_MUSICA:
-            preferiti = self.sessione.preferiti_musica
-        else:
-            preferiti = self.sessione.preferiti_video
-        gia = any(v[1] == voce[1] for v in preferiti)
         menu = QMenu(self)
+        if tipo == PREF_IPTV and not os.path.isabs(url) and not url.startswith("dvd://"):
+            menu.addAction(_("Rename..."), lambda: self.rinomina_canale(nome, url))
+            menu.addAction(_("Set logo..."), lambda: self.metti_copertina(url))
+            if os.path.isfile(copertina_url(url)):
+                menu.addAction(_("Remove logo"), lambda: self.togli_copertina(url))
+            menu.addAction(_("Set color..."), lambda: self.scegli_colore(nome, url))
+            if url in self.sessione.config.get("colori_canali", {}):
+                menu.addAction(_("Remove color"), lambda: self.togli_colore(url))
+        elif os.path.isabs(url) or url.startswith("dvd://"):
+            menu.addAction(_("Set cover..."), lambda: self.metti_copertina(url))
+            if os.path.isfile(copertina_url(url)):
+                menu.addAction(_("Remove cover"), lambda: self.togli_copertina(url))
+        if menu.actions():
+            menu.addSeparator()
+        preferiti = leggi_preferiti(tipo)
+        gia = any(v[1] == url for v in preferiti)
         if gia:
-            menu.addAction(_("Remove from favorites"), lambda: self.rimuovi_preferito(voce[1], tipo))
+            menu.addAction(_("Remove from favorites"), lambda: self.rimuovi_preferito(url, tipo))
         else:
             menu.addAction(_("Add to favorites"), lambda: self.aggiungi_preferito(voce, tipo))
         menu.exec(self.elenco.mapToGlobal(posizione))
+
+    def nome_canale(self, nome=None, url=None):
+        url = self.file_in_onda if url is None else url
+        nome = self.nome_in_onda if nome is None else nome
+        if url and not os.path.isabs(url):
+            return self.sessione.config.get("nomi_canali", {}).get(url) or nome
+        return nome
+
+    def rinomina_canale(self, nome, url):
+        nomi = self.sessione.config.setdefault("nomi_canali", {})
+        nuovo, confermato = QInputDialog.getText(
+            self, _("Rename..."), _("Name:"), text=nomi.get(url) or nome)
+        if not confermato:
+            return
+        nuovo = nuovo.strip()
+        if nuovo and nuovo != nome:
+            nomi[url] = nuovo
+        else:
+            nomi.pop(url, None)
+        scrivi_config(self.sessione.config)
+        self._riempi_elenco()
+        if url == self.file_in_onda:
+            self.aggiorna_info_canale()
+
+    def scegli_colore(self, nome, url):
+        colore = QColorDialog.getColor(
+            QColor(self.colore_canale(nome, url)), self, _("Choose a color"))
+        if not colore.isValid():
+            return
+        self.sessione.config.setdefault("colori_canali", {})[url] = colore.name()
+        self.colore_cambiato()
+
+    def togli_colore(self, url):
+        self.sessione.config.get("colori_canali", {}).pop(url, None)
+        self.colore_cambiato()
+
+    def colore_cambiato(self):
+        scrivi_config(self.sessione.config)
+        self._riempi_elenco()
+        finestra = getattr(self, "_finestra_guida", None)
+        if finestra is not None:
+            finestra.ridisegna()
 
     def aggiungi_preferito(self, voce, tipo=None):
         nome, url, ide, categoria, _lista = voce
@@ -3301,13 +3361,13 @@ class MainWindow(QMainWindow):
         programma = self._programma_corrente()
         prossimo = self._programma_successivo()
         if programma:
-            self.riga_stato.setText("%s  ·  %s" % (self.nome_in_onda, programma[2]))
+            self.riga_stato.setText("%s  ·  %s" % (self.nome_canale(), programma[2]))
             self.et_ora_programma.setText(
                 "%s–%s" % (time.strftime("%H:%M", time.localtime(programma[0])),
                            time.strftime("%H:%M", time.localtime(programma[1]))))
             self.et_ora_programma.show()
         else:
-            self.riga_stato.setText(self.nome_in_onda)
+            self.riga_stato.setText(self.nome_canale())
             self.et_ora_programma.hide()
         if prossimo:
             self.et_prossimo.setText(_("Next: %s") % prossimo[2])
