@@ -402,7 +402,7 @@ class Elenco(QListWidget):
         self._aggiorna_item(str(iid), self.item_for(str(iid)))
 
     def item_for(self, iid):
-        return self.item(self.posto[iid])
+        return QListWidget.item(self, self.posto[iid])
 
     def selection(self):
         return (self.scelta,) if self.scelta in self.dati else ()
