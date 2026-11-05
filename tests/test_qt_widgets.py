@@ -140,6 +140,34 @@ class QtWidgetTests(unittest.TestCase):
                 cerca.assert_called_once_with(path)
             window.close()
             self.app.processEvents()
+    def test_playback_menu_restores_track_and_chapter_navigation(self):
+        with patch("ui.main_window.MpvVideo", side_effect=RuntimeError("libmpv unavailable")):
+            window = MainWindow()
+            self.assertFalse(window.azione_capitolo_precedente.isVisible())
+            self.assertFalse(window.azione_capitolo_successivo.isVisible())
+            self.assertFalse(window.menu_capitoli.menuAction().isVisible())
+
+            class Player:
+                def leggi_nodo(self, nome):
+                    return [{"title": "Opening", "time": 0},
+                            {"title": "Main", "time": 60}]
+                def leggi(self, nome):
+                    return 0
+
+            window.player = Player()
+            window._aggiorna_visibilita_capitoli()
+            self.assertTrue(window.azione_capitolo_precedente.isVisible())
+            self.assertTrue(window.azione_capitolo_successivo.isVisible())
+            self.assertTrue(window.menu_capitoli.menuAction().isVisible())
+            window._riempi_menu_capitoli()
+            self.assertEqual(window.menu_capitoli.actions()[0].text(),
+                             "✓  Opening  ·  00:00:00")
+            self.assertEqual(window.menu_capitoli.actions()[1].text(),
+                             "    Main  ·  00:01:00")
+            window.player = None
+            window.close()
+            self.app.processEvents()
+
     def test_status_bar_shows_active_iptv_category_only(self):
         with patch("ui.main_window.MpvVideo", side_effect=RuntimeError("libmpv unavailable")):
             window = MainWindow()
