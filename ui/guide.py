@@ -17,6 +17,11 @@ class _TelaGuida(QWidget):
         self.tipo = tipo
         self.setMouseTracking(True)
 
+    def mousePressEvent(self, evento):
+        if evento.button() == Qt.LeftButton:
+            self.clicked.emit(evento.position().x(), evento.position().y())
+        super().mousePressEvent(evento)
+
     def paintEvent(self, evento):
         p = QPainter(self)
         p.setRenderHint(QPainter.Antialiasing)
@@ -127,9 +132,15 @@ class Guida(QDialog):
         angolo.setFixedSize(self.NOMI, self.TESTA)
         angolo.setStyleSheet("background:%s" % self.pannello)
         griglia.addWidget(angolo, 0, 0)
+        self.testata_scroll = QScrollArea(self)
+        self.testata_scroll.setWidgetResizable(False)
+        self.testata_scroll.setFixedHeight(self.TESTA)
+        self.testata_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.testata_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.testata = _TelaGuida(self, "testa")
         self.testata.setFixedHeight(self.TESTA)
-        griglia.addWidget(self.testata, 0, 1)
+        self.testata_scroll.setWidget(self.testata)
+        griglia.addWidget(self.testata_scroll, 0, 1)
         self.nomi_scroll = QScrollArea(self)
         self.nomi_scroll.setWidgetResizable(False)
         self.nomi_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -153,7 +164,7 @@ class Guida(QDialog):
         self.programmi_scroll.horizontalScrollBar().valueChanged.connect(self.sbx.setValue)
         self.programmi_scroll.verticalScrollBar().valueChanged.connect(self.sby.setValue)
         self._scroll_nomi = self.nomi_scroll.verticalScrollBar()
-        self._scroll_testata = self.testata
+        self._scroll_testata = self.testata_scroll.horizontalScrollBar()
         self.da = int(time.time() // 1800 * 1800) - 1800
         self.fino = self.da + 6 * 3600
         self.righe = []
@@ -168,11 +179,8 @@ class Guida(QDialog):
     def raccogli(self):
         self.righe = []
         for nome, url, ide in self.app.canali:
-            k = ide if ide and ide in self.app.epg else self.app.epg_nomi.get(
-                self.app.nome_piatto(nome) if hasattr(self.app, "nome_piatto") else nome)
-            if not k:
-                from core.epg import nome_piatto
-                k = self.app.epg_nomi.get(nome_piatto(nome))
+            from core.epg import nome_piatto
+            k = ide if ide and ide in self.app.epg else self.app.epg_nomi.get(nome_piatto(nome))
             if not k:
                 continue
             prog = [(a, b, t) for a, b, t in self.app.epg.get(k, [])
@@ -200,6 +208,7 @@ class Guida(QDialog):
         self.tela.resize(largo, alto)
         self.nomi.resize(self.NOMI, alto)
         self.testata.resize(largo, self.TESTA)
+        self.testata_scroll.horizontalScrollBar().setRange(0, max(0, largo - self.testata_scroll.viewport().width()))
         self.sbx.setRange(0, max(0, largo - self.programmi_scroll.viewport().width()))
         self.sby.setRange(0, max(0, alto - self.programmi_scroll.viewport().height()))
         self.nomi.update()
@@ -209,7 +218,7 @@ class Guida(QDialog):
     def _x(self, valore):
         self.programmi_scroll.horizontalScrollBar().setValue(valore)
         self.testata.update()
-        self.testata.move(-valore, 0)
+        self.testata_scroll.horizontalScrollBar().setValue(valore)
 
     def _y(self, valore):
         self.programmi_scroll.verticalScrollBar().setValue(valore)
