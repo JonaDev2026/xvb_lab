@@ -431,3 +431,12 @@ Commit: `5258042`, `dd25959`, `427a80c`, `6f12365`, `fc7e772`, `5d0eb61`, `603ce
 - Aggiunti test Qt per ciclo di vita della finestra guida e nome mostrato dopo la rimozione. GitHub Actions sul commit `3d4b525` ha superato compilazione e suite di regressione/Qt.
 
 Commit: `bb2b853`, `89525ea`, `38480ad`, `d0e3817`, `ea1a835`, `3d4b525`.
+
+
+## Aggiornamento periodico playlist
+
+- Il controllo automatico delle playlist remote confronta ora il contenuto M3U prima e dopo il refresh, non il solo timestamp del file cache.
+- Se la cache scade ma il server restituisce gli stessi byte, la libreria non viene ricaricata inutilmente; se il contenuto cambia o la cache viene creata, la sessione viene aggiornata.
+- Aggiunti test per contenuto invariato con timestamp modificato e per contenuto effettivamente cambiato. GitHub Actions sul commit `4bd53e1` ha superato compilazione e suite di regressione/Qt.
+
+Commit: `8182298`, `c1420ed`, `4bd53e1`.
