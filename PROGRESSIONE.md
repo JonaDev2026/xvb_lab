@@ -179,3 +179,10 @@ Non eseguiti test né prove grafiche: restano per il pull concordato.
 - Il menu Playback ora offre Repeat off/one/all con stato, Previous/Next chapter e l'elenco dinamico dei capitoli mpv con orari e capitolo attivo.
 - Aggiunta una verifica nel test Qt per controllare che la barra comandi appartenga al layout principale.
 - Verificati a livello di sorgente gli import Qt necessari per maniglie e selettore dispositivi audio; non sono stati eseguiti test runtime.
+
+## Finiture interfaccia — aggiornamento
+
+- Aggiunte le maniglie di ridimensionamento laterale e collegate alle larghezze persistenti.
+- Ripristinato il pannello avviso originale da 42 px, cliccabile e con chiusura temporizzata; gli avvisi di aggiornamento vengono mostrati qui e restano visibili finché non vengono chiusi.
+- Corretto l'ordine del layout principale: contenuto, avviso, barra comandi da 96 px, stato da 28 px. L'overlay fullscreen rimuove e reinserisce la barra nella posizione corretta.
+- I test Qt ora controllano l'ordine della barra e dell'avviso nel layout; non sono stati eseguiti.
