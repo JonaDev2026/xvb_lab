@@ -32,6 +32,8 @@ Audit strutturale della Stable 4.4.4 completato: sorgente `xvb.py` del tag `v4.4
 - [x] Trasferiti in `core/log.py` logging rotante, filtro per oscurare credenziali e token, gestione delle eccezioni globali e dei thread; il callback GUI è predisposto per Qt.
 - [x] Trasferita in `core/image.py` la premoltiplicazione alfa richiesta dalle sovrapposizioni mpv.
 - [x] Aggiunti test per il filtro di sicurezza dei log.
+- [x] Trasferiti in `core/stream.py` parsing ClearKey (singola chiave, coppia KID/KEY e JSON), esclusione delle chiavi nulle, pulizia manifest DASH e proxy HTTP locale per manifest live.
+- [x] Aggiunti test di regressione per ClearKey e manifest DASH.
 - [x] Aggiunto workflow GitHub Actions per eseguire automaticamente i test core a ogni push e pull request.
 - [x] Aggiunti test di regressione per conversione XMLTV, fusione guide, confronto versioni e normalizzazione nomi.
 - [x] Aggiunti test di regressione per formati media, scansione file, categorie preferiti, rilevamento M3U e parsing dei metadati.
