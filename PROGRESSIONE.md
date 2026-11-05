@@ -553,3 +553,19 @@ Avvicinare l'albero Local alla struttura della Stable 4.4.4, mantenendo la confi
 
 - Modifica pubblicata su GitHub.
 - Compilazione e prova locale ancora da eseguire.
+
+
+### 2026-11-05 — Apertura URL, file recenti e scorciatoie
+
+**Modifiche**
+
+- Attivata la voce Media → Open URL per inviare indirizzi al motore libmpv.
+- Aggiunto l'elenco Recent con gli ultimi 12 file locali aperti, salvato nella configurazione Lab.
+- Aggiunta la possibilità di riaprire un file recente e di svuotare l'elenco.
+- Attivate scorciatoie per riproduzione/pausa, stop, navigazione precedente/successiva, ricerca temporale e schermo intero.
+- Stop azzera anche il riferimento al file corrente nella navigazione locale.
+
+**Verifica**
+
+- Modifiche pubblicate su GitHub.
+- Compilazione e prova locale ancora da eseguire.
