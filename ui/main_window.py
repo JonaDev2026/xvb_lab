@@ -810,9 +810,11 @@ class MainWindow(QMainWindow):
             self.el_liste.item(iid, valore=("__cd__", dispositivo))
         iptv = self.el_liste.insert("", "end", iid="iptv", text=" IPTV",
                                     image=QPixmap(os.path.join(QUI, "icone", "tv.png")), open=True)
+        self.el_liste.item(iptv, valore=("__iptv__", None))
         epg = self.el_liste.insert(iptv, "end", iid="epg",
                                    text=" EPG (%d)" % len(self.sessione.config.get("epg", [])),
                                    open=bool(self.sessione.config.get("epg")))
+        self.el_liste.item(epg, valore=("__epg_folder__", None))
         for indice, guida in enumerate(self.sessione.config.get("epg", [])):
             iid = "epg:%d" % indice
             self.el_liste.insert(epg, "end", iid=iid,
@@ -821,6 +823,7 @@ class MainWindow(QMainWindow):
         m3u = self.el_liste.insert(iptv, "end", iid="m3u",
                                    text=" M3U (%d)" % sum(1 for v in self.sessione.liste if not os.path.isdir(v["percorso"])),
                                    open=True)
+        self.el_liste.item(m3u, valore=("__m3u__", None))
         gruppi_m3u = {}
         for indice, lista in enumerate(self.sessione.liste):
             percorso = lista["percorso"]
@@ -869,6 +872,7 @@ class MainWindow(QMainWindow):
                     self.el_liste.item(iid, valore=("__recording__", percorso))
         locale = self.el_liste.insert("", "end", iid="locale",
                                       text=" Local", open=True)
+        self.el_liste.item(locale, valore=("__local__", None))
         montati = {p for p, _nome in dischi()}
         for indice, lista in enumerate(self.sessione.liste):
             percorso = lista["percorso"]
@@ -928,6 +932,9 @@ class MainWindow(QMainWindow):
         if not dati:
             return
         self._percorso_attivo, self._categoria_attiva = dati
+        if self._percorso_attivo == "__epg_folder__":
+            self.apri_guida()
+            return
         if self._percorso_attivo == "__media_folder__":
             self._cartella_media_attiva = self._categoria_attiva
             self._riempi_elenco()
@@ -972,7 +979,7 @@ class MainWindow(QMainWindow):
                                      or (percorso == "__local__" and os.path.isdir(voce[4]))
                                      or (percorso in ("__iptv__", "__m3u__")
                                          and not os.path.isdir(voce[4])
-                                         and voce[4] != "__favorite__"))
+                                         and voce[4] not in ("__favorite__", "__favorite_music__", "__favorite_video__")))
                                  and (categoria is None or voce[3] == categoria)
                                  and (not ricerca or ricerca.casefold() in (voce[0] + " " + self.sottotitoli.get(voce[1], "") + " " + voce[1]).casefold())]
         for i, voce in enumerate(self._canali_visibili):
