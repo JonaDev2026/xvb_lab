@@ -367,3 +367,22 @@ Avvicinare l'albero Local alla struttura della Stable 4.4.4, mantenendo la confi
 - Servizio scansione: `c4de7c097c6d0ade3839ef42c250d6d2174bd7a2`
 - UI: `fb12f0fe2619bde254d6d7eafa927d23a3bbc5c3`
 - Aggiornamento progressione in corso.
+
+
+### 2026-11-05 — Coerenza di ricerca e rimozione durante la scansione
+
+**Modifiche**
+
+- I nuovi risultati aggiunti progressivamente rispettano subito il filtro di ricerca già digitato.
+- Rimuovere una cartella o una sorgente importata invalida anche la scansione in corso, impedendo a risultati tardivi di ripopolare la lista.
+- L'avvio di una nuova scansione nasconde eventuali notifiche di errore precedenti.
+
+**Verifica**
+
+- Modifica pubblicata su GitHub.
+- Non ancora compilata o provata localmente dopo questo aggiornamento.
+- Da verificare con una ricerca avviata prima e durante una scansione e con la rimozione di una sorgente mentre è in caricamento.
+
+**Commit**
+
+- UI: `95f9dc69cb11033ed137763f395d334e1e9ca9a8`
