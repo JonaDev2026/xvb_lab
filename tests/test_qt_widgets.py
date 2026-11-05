@@ -217,12 +217,12 @@ class QtWidgetTests(unittest.TestCase):
             url = "https://example.test/list.m3u"
             cache = os.path.join(root, hashlib.md5(url.encode()).hexdigest() + ".m3u")
             with open(cache, "wb") as stream:
-                stream.write(b"#EXTM3U\\n#EXTINF:-1,News\\nhttps://stream.test/news")
+                stream.write(b"#EXTM3U\n#EXTINF:-1,News\\nhttps://stream.test/news")
             risultati = []
             def aggiorna(_url):
                 os.utime(cache, (2000, 2000))
                 return cache
-            with patch("ui.main_window.CACHE_LISTE", root), \\
+            with patch("ui.main_window.CACHE_LISTE", root), \
                  patch("ui.main_window.copia_lista_url", side_effect=aggiorna):
                 worker = _AggiornaListe([url])
                 worker.completato.connect(risultati.append)
@@ -240,7 +240,7 @@ class QtWidgetTests(unittest.TestCase):
                 with open(cache, "wb") as stream:
                     stream.write(b"#EXTM3U\\n#EXTINF:-1,Sports\\nhttps://stream.test/sports")
                 return cache
-            with patch("ui.main_window.CACHE_LISTE", root), \\
+            with patch("ui.main_window.CACHE_LISTE", root), \
                  patch("ui.main_window.copia_lista_url", side_effect=aggiorna):
                 worker = _AggiornaListe([url])
                 worker.completato.connect(risultati.append)
