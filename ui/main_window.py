@@ -10,6 +10,7 @@ from core.session import Sessione
 from core.media import media_in, AUDIO
 from core.tags import leggi_tag, tag_di, scrivi_tag
 from core.metadata import titolo_anno, dal_percorso
+from integrations.mpris import avvia_mpris
 from core.config import scrivi_config, CARTELLE_LISTE, REGISTRAZIONI
 from core.playlists import liste_in_cartella, BUFFER
 import os
@@ -188,6 +189,11 @@ class MainWindow(QMainWindow):
         self._timer_rec = QTimer(self)
         self._timer_rec.timeout.connect(self.controlla_registrazione)
         self._timer_rec.start(1000)
+        self.mpv = self.player
+        self._mpris = avvia_mpris(self)
+        self._indice_canale = -1
+        self.ripeti = ""
+        self.shuffle_attivo = False
         self._epg_sessione = self.sessione
         self._thread_epg = _CaricaGuide(self._epg_sessione)
         self._thread_epg.completato.connect(self._epg_pronto)
@@ -501,6 +507,7 @@ class MainWindow(QMainWindow):
         if not selezione:
             return
         voce = self._canali_visibili[int(selezione[0])]
+        self._indice_canale = int(selezione[0])
         self.riga_stato.setText(voce[0])
         self.apri(voce[1], nome=voce[0], ide=voce[2])
 
@@ -508,6 +515,7 @@ class MainWindow(QMainWindow):
         selezione = self.elenco.selection()
         if selezione:
             voce = self._canali_visibili[int(selezione[0])]
+            self._indice_canale = int(selezione[0])
             self.apri(voce[1], nome=voce[0], ide=voce[2])
 
 
@@ -581,6 +589,79 @@ class MainWindow(QMainWindow):
     def informazioni(self):
         QMessageBox.about(self, "XVB", "XVB Player 4.4.4")
 
+
+
+    def _aggiorna_mpris(self):
+        self.mpv = self._attivo()
+        if not self._mpris:
+            return
+        player = self.mpv
+        try:
+            pausa = player.leggi("pause") == "yes" if player else True
+            durata = player.duration if player else 0
+            self._mpris.aggiorna({
+                "titolo": self.nome_in_onda,
+                "stato": "Stopped" if not self.file_in_onda else ("Paused" if pausa else "Playing"),
+                "volume": self.volume.value() / 100.0,
+                "durata": durata,
+                "shuffle": self.shuffle_attivo,
+                "giro_ripeti": {"uno": "Track", "tutti": "Playlist"}.get(self.ripeti, "None"),
+                "giro": int(time.time()),
+            })
+        except Exception:
+            pass
+
+    def mpris_alza(self):
+        self.showNormal()
+        self.raise_()
+        self.activateWindow()
+
+    def mpris_comando(self, comando):
+        player = self._attivo()
+        if not player:
+            return
+        if comando == "playpause":
+            self.pausa()
+        elif comando == "play":
+            player.pausa(False)
+        elif comando == "pause":
+            player.pausa(True)
+        self._aggiorna_mpris()
+
+    def mpris_posizione(self, secondi):
+        player = self._attivo()
+        if player:
+            player.seek(secondi)
+        self._aggiorna_mpris()
+
+    def avanza(self, secondi):
+        player = self._attivo()
+        if player:
+            player.seek(secondi, assoluto=False)
+
+    def salta(self, direzione):
+        if not self._canali_visibili:
+            return
+        if self._indice_canale < 0:
+            self._indice_canale = 0
+        self._indice_canale = (self._indice_canale + direzione) % len(self._canali_visibili)
+        voce = self._canali_visibili[self._indice_canale]
+        self.apri(voce[1], nome=voce[0], ide=voce[2])
+
+    def mpris_shuffle(self, attivo):
+        self.shuffle_attivo = bool(attivo)
+        self.sessione.config["shuffle"] = self.shuffle_attivo
+        scrivi_config(self.sessione.config)
+        self._aggiorna_mpris()
+
+    def metti_ripeti(self, modalita):
+        self.ripeti = modalita or ""
+        self.sessione.config["ripeti"] = self.ripeti
+        scrivi_config(self.sessione.config)
+        player = self._attivo()
+        if player:
+            player.imposta("loop-file", "inf" if self.ripeti == "uno" else "no")
+        self._aggiorna_mpris()
 
     def _programma_corrente(self):
         if not self.ide_in_onda and not self.nome_in_onda:
@@ -740,6 +821,7 @@ class MainWindow(QMainWindow):
             self.ide_in_onda = ide
             self.riga_stato.setText(self.nome_in_onda)
             self.play_button.setText("Ⅱ")
+            self._aggiorna_mpris()
         except Exception as errore:
             QMessageBox.critical(self, "XVB", str(errore))
 
@@ -748,6 +830,7 @@ class MainWindow(QMainWindow):
         if player:
             player.pausa()
             self.play_button.setText("▶" if player.leggi("pause") == "yes" else "Ⅱ")
+            self._aggiorna_mpris()
 
     def ferma(self):
         player = self._attivo()
@@ -757,11 +840,13 @@ class MainWindow(QMainWindow):
             self.nome_in_onda = ""
             self.play_button.setText("▶")
             self.riga_stato.setText("XVB")
+            self._aggiorna_mpris()
 
     def _volume(self, valore):
         player = self._attivo()
         if player:
             player.volume(valore)
+        self._aggiorna_mpris()
 
     def _seek(self):
         player = self._attivo()
