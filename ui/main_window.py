@@ -188,7 +188,7 @@ class MainWindow(QMainWindow):
         riga.setSpacing(0)
 
         self.sinistra = QFrame(self.contenuto)
-        self.sinistra.setFixedWidth(300)
+        self.sinistra.setFixedWidth(max(140, int(self.sessione.config.get("larga_sx", 300))))
         sx = QVBoxLayout(self.sinistra)
         sx.setContentsMargins(8, 8, 8, 8)
         sx.setSpacing(6)
@@ -259,7 +259,7 @@ class MainWindow(QMainWindow):
             self.video_layout.addWidget(avviso, 1)
 
         self.destra = QFrame(self.contenuto)
-        self.destra.setFixedWidth(220)
+        self.destra.setFixedWidth(max(140, int(self.sessione.config.get("larga_dx", 220))))
         dx = QVBoxLayout(self.destra)
         dx.setContentsMargins(8, 8, 8, 8)
         self.et_liste = QLabel(_("Playlists"), self.destra)
@@ -273,7 +273,11 @@ class MainWindow(QMainWindow):
         self._riempi_liste()
 
         riga.addWidget(self.sinistra)
+        self.maniglia_sx = Maniglia(self, self.sinistra, "larga_sx", 1)
+        riga.addWidget(self.maniglia_sx)
         riga.addWidget(self.video, 1)
+        self.maniglia_dx = Maniglia(self, self.destra, "larga_dx", -1)
+        riga.addWidget(self.maniglia_dx)
         riga.addWidget(self.destra)
         root.addWidget(self.contenuto, 1)
 
