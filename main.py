@@ -1,10 +1,12 @@
+import logging
 import os
 import sys
 
 from PySide6.QtCore import QTimer
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QMessageBox
 
 from core.config import scrivi_config
+from core.log import configura_logging
 from core.media import e_media
 from core.playlists import e_una_lista
 from core.single_instance import PORTA, porta_unica
@@ -26,14 +28,26 @@ def percorso_istanza(nuova_istanza):
 
 
 def main():
+    configura_logging()
+    logger = logging.getLogger("xvb")
     app = QApplication([sys.argv[0]])
     app.setApplicationName("XVB")
     argomenti, nuova_istanza = argomenti_avvio(sys.argv[1:])
     server = porta_unica(argomenti, percorso_istanza(nuova_istanza))
     if server is None:
+        logger.info("Richiesta inoltrata a un'istanza XVB già attiva")
         print("XVB è già in esecuzione: richiesta di attivazione inviata.", flush=True)
         return 0
-    finestra = MainWindow()
+    try:
+        finestra = MainWindow()
+    except Exception as errore:
+        logger.exception("Errore durante la creazione della finestra principale")
+        QMessageBox.critical(
+            None, "XVB - Errore di avvio",
+            "Impossibile aprire la finestra principale.\n\n%s\n\n"
+            "Dettagli: ~/.local/state/xvb/xvb.log" % errore)
+        server.close()
+        return 1
     server.files.connect(finestra.apri_da_fuori)
     server.raise_window.connect(lambda: (
         finestra.showNormal(), finestra.raise_(), finestra.activateWindow()))
