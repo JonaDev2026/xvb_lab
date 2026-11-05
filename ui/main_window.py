@@ -160,6 +160,7 @@ class MainWindow(QMainWindow):
         self.sessione = Sessione()
         self.setWindowFlag(Qt.WindowStaysOnTopHint, bool(self.sessione.config.get("in_cima")))
         self.ripeti = self.sessione.config.get("ripeti", "")
+        self.velocita = 1
         self.shuffle_attivo = bool(self.sessione.config.get("shuffle"))
         self.setStyleSheet(
             (
@@ -2262,9 +2263,8 @@ class MainWindow(QMainWindow):
             valore = float(valore)
             if valore not in (0.5, 0.75, 1, 1.25, 1.5, 2):
                 return
+            self.velocita = valore
             self._imposta("speed", valore)
-            self.sessione.config["velocita"] = valore
-            scrivi_config(self.sessione.config)
             self._messaggio_temporaneo(_("speed x%g") % valore)
         except Exception:
             pass
