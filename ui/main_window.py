@@ -496,7 +496,8 @@ class MainWindow(QMainWindow):
         self.avvia_registrazione(self.nome_in_onda, 0.0)
 
     def avvia_registrazione(self, nome, fine):
-        if not self.player:
+        player = self._attivo()
+        if not player:
             return
         try:
             os.makedirs(REGISTRAZIONI, exist_ok=True)
@@ -505,12 +506,12 @@ class MainWindow(QMainWindow):
             pulisci = lambda t: re.sub(r'[\\/:*?"<>|]+', "", t).strip() or "xvb"
             cartella = os.path.join(REGISTRAZIONI, pulisci(nome))
             os.makedirs(cartella, exist_ok=True)
-            video = self.player.leggi("vid")
+            video = player.leggi("vid")
             estensione = "mkv" if video not in (None, "no", "0") else "mka"
             destinazione = os.path.join(
                 cartella, "%s - %s.%s" % (
                     pulisci(titolo), time.strftime("%Y-%m-%d %H-%M"), estensione))
-            self.player.imposta("stream-record", destinazione)
+            player.imposta("stream-record", destinazione)
         except Exception as errore:
             self.riga_stato.setText("Cannot record: " + str(errore))
             return
@@ -520,9 +521,10 @@ class MainWindow(QMainWindow):
         self._mostra_rec()
 
     def ferma_registrazione(self):
-        if self.player:
+        player = self._attivo()
+        if player:
             try:
-                self.player.imposta("stream-record", "")
+                player.imposta("stream-record", "")
             except Exception:
                 pass
         destinazione = self.registrando
