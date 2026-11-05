@@ -24,7 +24,7 @@ class ArtworkTests(unittest.TestCase):
         self.assertEqual(artwork.qualita(2160, 0), ("2160p", "#bf5af2"))
         self.assertEqual(artwork.qualita(1080, 0), ("1080p", "#30d158"))
         self.assertEqual(artwork.qualita(720, 0), ("720p", "#0a84ff"))
-        self.assertEqual(artwork.qualita(0, 250000), ("250 kbit/s", "#8e8e93"))
+        self.assertEqual(artwork.qualita(0, 250000), ("250 kbit/s", "#9e9e9e"))
 
 
 if __name__ == "__main__":
