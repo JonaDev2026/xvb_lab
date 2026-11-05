@@ -1277,8 +1277,6 @@ class MainWindow(QMainWindow):
         self._worker_liste = _AggiornaListe(self.sessione.config.get("liste_url", {}).keys())
         self._worker_liste.completato.connect(self._liste_auto_pronte)
         self._worker_liste.start()
-        if not self._thread_epg.isRunning():
-            self.ricarica_guida()
 
     def _liste_auto_pronte(self, cambiata):
         if cambiata:
