@@ -4321,6 +4321,14 @@ class MainWindow(QMainWindow):
 
 
     def eventFilter(self, oggetto, evento):
+        if (evento.type() == evento.Type.MouseButtonDblClick
+                and oggetto in (self.player, self.player2, self.video)):
+            if oggetto is self.player2:
+                self.schermo_attivo = 1
+            else:
+                self.schermo_attivo = 0
+            self.schermo_intero()
+            return True
         if oggetto in (getattr(self, "volume", None), getattr(self, "b_muto", None)):
             if evento.type() == evento.Type.Enter:
                 self.apri_volume()
@@ -4344,6 +4352,11 @@ class MainWindow(QMainWindow):
                     self.schermo_attivo = 1
                 if oggetto in (self.player, self.player2):
                     self._posiziona_overlay()
+        if (evento.type() == evento.Type.MouseButtonPress
+                and evento.button() == Qt.LeftButton
+                and oggetto in (self.player, self.player2, self.video)
+                and self.pip_window is None):
+            self.pausa()
         return super().eventFilter(oggetto, evento)
 
     def split_si_no(self):
