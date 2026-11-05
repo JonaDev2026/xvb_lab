@@ -102,6 +102,14 @@ class _CaricaFotoArtisti(QThread):
         self.file_audio = list(file_audio)
         self.corrente = corrente
 
+    def _attendi(self, secondi):
+        fine = time.monotonic() + secondi
+        while time.monotonic() < fine:
+            if self.isInterruptionRequested():
+                return False
+            time.sleep(min(0.1, fine - time.monotonic()))
+        return not self.isInterruptionRequested()
+
     def run(self):
         try:
             if self.corrente in self.file_audio:
@@ -126,10 +134,12 @@ class _CaricaFotoArtisti(QThread):
                 if foto:
                     self.foto.emit(artista, foto)
                 richieste += 1
-                time.sleep(2.1)
+                if not self._attendi(2.1):
+                    break
                 if richieste and richieste % 30 == 0:
                     self.artwork.salva_cache()
-                    time.sleep(5)
+                    if not self._attendi(5):
+                        break
         except Exception:
             pass
         finally:
@@ -3633,7 +3643,7 @@ class MainWindow(QMainWindow):
                 worker.wait(12000)
         if self._artist_worker and self._artist_worker.isRunning():
             self._artist_worker.requestInterruption()
-            self._artist_worker.wait(20000)
+            self._artist_worker.wait(3000)
         self.artwork_artista.salva_cache()
         scrivi_tag(self.tag_cache)
         if self.pip_window is not None:
