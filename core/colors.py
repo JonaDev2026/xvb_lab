@@ -130,3 +130,11 @@ def colore_sfondo_guida(hex_colore, bg_hex="#121212", alfa=0.40):
         return "#%02x%02x%02x" % (rf, gf, bf)
     except Exception:
         return "#252030"
+
+
+
+def colore_di(nome):
+    import hashlib
+    from .constants import PALLINI
+    valore = int(hashlib.md5(nome.encode("utf-8")).hexdigest()[:8], 16)
+    return PALLINI[valore % len(PALLINI)]
