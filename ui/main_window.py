@@ -1362,7 +1362,23 @@ class MainWindow(QMainWindow):
             nome, url, ide, gruppo, _lista = voce
             sotto = self.sottotitoli.get(url) or gruppo
             self.elenco.insert("", "end", iid=str(i), text=nome + "\n" + sotto,
-                               colore=self.colore_canale(nome, url), logo=self.logo_di(url))
+                               colore=self.colore_canale(nome, url), logo=self.logo_di(url),
+                               tags=("onda",) if url == self.file_in_onda else ())
+
+    def _segna_in_onda(self):
+        if not hasattr(self, "elenco"):
+            return
+        for iid in self.elenco.get_children():
+            dati = self.elenco.item(iid)
+            tags = tuple(tag for tag in dati.get("tags", ()) if tag != "onda")
+            try:
+                voce = self._canali_visibili[int(iid)]
+            except (ValueError, IndexError, TypeError):
+                voce = None
+            if voce is not None and voce[1] == self.file_in_onda:
+                tags += ("onda",)
+            if tags != tuple(dati.get("tags", ())):
+                self.elenco.item(iid, tags=tags)
 
     def _seleziona_canale(self):
         selezione = self.elenco.selection()
@@ -2155,6 +2171,7 @@ class MainWindow(QMainWindow):
         self._eof_gestito = False
         self._giro_traccia += 1
         self.file_in_onda = percorso
+        self._segna_in_onda()
         self.nome_in_onda = nome or os.path.splitext(os.path.basename(percorso.rstrip("/")))[0] or percorso
         self.ide_in_onda = ide
         self.varianti = []
@@ -2338,6 +2355,7 @@ class MainWindow(QMainWindow):
         if player:
             player.ferma()
             self.file_in_onda = None
+            self._segna_in_onda()
             self.nome_in_onda = ""
             self.play_button.setIcon(QIcon(os.path.join(QUI, "icone", "play.png")))
             self.play_button.setToolTip(_("Play"))
