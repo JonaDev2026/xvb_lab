@@ -24,6 +24,8 @@ class QtWidgetTests(unittest.TestCase):
             self.assertEqual(window.nome_in_onda, "")
             self.assertIsNone(window.ide_in_onda)
             self.assertIsNone(window.file_in_onda)
+            self.assertEqual(window._durate_cercate, set())
+            self.assertEqual(window._registrazioni_attive, [])
             self.assertEqual(window._layout_principale.indexOf(window.avviso), 1)
             self.assertIs(window.barra.parentWidget(), window.video)
             self.assertTrue(window._overlay_attivo)
