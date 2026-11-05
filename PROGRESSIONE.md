@@ -40,6 +40,7 @@ Audit strutturale della Stable 4.4.4 completato: sorgente `xvb.py` del tag `v4.4
 - [x] Le primitive producono immagini RGBA PIL, pronte per l'adattatore QImage/QPixmap Qt; la geometria e i colori derivano dalla Stable.
 - [x] Trasferiti in `core/discs.py` rilevamento dischi ISO/UDF montati, verifica conservativa cifratura DVD CSS, rilevamento CD audio via udev, riconoscimento DVD e pulizia etichette disco.
 - [x] Aggiunti test per riconoscimento CD/DVD, etichette e gestione prudenziale di VOB non leggibili.
+- [x] Trasferita in `core/thumbnails.py` la generazione delle anteprime locali: priorità poster/cover, copertine incorporate nei brani, fotogrammi ffmpeg, cache basata su percorso e data modifica.
 - [x] Aggiunti test di regressione per dimensioni, trasparenza, icone e fasce di qualità; CI installa Pillow.
 - [x] Aggiunti test per i casi titolo/anno, struttura cartelle musicali, poster e cache JSON.
 - [x] Trasferita in `integrations/mpris.py` l'integrazione MPRIS originale: comandi multimediali, metadati, posizione, volume, shuffle e repeat; i callback dal bus D-Bus vengono inoltrati al thread Qt tramite segnale queued, senza `root.after` Tkinter.
