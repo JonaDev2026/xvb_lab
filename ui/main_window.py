@@ -342,7 +342,8 @@ class MainWindow(QMainWindow):
         pulsante("fullscreen", "pieno", self.schermo_intero, 24, _("Fullscreen"))
         pulsante("mute", "volume", self._muto, 24, _("Mute"))
         self.volume = Cursore(
-            self.barra, self._volume, larga=85, alta=26)
+            self.barra, self._volume, larga=85, alta=26, barra=BARRA,
+            traccia="#4a4a4a", pieno="#ffffff")
         self.volume.valore = int(self.sessione.config.get("volume", 85))
         controlli.addWidget(self.volume)
         comandi.addLayout(controlli)
