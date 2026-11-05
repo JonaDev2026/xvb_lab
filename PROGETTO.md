@@ -411,7 +411,7 @@ XVB Lab potrà essere considerata equivalente alla Stable solo quando:
 
 ## 8. Stato attuale
 
-**Stato: base tecnica e primo collegamento Qt/libmpv implementati nel repository; il rendering deve ancora essere provato su una macchina reale e verificato su X11 e Wayland.**
+**Stato: base Qt/libmpv verificata sul computer di sviluppo per apertura e riproduzione di un file MKV; prima struttura della finestra Stable 4.4.4 scritta nel repository, ancora da collaudare. Compatibilità X11 e Wayland non ancora verificata separatamente.**
 
 - [x] Repository Stable individuato: `JonaDev2026/xvb`.
 - [x] Tag di riferimento confermato: `v4.4.4`.
@@ -426,9 +426,9 @@ XVB Lab potrà essere considerata equivalente alla Stable solo quando:
 - [ ] Verificare installazione e caricamento di libmpv sul sistema di sviluppo.
 - [x] Prima implementazione del rendering OpenGL tramite libmpv Render API in un widget QOpenGLWidget.
 - [x] Collegati i comandi minimi Apri file e Stop al motore.
-- [ ] Verificare caricamento del widget e rendering su una macchina reale.
+- [x] Verificare caricamento del widget e rendering su una macchina reale: apertura e riproduzione di un file MKV confermate sul computer di sviluppo.
 - [ ] Verificare riproduzione reale in X11 e Wayland.
-- [ ] Nessuna funzione della Stable è stata ancora trasferita.
+- [ ] Trasferire e collaudare le funzioni della Stable. La prima struttura grafica è stata scritta, ma non costituisce ancora il trasferimento delle funzioni applicative.
 
 ### Avvio attuale della finestra di base
 
@@ -493,3 +493,11 @@ La finestra attuale è soltanto uno scheletro Qt per verificare l'avvio dell'app
 - Stabilito che Stable non deve essere modificata.
 - Preparato questo diario sulla base dell'analisi del tag `v4.4.4`.
 - Prossimo punto di lavoro: verificare la cartella locale `xvb_lab` e realizzare il prototipo Qt6/libmpv prima di trasferire le altre funzioni.
+
+
+### 2026-11-05 — Prima struttura della finestra principale
+
+- Creato `ui/main_window.py` con i tre pannelli, i sette menu, la barra comandi, la barra notifiche e la barra di stato sulla base delle misure e dei colori rilevati in Stable 4.4.4.
+- Aggiornato `main.py` per avviare la nuova finestra e caricare le risorse di font e icona se presenti.
+- Le voci non ancora implementate sono disabilitate e non vengono conteggiate come funzioni trasferite.
+- Codice pubblicato ma non ancora collaudato dopo l'aggiornamento. Restano da verificare layout e interazioni; le funzioni applicative sono ancora da trasferire.
