@@ -275,10 +275,18 @@ class Tendina(QFrame):
                 col = QVBoxLayout(contenitore)
                 col.setContentsMargins(0, 0, 0, 0)
                 col.setSpacing(0)
-                for elemento in lista:
-                    self._riga(col, elemento)
+                selezionata = None
+                for indice, elemento in enumerate(lista):
+                    bottone = self._riga(col, elemento)
+                    if elemento and elemento[0].startswith("*  ") and selezionata is None:
+                        selezionata = indice
                 area.setWidget(contenitore)
                 layout.addWidget(area)
+                if selezionata is not None:
+                    QTimer.singleShot(
+                        0, lambda a=area, i=selezionata, n=numero:
+                        a.verticalScrollBar().setValue(
+                            max(0, (i - n // 2) * self.ALTA)))
             else:
                 self._riga(layout, voce)
         self.setMinimumWidth(larghezza)
@@ -307,6 +315,7 @@ class Tendina(QFrame):
         if cosa:
             b.clicked.connect(lambda _=False, c=cosa: self.scegli(c))
         layout.addWidget(b)
+        return b
 
     def _sorveglia(self):
         if not self.isVisible():
