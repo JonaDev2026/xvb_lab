@@ -371,7 +371,7 @@ class QtWidgetTests(unittest.TestCase):
             window = MainWindow()
             window.timer_fine = time.time() + 120
             window._aggiorna_hud()
-            self.assertTrue(window.hud_video.isVisible())
+            self.assertFalse(window.hud_video.isHidden())
             self.assertTrue(window.hud_video.timer_text)
             window.timer_fine = None
             window.registrando = "/tmp/xvb-hud-recording.mkv"
@@ -380,7 +380,7 @@ class QtWidgetTests(unittest.TestCase):
             self.assertTrue(window.hud_video.recording_text.startswith("REC "))
             window.registrando = ""
             window._aggiorna_hud()
-            self.assertFalse(window.hud_video.isVisible())
+            self.assertTrue(window.hud_video.isHidden())
             self.assertFalse(window._timer_hud.isActive())
             window.close()
             self.app.processEvents()
