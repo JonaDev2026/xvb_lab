@@ -1,4 +1,5 @@
 import os
+import tempfile
 import unittest
 from unittest.mock import patch
 
@@ -167,6 +168,18 @@ class QtWidgetTests(unittest.TestCase):
                 rimuovi.assert_called_once_with("/tmp/temp-cover.jpg")
             self.assertEqual(window.sessione.config["url_aperti"], [])
             self.assertEqual(window.sessione.config["nomi_url"], {salvato: "Saved"})
+            window.close()
+            self.app.processEvents()
+    def test_external_playlist_is_selected_after_reload(self):
+        with patch("ui.main_window.MpvVideo", side_effect=RuntimeError("libmpv unavailable")):
+            window = MainWindow()
+            with tempfile.NamedTemporaryFile(suffix=".m3u") as stream:
+                with patch("ui.main_window.e_una_lista", return_value=True), \\
+                     patch("ui.main_window.scrivi_config"), \\
+                     patch.object(window, "ricarica_liste") as ricarica, \\
+                     patch.object(window, "_completa_apri_da_fuori"):
+                    window.apri_da_fuori([stream.name])
+                ricarica.assert_called_once_with(scegli=os.path.abspath(stream.name), forza=False)
             window.close()
             self.app.processEvents()
 
