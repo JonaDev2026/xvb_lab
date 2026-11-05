@@ -353,6 +353,10 @@ class MainWindow(QMainWindow):
         self.epg_nomi = self.sessione.epg_nomi
         self._percorso_attivo = None
         self._categoria_attiva = None
+        self._registrazioni_attive = []
+        self.reg_in_uso = None
+        self._durate_cercate = set()
+        self._durata_workers = []
         self.cerca = Ricerca(self.sinistra, self._filtra, vuota=_("Search"))
         sx.addWidget(self.cerca)
         self.elenco = Elenco(self.sinistra)
@@ -558,10 +562,6 @@ class MainWindow(QMainWindow):
         self.fine_rec = 0.0
         self.piano = None
         self._guida_selezionata = None
-        self._registrazioni_attive = []
-        self.reg_in_uso = None
-        self._durate_cercate = set()
-        self._durata_workers = []
         self._timer_rec = QTimer(self)
         self._timer_rec.timeout.connect(self.controlla_registrazione)
         self._timer_rec.start(1000)
