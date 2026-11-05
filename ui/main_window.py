@@ -823,10 +823,10 @@ class MainWindow(QMainWindow):
                     preferiti, "end", iid="preferiti:%d" % j,
                     text=" " + categoria)
                 self.el_liste.item(figlio, valore=("__favorite__", categoria))
-        self.el_liste.item(iptv, valore=(None, None))
+        self.el_liste.item(iptv, valore=("__iptv__", None))
         self.el_liste.item(epg, valore=("__epg__", None))
-        self.el_liste.item(m3u, valore=(None, None))
-        self.el_liste.item(locale, valore=(None, None))
+        self.el_liste.item(m3u, valore=("__m3u__", None))
+        self.el_liste.item(locale, valore=("__local__", None))
 
     def _scegli_voce_liste(self, item, _colonna=0):
         dati = self.el_liste.item(item, "valore") if isinstance(item, str) else item.data(0, Qt.UserRole)
@@ -862,7 +862,12 @@ class MainWindow(QMainWindow):
         ricerca = self.cerca.get() if hasattr(self, "cerca") else ""
         self.elenco.delete(*self.elenco.get_children())
         self._canali_visibili = [voce for voce in self.sessione.canali
-                                 if (percorso is None or voce[4] == percorso)
+                                 if (percorso is None
+                                     or voce[4] == percorso
+                                     or (percorso == "__local__" and os.path.isdir(voce[4]))
+                                     or (percorso in ("__iptv__", "__m3u__")
+                                         and not os.path.isdir(voce[4])
+                                         and voce[4] != "__favorite__"))
                                  and (categoria is None or voce[3] == categoria)
                                  and (not ricerca or ricerca.casefold() in (voce[0] + " " + self.sottotitoli.get(voce[1], "") + " " + voce[1]).casefold())]
         for i, voce in enumerate(self._canali_visibili):
