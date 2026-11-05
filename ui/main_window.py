@@ -1158,6 +1158,29 @@ class MainWindow(QMainWindow):
             return
         self._attiva_overlay()
 
+    def _aggiorna_menu_playback(self):
+        self.azione_shuffle.setChecked(bool(self.shuffle_attivo))
+        self._aggiorna_azioni_ripeti()
+        for valore, azione in self.azioni_velocita.items():
+            azione.setChecked(abs(float(self.velocita) - valore) < 0.0001)
+
+    def _aggiorna_menu_video(self):
+        config = self.sessione.config
+        riempi = bool(config.get("riempi"))
+        proporzioni = str(config.get("proporzioni", "-1"))
+        for valore, azione in self.azioni_proporzioni.items():
+            azione.setChecked(not riempi and proporzioni == valore)
+        self.azione_riempi.setChecked(riempi)
+        self.azione_deinterlaccia.setChecked(bool(config.get("deinterlaccia")))
+        self.azione_hwdec.setChecked(bool(config.get("hwdec", True)))
+
+    def _aggiorna_menu_audio(self):
+        self.azione_boost.setChecked(bool(self.sessione.config.get("boost")))
+        self.azione_normalizza.setChecked(bool(self.sessione.config.get("normalizza")))
+        presente = bool(self.file_in_onda)
+        self.azione_carica_sottotitoli.setEnabled(presente)
+        self.azione_sottotitoli_online.setEnabled(presente)
+
     def _aggiorna_menu_view(self):
         self.azione_lista.setText(_("Show list") if self.sinistra.isHidden() else _("Hide list"))
         self.azione_sidebar.setText(_("Show sidebar") if self.destra.isHidden() else _("Hide sidebar"))
@@ -1329,9 +1352,13 @@ class MainWindow(QMainWindow):
         self.azione_capitolo_successivo.setVisible(False)
         self.menu_capitoli.menuAction().setVisible(False)
         playback.addSeparator()
+        self.azioni_velocita = {}
         for velocita in (0.5, 0.75, 1, 1.25, 1.5, 2):
-            playback.addAction(self._azione("Speed x%g" % velocita,
-                                            lambda _=False, v=velocita: self.metti_velocita(v)))
+            azione = self._azione("Speed x%g" % velocita,
+                                  lambda _=False, v=velocita: self.metti_velocita(v))
+            azione.setCheckable(True)
+            self.azioni_velocita[velocita] = azione
+            playback.addAction(azione)
         sleep = playback.addMenu(_("Sleep timer"))
         for minuti in (15, 30, 45, 60, 90, 120):
             sleep.addAction(self._azione(_("%d minutes") % minuti,
@@ -1351,14 +1378,25 @@ class MainWindow(QMainWindow):
             azione.triggered.connect(lambda _=False, k=chiave: self.metti_ripeti(k))
             self.menu_ripeti.addAction(azione)
             self.azioni_ripeti[chiave] = azione
-        self._aggiorna_azioni_ripeti()
+        playback.aboutToShow.connect(self._aggiorna_menu_playback)
+        self._aggiorna_menu_playback()
         video = self.menuBar().addMenu(_("Video"))
+        self.azioni_proporzioni = {}
         for nome, valore in (("Auto", "-1"), ("16:9", "16:9"), ("4:3", "4:3"), ("21:9", "21:9")):
-            video.addAction(self._azione("Aspect " + nome,
-                                         lambda _=False, v=valore: self.metti_proporzioni(v)))
-        video.addAction(self._azione(_("Fill screen (crop)"), self.riempi))
-        video.addAction(self._azione(_("Deinterlace"), self.deinterlaccia))
-        video.addAction(self._azione(_("Hardware decoding"), self.decodifica_hw))
+            azione = self._azione("Aspect " + nome,
+                                  lambda _=False, v=valore: self.metti_proporzioni(v))
+            azione.setCheckable(True)
+            self.azioni_proporzioni[valore] = azione
+            video.addAction(azione)
+        self.azione_riempi = self._azione(_("Fill screen (crop)"), self.riempi)
+        self.azione_riempi.setCheckable(True)
+        video.addAction(self.azione_riempi)
+        self.azione_deinterlaccia = self._azione(_("Deinterlace"), self.deinterlaccia)
+        self.azione_deinterlaccia.setCheckable(True)
+        video.addAction(self.azione_deinterlaccia)
+        self.azione_hwdec = self._azione(_("Hardware decoding"), self.decodifica_hw)
+        self.azione_hwdec.setCheckable(True)
+        video.addAction(self.azione_hwdec)
         video.addSeparator()
         for nome, valore in (("Brightness +", ("brightness", 10)), ("Brightness -", ("brightness", -10)),
                              ("Contrast +", ("contrast", 10)), ("Contrast -", ("contrast", -10)),
@@ -1369,6 +1407,8 @@ class MainWindow(QMainWindow):
         self.menu_qualita = video.addMenu(_("Quality"))
         self.menu_qualita.setEnabled(False)
         self.menu_qualita.aboutToShow.connect(self._riempi_menu_qualita)
+        video.aboutToShow.connect(self._aggiorna_menu_video)
+        self._aggiorna_menu_video()
         audio = self.menuBar().addMenu(_("Audio"))
         audio.addAction(self._azione(_("Next audio track"), lambda: self._ciclo("aid")))
         audio.addAction(self._azione(_("Next subtitle track"), lambda: self._ciclo("sid")))
@@ -1376,24 +1416,30 @@ class MainWindow(QMainWindow):
         self.menu_tracce_sub = audio.addMenu(_("Subtitles"))
         self.menu_tracce_audio.aboutToShow.connect(lambda: self._riempi_menu_tracce(self.menu_tracce_audio, "audio"))
         self.menu_tracce_sub.aboutToShow.connect(lambda: self._riempi_menu_tracce(self.menu_tracce_sub, "sub"))
-        audio.addAction(self._azione(_("Load subtitles..."), self.carica_sottotitoli))
+        self.azione_carica_sottotitoli = self._azione(_("Load subtitles..."), self.carica_sottotitoli)
+        audio.addAction(self.azione_carica_sottotitoli)
         self.azione_sottotitoli_online = self._azione(
             _("Search subtitles online..."), self.cerca_sottotitoli_online)
         audio.addAction(self.azione_sottotitoli_online)
-        audio.aboutToShow.connect(
-            lambda: self.azione_sottotitoli_online.setEnabled(bool(self.file_in_onda)))
         audio.addAction(self._azione(_("Audio output device..."), self.scegli_uscita_audio))
         audio.addAction(self._azione(_("Subtitles on/off"), lambda: self._ciclo("sub-visibility")))
-        audio.addAction(self._azione("Subtitle delay +100 ms", lambda: self._regola("sub-delay", 0.1)))
-        audio.addAction(self._azione("Subtitle delay -100 ms", lambda: self._regola("sub-delay", -0.1)))
-        audio.addAction(self._azione(_("Subtitle size +"), lambda: self._regola("sub-scale", 0.1)))
-        audio.addAction(self._azione(_("Subtitle size -"), lambda: self._regola("sub-scale", -0.1)))
-        audio.addAction(self._azione("Audio delay +100 ms", lambda: self._regola("audio-delay", 0.1)))
-        audio.addAction(self._azione("Audio delay -100 ms", lambda: self._regola("audio-delay", -0.1)))
+        audio.addAction(self._azione("Subtitle delay +100 ms", lambda: self.ritardo_sottotitoli(0.1)))
+        audio.addAction(self._azione("Subtitle delay -100 ms", lambda: self.ritardo_sottotitoli(-0.1)))
+        audio.addAction(self._azione(_("Subtitles larger"), lambda: self.scala_sottotitoli(0.1)))
+        audio.addAction(self._azione(_("Subtitles smaller"), lambda: self.scala_sottotitoli(-0.1)))
+        audio.addAction(self._azione(_("Reset subtitles"), self.azzera_sottotitoli))
+        audio.addAction(self._azione("Audio delay +100 ms", lambda: self.ritardo_audio(0.1)))
+        audio.addAction(self._azione("Audio delay -100 ms", lambda: self.ritardo_audio(-0.1)))
+        audio.addAction(self._azione(_("Reset delay"), self.azzera_ritardo))
         audio.addSeparator()
-        audio.addAction(self._azione(_("Volume boost +50%"), self.boost))
-        audio.addAction(self._azione(_("Normalize loudness"), self.normalizza))
+        self.azione_boost = self._azione(_("Volume boost +50%"), self.boost)
+        self.azione_boost.setCheckable(True)
+        audio.addAction(self.azione_boost)
+        self.azione_normalizza = self._azione(_("Normalize loudness"), self.normalizza)
+        self.azione_normalizza.setCheckable(True)
+        audio.addAction(self.azione_normalizza)
         audio.addAction(self._azione(_("Audio equalizer..."), self.equalizzatore_audio))
+        audio.aboutToShow.connect(self._aggiorna_menu_audio)
         iptv = self.menuBar().addMenu(_("IPTV"))
         iptv.addAction(self._azione(_("Add playlist URL"), self.aggiungi_lista_url))
         iptv.addAction(self._azione(_("Open playlists folder"), self.apri_cartella_liste))
