@@ -434,6 +434,7 @@ XVB Lab potrà essere considerata equivalente alla Stable solo quando:
 - [x] File e playlist inoltrati da istanze successive selezionano/aprono il contenuto e riportano la finestra in primo piano; URL temporanee e copertine vengono ripulite alla chiusura.
 - [x] Corretto l'ordine di inizializzazione dello stato in `MainWindow`; compilazione e suite di test Qt/regressione superate dalla CI sul commit `05268c1`.
 - [x] Barra di stato Qt6 con programma EPG corrente/successivo e categoria del canale IPTV effettivamente in riproduzione; test Qt e CI superati.
+- [x] Menu Playback con navigazione Previous/Next e capitoli libmpv dinamici; test Qt e CI superati.
 
 ### Lavoro ancora aperto
 
