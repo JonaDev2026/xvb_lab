@@ -5,8 +5,8 @@ from PySide6.QtWidgets import QWidget, QLineEdit
 
 class Ricerca(QWidget):
     def __init__(self, dove, cambia, alta=36, vuota="Search",
-                 pannello="#1b1b1f", cerca="#252529", testo="#f2f2f2",
-                 grigio="#92929a", accento="#a78bfa"):
+                 pannello="#1c1b22", cerca="#42414d", testo="#e0e0e0",
+                 grigio="#9e9e9e", accento="#bb86fc"):
         super().__init__(dove)
         self.alta, self.cambia, self.vuota = alta, cambia, vuota
         self.pannello, self.cerca = QColor(pannello), QColor(cerca)
@@ -59,7 +59,7 @@ class Cursore(QWidget):
     valoreCambiato = Signal(int)
 
     def __init__(self, dove, cambia, larga=170, alta=26,
-                 barra="#252529", traccia="#4a4a4a", pieno="#ffffff"):
+                 barra="#42414d", traccia="#4a4a4a", pieno="#ffffff"):
         super().__init__(dove)
         self.larga, self.alta, self.cambia = larga, alta, cambia
         self.barra, self.traccia, self.pieno = map(QColor, (barra, traccia, pieno))
@@ -143,13 +143,13 @@ class Finestrella(QDialog):
         self.setFixedSize(larga, self.sizeHint().height())
         self.risposta = None
         self.setStyleSheet(
-            "QDialog{background:#1b1b1f;color:#f2f2f2}"
-            "QLabel{color:#f2f2f2}"
-            "QLineEdit{background:#252529;color:#f2f2f2;border:1px solid #393943;"
-            "border-radius:5px;padding:7px;selection-background-color:#a78bfa}"
-            "QPushButton{background:#252529;color:#f2f2f2;border:0;border-radius:5px;padding:7px 16px}"
+            "QDialog{background:#1c1b22;color:#e0e0e0}"
+            "QLabel{color:#e0e0e0}"
+            "QLineEdit{background:#42414d;color:#e0e0e0;border:1px solid #393943;"
+            "border-radius:5px;padding:7px;selection-background-color:#bb86fc}"
+            "QPushButton{background:#42414d;color:#e0e0e0;border:0;border-radius:5px;padding:7px 16px}"
             "QPushButton:hover{background:#51466b}"
-            "QPushButton[primary=true]{background:#a78bfa;color:#17131f}"
+            "QPushButton[primary=true]{background:#bb86fc;color:#17131f}"
         )
         self.contenuto = QVBoxLayout(self)
         self.contenuto.setContentsMargins(22, 18, 22, 16)
@@ -158,7 +158,7 @@ class Finestrella(QDialog):
         self.casella = None
         if chiedi is not None:
             etichetta = QLabel(chiedi, self)
-            etichetta.setStyleSheet("color:#92929a")
+            etichetta.setStyleSheet("color:#9e9e9e")
             self.contenuto.addWidget(etichetta)
             self.casella = QLineEdit(self)
             self.casella.setText(valore)
@@ -211,11 +211,11 @@ class Tendina(QFrame):
         self.aveva_fuoco = False
         self.setObjectName("xvbTendina")
         self.setStyleSheet(
-            "QFrame#xvbTendina{background:#1b1b1f;border:1px solid #51466b}"
-            "QPushButton{background:transparent;color:#f2f2f2;text-align:left;"
+            "QFrame#xvbTendina{background:#1c1b22;border:1px solid #51466b}"
+            "QPushButton{background:transparent;color:#e0e0e0;text-align:left;"
             "border:0;padding:5px 12px;min-height:20px}"
             "QPushButton:hover{background:#51466b;color:white}"
-            "QPushButton:disabled{color:#92929a}"
+            "QPushButton:disabled{color:#9e9e9e}"
         )
 
     def aperta(self):
@@ -298,7 +298,7 @@ class Tendina(QFrame):
         self._watch_timer.start(150)
 
     def accendi(self, riga, a, b, si):
-        riga.setStyleSheet("background:#51466b" if si else "background:#1b1b1f")
+        riga.setStyleSheet("background:#51466b" if si else "background:#1c1b22")
 
     def scegli(self, cosa):
         self.chiudi()
@@ -326,7 +326,7 @@ class Elenco(QListWidget):
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setSelectionMode(QAbstractItemView.SingleSelection)
         self.setStyleSheet(
-            "QListWidget{background:#1b1b1f;color:#f2f2f2;border:0;outline:0}"
+            "QListWidget{background:#1c1b22;color:#e0e0e0;border:0;outline:0}"
             "QListWidget::item{border:0;padding:0}"
             "QListWidget::item:selected{background:#51466b;color:white}"
         )
@@ -376,11 +376,11 @@ class Elenco(QListWidget):
         item.setData(Qt.UserRole + 2, d.get("logo"))
         item.setData(Qt.UserRole + 3, d.get("colore") or "#9e9e9e")
         item.setData(Qt.UserRole + 4, d.get("tags", ()))
-        colore = QColor(d.get("colore") or "#92929a")
+        colore = QColor(d.get("colore") or "#9e9e9e")
         item.setForeground(colore)
         if d.get("image") is not None and hasattr(d["image"], "toImage"):
             item.setIcon(d["image"])
-        item.setBackground(QColor("#202025") if self.posto[iid] % 2 else QColor("#1b1b1f"))
+        item.setBackground(QColor("#202025") if self.posto[iid] % 2 else QColor("#1c1b22"))
         item.setSizeHint(QSize(self.viewport().width(), max(58 if sotto else 42, self.poster_h + 48)))
 
     def delete(self, *iids):
@@ -612,13 +612,13 @@ class _TelaGuida(QWidget):
             x = g.x_di(t)
             p.setPen(QPen(QColor("#2a2a2a"), 1))
             p.drawLine(round(x), 0, round(x), altezza)
-            p.setPen(QColor("#92929a"))
+            p.setPen(QColor("#9e9e9e"))
             p.drawText(round(x + 6), 18, time.strftime("%H:%M", time.localtime(t)))
             t += 1800
         adesso = time.time()
         for i, (nome, url, ide, prog) in enumerate(g.righe):
             y0 = i * g.RIGA
-            p.fillRect(0, y0, self.width(), g.RIGA, QColor("#1b1b1f" if i % 2 else "#121212"))
+            p.fillRect(0, y0, self.width(), g.RIGA, QColor("#1c1b22" if i % 2 else "#121212"))
             colore = QColor(g.app.colore_canale(nome, url))
             for a, b, titolo in prog:
                 xa, xb = max(g.x_di(a), 0), g.x_di(b)
@@ -633,11 +633,11 @@ class _TelaGuida(QWidget):
                     sfondo = QColor("#303036")
                 p.fillRect(QRect(round(xa + 1), y0 + 6, max(1, round(xb - xa - 2)), g.RIGA - 12), sfondo)
                 if xb - xa > 30:
-                    p.setPen(QColor("#ffffff" if in_onda else "#f2f2f2"))
+                    p.setPen(QColor("#ffffff" if in_onda else "#e0e0e0"))
                     testo = QFontMetrics(p.font()).elidedText(titolo, Qt.ElideRight, max(0, round(xb - xa - 14)))
                     p.drawText(round(xa + 8), y0 + g.RIGA // 2 + 5, testo)
         x = g.x_di(adesso)
-        p.setPen(QPen(QColor("#a78bfa"), 2))
+        p.setPen(QPen(QColor("#bb86fc"), 2))
         p.drawLine(round(x), 0, round(x), altezza)
         p.end()
 
@@ -657,11 +657,11 @@ class _TestaGuida(QWidget):
     def paintEvent(self, evento):
         import time
         p = QPainter(self)
-        p.fillRect(self.rect(), QColor("#1b1b1f"))
+        p.fillRect(self.rect(), QColor("#1c1b22"))
         t = self.guida.da
         while t <= self.guida.fino:
             x = self.guida.x_di(t)
-            p.setPen(QColor("#92929a"))
+            p.setPen(QColor("#9e9e9e"))
             p.drawText(round(x + 6), 19, time.strftime("%H:%M", time.localtime(t)))
             t += 1800
 
