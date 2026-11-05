@@ -287,3 +287,5 @@ Non eseguiti test grafici o prove di rendering. La dissolvenza originale dello s
 - La lettura dei tag e la preparazione dei sottotitoli restano da ottimizzare in un worker dedicato; il percorso drag-and-drop delle cartelle deve ancora essere portato sullo stesso flusso asincrono.
 
 Commit: `aebfa92`. Nessun test runtime eseguito.
+
+- Completata la prima sincronizzazione degli asset originali; il workflow è stato lasciato manuale per evitare download e commit ripetuti a ogni push.
