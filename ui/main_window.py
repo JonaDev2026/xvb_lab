@@ -317,16 +317,6 @@ class MainWindow(QMainWindow):
         self.colori = leggi_colori()
         self._logo_threads = []
         self._cover_threads = []
-        for cartella in self.sessione.config.get("cartelle", []):
-            if os.path.isdir(cartella):
-                locali = self._media_locale(cartella)
-                if locali:
-                    self.sessione.canali.extend(locali)
-                    self.sessione.liste.append({
-                        "percorso": cartella, "nome": os.path.basename(cartella),
-                        "canali": [(n, p, ide) for n, p, ide, _cat, _path in locali],
-                        "categorie": {p: cat for _n, p, _ide, cat, _path in locali},
-                    })
         self.canali = [(n, u, ide) for n, u, ide, _cat, _lista in self.sessione.canali]
         for percorso in self.sessione.config.get("importati", []):
             if not os.path.isfile(percorso) or any(v[1] == percorso for v in self.sessione.canali):
@@ -614,6 +604,38 @@ class MainWindow(QMainWindow):
         self.elenco.avanza = self.avanza
         self._installa_scorciatoie()
         self._aggiorna_overlay_pannelli()
+        QTimer.singleShot(100, self._carica_cartelle_configurate)
+
+
+    def _carica_cartelle_configurate(self):
+        cartelle = [p for p in self.sessione.config.get("cartelle", []) if os.path.isdir(p)]
+        if not cartelle:
+            return
+        worker = _ScansionaCartelle(cartelle, self.tag_cache)
+        worker.completato.connect(self._cartelle_configurate_scansionate)
+        worker.finished.connect(lambda w=worker: self._rimuovi_worker_scansione(w))
+        self.__dict__.setdefault("_scan_workers", []).append(worker)
+        worker.start()
+
+    def _cartelle_configurate_scansionate(self, risultati, errore):
+        if errore:
+            self.riga_stato.setText(_("Some media folders could not be scanned: %s") % errore)
+        gia = {voce["percorso"] for voce in self.sessione.liste}
+        for cartella, elementi in risultati.items():
+            if cartella in gia:
+                continue
+            locali = self._media_locale(cartella, elementi)
+            if not locali:
+                continue
+            self.sessione.canali.extend(locali)
+            self.sessione.liste.append({
+                "percorso": cartella, "nome": os.path.basename(cartella),
+                "canali": [(n, p, ide) for n, p, ide, _cat, _path in locali],
+                "categorie": {p: cat for _n, p, _ide, cat, _path in locali},
+            })
+        self.canali = [(n, u, ide) for n, u, ide, _cat, _lista in self.sessione.canali]
+        self._riempi_liste()
+        self._riempi_elenco()
 
 
     def _focus_blocca_tasti(self):
