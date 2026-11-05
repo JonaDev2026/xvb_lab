@@ -8,7 +8,7 @@ from engine.mpv import MpvVideo
 from ui.widgets import Cursore, Elenco, Finestrella, Ricerca, Guida, Tendina
 from ui.sidebar import Sidebar
 from core.session import Sessione
-from core.media import media_in, AUDIO, tipo_preferiti, PREF_IPTV, PREF_MUSICA, PREF_VIDEO
+from core.media import media_in, AUDIO, e_media, tipo_preferiti, PREF_IPTV, PREF_MUSICA, PREF_VIDEO
 from core.tags import leggi_tag, tag_di, scrivi_tag
 from core.metadata import titolo_anno, dal_percorso, copertina_url, copertina_dentro, poster_film
 from integrations.mpris import avvia_mpris
@@ -1170,15 +1170,24 @@ class MainWindow(QMainWindow):
     def _tipo_preferito(self, voce):
         return tipo_preferiti(voce[1])
 
-    def _preferito_in_onda(self):
+    def _voce_preferibile_in_onda(self):
         url = self.file_in_onda
         if not url or not self.nome_in_onda:
-            return
+            return None
         voce = next((v for v in self.sessione.canali
                      if v[1] == url and v[4] not in (
                          "__favorite__", "__favorite_music__", "__favorite_video__")), None)
+        if voce is None and os.path.isabs(url) and e_media(url):
+            estensione = os.path.splitext(url)[1][1:].lower()
+            categoria = "Music" if estensione in AUDIO else "Video"
+            voce = (self.nome_in_onda, url, self.ide_in_onda, categoria, "__importati__")
+        return voce
+
+    def _preferito_in_onda(self):
+        voce = self._voce_preferibile_in_onda()
         if voce is None:
             return
+        url = voce[1]
         tipo = self._tipo_preferito(voce)
         if any(v[1] == url for v in leggi_preferiti(tipo)):
             self.rimuovi_preferito(url, tipo)
@@ -1190,14 +1199,12 @@ class MainWindow(QMainWindow):
         pulsante = self._pulsanti.get("favorite")
         if pulsante is None:
             return
-        url = self.file_in_onda
-        voce = next((v for v in self.sessione.canali if v[1] == url), None) if url else None
-        possibile = bool(voce and voce[4] not in (
-            "__favorite__", "__favorite_music__", "__favorite_video__"))
+        voce = self._voce_preferibile_in_onda()
+        possibile = voce is not None
         pulsante.setVisible(possibile)
         if possibile:
             tipo = self._tipo_preferito(voce)
-            acceso = any(v[1] == url for v in leggi_preferiti(tipo))
+            acceso = any(v[1] == voce[1] for v in leggi_preferiti(tipo))
             nome = "favorite_on" if acceso else "favorite_off"
             percorso = os.path.join(QUI, "icone", nome + ".png")
             if os.path.isfile(percorso):
