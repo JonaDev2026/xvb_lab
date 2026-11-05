@@ -1626,6 +1626,7 @@ class MainWindow(QMainWindow):
                 sposta.addAction(_(etichetta), lambda _=False, k=chiave, u=url: self.sposta_url(u, k))
             menu.addAction(_("Remove URL"), lambda: self.rimuovi_url(url))
         elif valore and valore[0] == "__epg__":
+            menu.addAction(_("Rename..."), lambda: self.rinomina_guida(valore[1]))
             menu.addAction(_("Remove guide"), lambda: self.togli_epg(valore[1]))
         elif valore and valore[0] == "__imported_file__":
             menu.addAction(_("Set cover..."), lambda: self.metti_copertina(valore[1]))
@@ -1816,6 +1817,16 @@ class MainWindow(QMainWindow):
         return (self.sessione.config.get("epg_nomi_utente", {}).get(dove)
                 or self.sessione.config.get("epg_nomi", {}).get(dove)
                 or nome_epg(dove))
+
+    def rinomina_guida(self, dove):
+        nome = self._chiedi_testo(_("Rename..."), _("Name:"), self.nome_guida(dove))
+        if nome is None or not nome.strip():
+            return
+        self.sessione.config.setdefault("epg_nomi_utente", {})[dove] = nome.strip()
+        scrivi_config(self.sessione.config)
+        self._riempi_liste()
+        if self._guida_selezionata == dove:
+            self.riga_stato.setText(self.nome_guida(dove))
 
     def togli_epg_selezionata(self):
         if self._guida_selezionata:
@@ -2059,7 +2070,7 @@ class MainWindow(QMainWindow):
         for indice, guida in enumerate(guide_config):
             iid = "epg:%d" % indice
             self.el_liste.insert(epg, "end", iid=iid,
-                                 text=" " + os.path.basename(str(guida)))
+                                 text=" " + self.nome_guida(guida))
             self.el_liste.item(iid, valore=("__epg__", guida))
         m3u = self.el_liste.insert(iptv, "end", iid="m3u",
                                    text=" M3U (%d)" % sum(1 for v in self.sessione.liste if not os.path.isdir(v["percorso"])),
