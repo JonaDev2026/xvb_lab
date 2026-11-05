@@ -395,6 +395,8 @@ class MainWindow(QMainWindow):
         controlli.addStretch(1)
         pulsante("favorite", "favorite_off", self._preferito_in_onda, 24, _("Favorite"))
         pulsante("pip", "pip", self.pip_si_no, 24, "PiP")
+        self.speed_button = pulsante("speed", "x1", self.gira_velocita, 24, _("Playback speed"))
+        self.speed_button.hide()
         pulsante("split", "setting", self.split_si_no, 24, _("Split screen"))
         pulsante("sidebar", "playlist", self._sidebar, 24, _("Playlists"))
         pulsante("fullscreen", "pieno", self.schermo_intero, 24, _("Fullscreen"))
@@ -2397,9 +2399,19 @@ class MainWindow(QMainWindow):
                 return
             self.velocita = valore
             self._imposta("speed", valore)
+            if valore == 1:
+                self.speed_button.hide()
+            else:
+                self.speed_button.setText("x%g" % valore)
+                self.speed_button.show()
             self._messaggio_temporaneo(_("speed x%g") % valore)
         except Exception:
             pass
+
+    def gira_velocita(self):
+        valori = (1, 1.25, 1.5, 2, 0.5, 0.75)
+        indice = valori.index(self.velocita) if self.velocita in valori else 0
+        self.metti_velocita(valori[(indice + 1) % len(valori)])
 
     def imposta_timer_spegnimento(self, minuti):
         self.annulla_timer_spegnimento(silenzioso=True)
