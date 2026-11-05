@@ -1,10 +1,7 @@
-from .dialogs import Finestrella, SCORRE, Tendina
-from .guide import Guida
-from .list import Elenco
 from .sidebar import Sidebar
-from .widgets import Cursore, Ricerca
+from .widgets import Cursore, Elenco, Finestrella, Guida, Ricerca, SCORRE, Tendina
 
 __all__ = (
-    "Cursore", "Elenco", "Finestrella",
-    "Guida", "Ricerca", "SCORRE", "Sidebar", "Tendina",
+    "Cursore", "Elenco", "Finestrella", "Guida",
+    "Ricerca", "SCORRE", "Sidebar", "Tendina",
 )
