@@ -9,6 +9,7 @@ import time
 from core.epg import nome_piatto
 from core.colors import colore_sfondo_guida
 from i18n import _
+from core.constants import FONDO, PANNELLO, TESTO, GRIGIO, SCELTO, ZEBRA, IN_ONDA2
 
 SCORRE = object()
 
@@ -53,9 +54,9 @@ class Elenco(QListWidget):
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setSelectionMode(QAbstractItemView.SingleSelection)
         self.setStyleSheet(
-            "QListWidget{background:#1c1b22;color:#e0e0e0;border:0;outline:0}"
+            "QListWidget{background:%s;color:%s;border:0;outline:0}" % (PANNELLO, TESTO)
             "QListWidget::item{border:0;padding:0}"
-            "QListWidget::item:selected{background:#51466b;color:white}"
+            "QListWidget::item:selected{background:%s;color:white}" % SCELTO
         )
         self.voci, self.posto, self.dati = [], {}, {}
         self.scelta = None
@@ -107,7 +108,7 @@ class Elenco(QListWidget):
         item.setForeground(colore)
         if d.get("image") is not None and hasattr(d["image"], "toImage"):
             item.setIcon(d["image"])
-        item.setBackground(QColor("#202025") if self.posto[iid] % 2 else QColor("#1c1b22"))
+        item.setBackground(QColor(ZEBRA) if self.posto[iid] % 2 else QColor(FONDO))
         item.setSizeHint(QSize(self.viewport().width(), max(58 if sotto else 42, self.poster_h + 48)))
 
     def delete(self, *iids):
@@ -273,9 +274,9 @@ class _ElencoDelegate(QStyledItemDelegate):
         colore = QColor(d.get("colore") or "#9e9e9e")
         rett = option.rect
         selezionato = iid == e.scelta and e.hasFocus()
-        sfondo = QColor("#42414d") if selezionato else (
-            QColor("#42414d") if "onda" in tags else
-            QColor("#2b2a33") if index.row() % 2 else QColor("#1c1b22"))
+        sfondo = QColor(SCELTO) if selezionato else (
+            QColor(IN_ONDA2) if "onda" in tags else
+            QColor(ZEBRA) if index.row() % 2 else QColor(FONDO))
         painter.save()
         painter.fillRect(rett, sfondo)
         poster_h = e.poster_h or (e.poster_onda_h if "onda" in tags else 0)
@@ -299,7 +300,7 @@ class _ElencoDelegate(QStyledItemDelegate):
             x_testo = rett.left() + colonna + 18
         else:
             x_testo = rett.left() + 12
-        painter.setPen(QColor("#ffffff" if selezionato else "#e0e0e0"))
+        painter.setPen(QColor("#ffffff" if selezionato else TESTO))
         font = painter.font()
         font.setBold(True)
         painter.setFont(font)
@@ -337,7 +338,7 @@ class _ElencoDelegate(QStyledItemDelegate):
                     painter.drawPixmap(rett.left() + 4, rett.top() + 3,
                                        pix, 0, 0, rett.width() - 8, poster_h)
                 elif titolo:
-                    painter.setPen(QColor("#9e9e9e"))
+                    painter.setPen(QColor(GRIGIO))
                     painter.drawText(rett.left() + 8, rett.top() + poster_h,
                                      str(titolo))
             except Exception:
