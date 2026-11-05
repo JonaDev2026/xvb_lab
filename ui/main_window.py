@@ -407,6 +407,17 @@ class MainWindow(QMainWindow):
                 voce.setData(0, Qt.UserRole, (lista["percorso"], categoria))
                 radice.addChild(voce)
             radice.setExpanded(True)
+        if self.sessione.preferiti:
+            preferiti = QTreeWidgetItem(["Favorites"])
+            preferiti.setData(0, Qt.UserRole, ("__favorite__", None))
+            self.el_liste.addTopLevelItem(preferiti)
+            categorie = sorted({voce[3] or "MyPlaylist" for voce in self.sessione.preferiti},
+                               key=str.casefold)
+            for categoria in categorie:
+                voce = QTreeWidgetItem([categoria])
+                voce.setData(0, Qt.UserRole, ("__favorite__", categoria))
+                preferiti.addChild(voce)
+            preferiti.setExpanded(True)
 
     def _scegli_voce_liste(self, item, _colonna=0):
         dati = item.data(0, Qt.UserRole)
