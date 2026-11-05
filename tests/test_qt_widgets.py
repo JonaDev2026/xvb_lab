@@ -123,6 +123,18 @@ class QtWidgetTests(unittest.TestCase):
                                  [("Evening News", path, None, "20:30", "__recordings__")])
             window.close()
             self.app.processEvents()
+    def test_local_progress_requests_missing_duration_asynchronously(self):
+        with patch("ui.main_window.MpvVideo", side_effect=RuntimeError("libmpv unavailable")):
+            window = MainWindow()
+            path = "/tmp/recording.mkv"
+            window._canali_visibili = [("Recording", path, None, "20:30", "__recordings__")]
+            window.sessione.config.setdefault("posizioni", {})[path] = 15.0
+            window.sessione.config.setdefault("durate", {}).pop(path, None)
+            with patch.object(window, "cerca_durata") as cerca:
+                self.assertIsNone(window._progresso_di("0"))
+                cerca.assert_called_once_with(path)
+            window.close()
+            self.app.processEvents()
 
 if __name__ == "__main__":
     unittest.main()
