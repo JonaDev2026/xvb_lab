@@ -1,12 +1,12 @@
-from PySide6.QtCore import Qt, QUrl
+from PySide6.QtCore import Qt, QUrl, QThread, Signal
 from PySide6.QtGui import QAction, QKeySequence, QIcon
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QFrame, QVBoxLayout, QHBoxLayout, QLabel,
     QPushButton, QFileDialog, QInputDialog, QMessageBox, QSlider, QComboBox
 )
 from engine.mpv import MpvVideo
-from ui.widgets import Elenco, Ricerca
-from core.session import Sessione
+from ui.widgets import Elenco, Ricerca, Guida
+from core.session import Sessione\n\n\nclass _CaricaGuide(QThread):\n    completato = Signal()\n\n    def __init__(self, sessione):\n        super().__init__()\n        self.sessione = sessione\n\n    def run(self):\n        self.sessione.carica_guide()\n        self.completato.emit()
 
 
 class MainWindow(QMainWindow):
@@ -44,7 +44,7 @@ class MainWindow(QMainWindow):
         sx = QVBoxLayout(self.sinistra)
         sx.setContentsMargins(8, 8, 8, 8)
         sx.setSpacing(6)
-        self.sessione = Sessione()
+        self.root = self\n        self.sessione = Sessione()\n        self.canali = [(n, u, ide) for n, u, ide, _cat, _lista in self.sessione.canali]\n        self.epg = self.sessione.epg\n        self.epg_nomi = self.sessione.epg_nomi\n        self._thread_epg = _CaricaGuide(self.sessione)\n        self._thread_epg.completato.connect(self._epg_pronto)\n        self._thread_epg.start()
         self.selettore_lista = QComboBox(self.sinistra)
         self.selettore_lista.addItem("All playlists", None)
         for lista in self.sessione.liste:
@@ -146,9 +146,40 @@ class MainWindow(QMainWindow):
         playback = self.menuBar().addMenu("Playback")
         playback.addAction(self._azione("Play / Pause", self.pausa, "Space"))
         playback.addAction(self._azione("Stop", self.ferma, "S"))
-        view = self.menuBar().addMenu("View")
+        iptv = self.menuBar().addMenu("IPTV")\n        iptv.addAction(self._azione("Programme guide", self.apri_guida))\n        iptv.addAction(self._azione("Reload guide", self.ricarica_guida))\n        view = self.menuBar().addMenu("View")
         view.addAction(self._azione("Fullscreen", self.schermo_intero, "F"))
 
+
+
+    def _epg_pronto(self):
+        self.epg = self.sessione.epg
+        self.epg_nomi = self.sessione.epg_nomi
+        self.riga_stato.setText("EPG ready")
+
+    def ricarica_guida(self):
+        if self._thread_epg.isRunning():
+            return
+        self.sessione.epg = {}
+        self.sessione.epg_nomi = {}
+        self._thread_epg = _CaricaGuide(self.sessione)
+        self._thread_epg.completato.connect(self._epg_pronto)
+        self._thread_epg.start()
+
+    def apri_guida(self):
+        if not self.epg:
+            self.riga_stato.setText("EPG data not available")
+            return
+        self.canali = [(n, u, ide) for n, u, ide, _cat, _lista in self.sessione.canali]
+        self.epg = self.sessione.epg
+        self.epg_nomi = self.sessione.epg_nomi
+        self._finestra_guida = Guida(self)
+        self._finestra_guida.show()
+
+    def colore_canale(self, nome, url):
+        return "#a78bfa"
+
+    def apri_canale_guida(self, nome, url, ide=None):
+        self.apri(url)
 
     def _cambia_lista(self, _indice=None):
         percorso = self.selettore_lista.currentData()
@@ -200,7 +231,7 @@ class MainWindow(QMainWindow):
         if ok and url.strip():
             self.apri(url.strip())
 
-    def apri(self, percorso):
+    def apri(self, percorso, url=None, ide=None):\n        if url is not None:\n            percorso = url
         if self.player is None:
             QMessageBox.warning(self, "XVB", "libmpv non disponibile")
             return
