@@ -327,3 +327,8 @@ Commit: `19b6e1b`. Nessun test runtime eseguito.
 - Le barre di avanzamento dell'elenco ora mostrano anche il progresso dei file locali, oltre a quello dei programmi EPG.
 
 Commit: `1d6b011`. Nessun test runtime eseguito.
+
+
+- Le cartelle locali vengono ordinate alfabeticamente per titolo dopo la lettura dei tag, ripristinando l'ordine definitivo usato dalla Stable per Music e Video.
+
+Commit: `6263f41`.
