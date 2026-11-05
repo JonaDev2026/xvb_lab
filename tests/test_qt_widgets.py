@@ -1,5 +1,4 @@
 import json
-import json
 import time
 import hashlib
 import os
@@ -26,8 +25,7 @@ class QtWidgetTests(unittest.TestCase):
                 stream.write(b"video")
             preparati = [("Imported Film", percorso, None, "Video", root, "2022")]
             risultati = []
-            with patch("ui.main_window.media_in", return_value=[]), \\
-                 patch("ui.main_window._prepara_file_cartella", return_value=preparati) as prepara:
+            with patch("ui.main_window.media_in", return_value=[]), patch("ui.main_window._prepara_file_cartella", return_value=preparati) as prepara:
                 worker = _ScansionaCartelle([], {}, [percorso], ())
                 worker.completato.connect(lambda dati, errore: risultati.append((dati, errore)))
                 worker.run()
