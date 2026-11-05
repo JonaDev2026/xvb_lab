@@ -19,6 +19,26 @@ CACHE_POSTER = os.path.join(CASA, ".cache", "xvb", "poster")
 EPG_ICONE = {}
 EPG_ICONE_NOME = {}
 
+def guide_da_aggiornare(percorsi, caricata_il, tentata_il, ora=None):
+    ora = time.time() if ora is None else ora
+    if not percorsi or ora - tentata_il < 3600:
+        return False
+    for dove in percorsi:
+        if os.path.isfile(dove):
+            try:
+                if os.path.getmtime(dove) > caricata_il:
+                    return True
+            except OSError:
+                continue
+        else:
+            cache = os.path.join(CACHE_EPG, hashlib.md5(dove.encode()).hexdigest())
+            try:
+                if not os.path.isfile(cache) or ora - os.path.getmtime(cache) >= EPG_VECCHIA:
+                    return True
+            except OSError:
+                return True
+    return False
+
 
 def ora_xmltv(t):
     m = re.match(r"(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})?\s*([+-]\d{4})?", t or "")
