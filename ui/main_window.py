@@ -1,4 +1,5 @@
 import hashlib
+import random
 import shutil
 from pathlib import Path
 
@@ -6,6 +7,7 @@ from PySide6.QtCore import Qt, QTimer, QDateTime, QThread, QObject, Signal, QSiz
 from PySide6.QtGui import QAction, QBrush, QColor, QIcon, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (
     QFileDialog,
+    QActionGroup,
     QFrame,
     QHBoxLayout,
     QLabel,
@@ -115,10 +117,15 @@ class MainWindow(QMainWindow):
         self.config.setdefault("recent", [])
         self.config.setdefault("volume", 100)
         self.config.setdefault("muted", False)
+        self.config.setdefault("shuffle", False)
+        self.config.setdefault("repeat", "")
         self._scan_threads = []
         self._metadata_threads = []
         self._media_tree_items = {}
         self._current_media_path = None
+        self._end_handled = False
+        self._seen_playback = False
+        self._normal_media_order = []
         self.previous_button = None
         self.next_button = None
         self._vinyl_icons = {}
@@ -212,6 +219,9 @@ class MainWindow(QMainWindow):
         self._clock.timeout.connect(self._update_clock)
         self._clock.start(1000)
         self._update_clock()
+        self._end_timer = QTimer(self)
+        self._end_timer.timeout.connect(self._check_playback_end)
+        self._end_timer.start(500)
         self.engine.command("set_property", "volume", str(self.volume_slider.value()))
         self.engine.command("set_property", "mute", "yes" if self.config.get("muted", False) else "no")
 
@@ -290,10 +300,19 @@ class MainWindow(QMainWindow):
         self._action(playback, "Previous", enabled=False)
         self._action(playback, "Next", enabled=False)
         playback.addSeparator()
-        self._action(playback, "Shuffle", enabled=False)
-        self._action(playback, "No repeat", enabled=False)
-        self._action(playback, "Repeat one", enabled=False)
-        self._action(playback, "Repeat all", enabled=False)
+        self.shuffle_action = self._action(playback, "Shuffle", self.toggle_shuffle)
+        self.shuffle_action.setCheckable(True)
+        self.shuffle_action.setChecked(bool(self.config.get("shuffle", False)))
+        playback.addSeparator()
+        repeat_group = QActionGroup(self)
+        repeat_group.setExclusive(True)
+        self.repeat_actions = {}
+        for key, label in (("", "No repeat"), ("one", "Repeat one"), ("all", "Repeat all")):
+            action = self._action(playback, label, lambda checked=False, mode=key: self.set_repeat(mode))
+            action.setCheckable(True)
+            repeat_group.addAction(action)
+            self.repeat_actions[key] = action
+        self.repeat_actions.get(self.config.get("repeat", ""), self.repeat_actions[""]).setChecked(True)
         self._action(playback, "Chapters", enabled=False)
         for speed in ("0.5", "0.75", "1", "1.25", "1.5", "2"):
             self._action(playback, f"Speed x{speed}", enabled=False)
@@ -826,6 +845,9 @@ class MainWindow(QMainWindow):
             query = self.search.text().casefold().strip()
             item.setHidden(bool(query) and query not in item.text(0).casefold())
         self.media_tree.sortItems(0, Qt.SortOrder.AscendingOrder)
+        self._normal_media_order = [self.media_tree.topLevelItem(i).data(0, Qt.ItemDataRole.UserRole) for i in range(self.media_tree.topLevelItemCount())]
+        if self.config.get("shuffle"):
+            self._apply_shuffle()
         self._update_playback_navigation()
 
     def media_context_menu(self, position):
@@ -894,6 +916,8 @@ class MainWindow(QMainWindow):
     def _play_media_path(self, path):
         if not path or not Path(path).is_file():
             return
+        self._end_handled = False
+        self._seen_playback = False
         self.engine.load(path)
         self._current_media_path = str(path)
         self._add_recent(str(path))
@@ -923,15 +947,91 @@ class MainWindow(QMainWindow):
         if self.next_button is not None:
             self.next_button.setEnabled(0 <= index < len(paths) - 1)
 
-    def _play_adjacent_media(self, offset):
+    def _play_adjacent_media(self, offset, wrap=False):
         paths = self._visible_media_paths()
         try:
             index = paths.index(self._current_media_path)
         except ValueError:
             return
         target = index + offset
+        if wrap and paths:
+            target %= len(paths)
         if 0 <= target < len(paths):
             self._play_media_path(paths[target])
+
+    def _apply_shuffle(self):
+        paths = self._visible_media_paths()
+        if not paths:
+            return
+        current = self._current_media_path
+        random.shuffle(paths)
+        if current in paths:
+            paths.remove(current)
+            paths.insert(0, current)
+        items = {}
+        for index in range(self.media_tree.topLevelItemCount()):
+            item = self.media_tree.topLevelItem(index)
+            path = item.data(0, Qt.ItemDataRole.UserRole)
+            if path:
+                items[str(path)] = item
+        self.media_tree.setSortingEnabled(False)
+        for index in range(self.media_tree.topLevelItemCount() - 1, -1, -1):
+            self.media_tree.takeTopLevelItem(index)
+        for path in paths:
+            if path in items:
+                self.media_tree.addTopLevelItem(items.pop(path))
+        for item in items.values():
+            self.media_tree.addTopLevelItem(item)
+        self._update_playback_navigation()
+
+    def toggle_shuffle(self):
+        enabled = not bool(self.config.get("shuffle", False))
+        self.config["shuffle"] = enabled
+        self.shuffle_action.setChecked(enabled)
+        if enabled:
+            self._apply_shuffle()
+        elif self._normal_media_order:
+            items = {}
+            for index in range(self.media_tree.topLevelItemCount()):
+                item = self.media_tree.topLevelItem(index)
+                path = item.data(0, Qt.ItemDataRole.UserRole)
+                if path:
+                    items[str(path)] = item
+            self.media_tree.setSortingEnabled(False)
+            for index in range(self.media_tree.topLevelItemCount() - 1, -1, -1):
+                self.media_tree.takeTopLevelItem(index)
+            for path in self._normal_media_order:
+                if path in items:
+                    self.media_tree.addTopLevelItem(items.pop(path))
+            for item in items.values():
+                self.media_tree.addTopLevelItem(item)
+            self._update_playback_navigation()
+        save_config(self.config)
+
+    def set_repeat(self, mode):
+        self.config["repeat"] = mode
+        self.repeat_actions[mode].setChecked(True)
+        save_config(self.config)
+
+    def _check_playback_end(self):
+        if not self._current_media_path or self._end_handled:
+            return
+        eof = self.engine.get_flag("eof-reached")
+        if not eof:
+            self._seen_playback = True
+            return
+        if not self._seen_playback:
+            return
+        self._end_handled = True
+        mode = self.config.get("repeat", "")
+        if mode == "one":
+            self._play_media_path(self._current_media_path)
+        elif mode == "all":
+            self._play_adjacent_media(1, wrap=True)
+        else:
+            self._current_media_path = None
+            self.playback_status.setText("finished")
+            self._update_playback_navigation()
 
     def play_previous(self):
         self._play_adjacent_media(-1)
@@ -982,6 +1082,7 @@ class MainWindow(QMainWindow):
 
     def stop_playback(self):
         self.engine.stop()
+        self._end_handled = True
         self._current_media_path = None
         self.title_status.clear()
         self.playback_status.setText("stopped")
@@ -995,6 +1096,8 @@ class MainWindow(QMainWindow):
                 self.config["imported"].append(path)
                 save_config(self.config)
             self._populate_local_tree()
+            self._end_handled = False
+            self._seen_playback = False
             self.engine.load(path)
             self._current_media_path = path
             self._add_recent(path)
