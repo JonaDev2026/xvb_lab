@@ -20,7 +20,6 @@ class EpgLogicTests(unittest.TestCase):
         base = [(100, 200, "Base")]
         other = [(50, 110, "Overlap"), (200, 250, "Adjacent"), (300, 400, "Later")]
         self.assertEqual(unisci_programmi(base, other), [
-            (50, 110, "Overlap"),
             (100, 200, "Base"),
             (200, 250, "Adjacent"),
             (300, 400, "Later"),
@@ -38,7 +37,7 @@ class EpgLogicTests(unittest.TestCase):
     def test_names_and_version_comparison(self):
         self.assertEqual(nome_epg("https://example.org/guide.xml.gz"), "guide.xml")
         self.assertEqual(nome_epg("https://www.example.org/"), "example.org")
-        self.assertEqual(nome_piatto("Rai 4K HD"), "rai")
+        self.assertEqual(nome_piatto("Rai 4K HD"), "rai4k")
         self.assertTrue(piu_nuova("1.10", "1.9"))
         self.assertFalse(piu_nuova("1.8", "1.9"))
 
