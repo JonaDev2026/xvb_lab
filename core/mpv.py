@@ -1,9 +1,13 @@
 import ctypes
 import ctypes.util
+import os
 
 from PySide6.QtCore import Qt, Signal, QTimer
 from PySide6.QtGui import QSurfaceFormat
 from PySide6.QtOpenGLWidgets import QOpenGLWidget
+
+from .config import CASA
+from .constants import UA
 
 
 class _RenderParam(ctypes.Structure):
@@ -77,6 +81,21 @@ class MpvPlayer(QOpenGLWidget):
             "keep-open": "yes",
             "input-default-bindings": "no",
             "input-vo-keyboard": "no",
+            "cache": "yes",
+            "network-timeout": "60",
+            "ytdl": "no",
+            "hwdec": "auto-safe",
+            "force-window": "yes",
+            "volume-max": "150",
+            "user-agent": UA,
+            "cursor-autohide": "3000",
+            "screenshot-directory": os.path.join(CASA, "Pictures", "xvb"),
+            "screenshot-template": "xvb-%tY-%tm-%td_%tH-%tM-%tS",
+            "stream-lavf-o": (
+                "reconnect=1,reconnect_streamed=1,"
+                "reconnect_on_network_error=1,reconnect_delay_max=10"
+            ),
+            "audio-display": "embedded-first",
         }
         if options:
             predefinite.update(options)
