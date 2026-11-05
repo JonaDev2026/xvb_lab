@@ -1,7 +1,7 @@
 from PySide6.QtCore import Qt, QUrl, QThread, Signal, QTimer
 from PySide6.QtGui import QAction, QKeySequence, QIcon, QDesktopServices
 from PySide6.QtWidgets import (
-    QMainWindow, QWidget, QFrame, QVBoxLayout, QHBoxLayout, QLabel,
+    QMainWindow, QWidget, QFrame, QVBoxLayout, QHBoxLayout, QLabel, QDialog,
     QPushButton, QFileDialog, QInputDialog, QMessageBox, QSlider, QTreeWidget, QTreeWidgetItem
 )
 from engine.mpv import MpvVideo
@@ -82,12 +82,13 @@ class MainWindow(QMainWindow):
         self._riempi_elenco()
 
         self.video = QWidget(self.contenuto)
-        self.video_layout = QVBoxLayout(self.video)
+        self.video_layout = QHBoxLayout(self.video)
         self.video_layout.setContentsMargins(0, 0, 0, 0)
         self.video_layout.setSpacing(0)
         try:
             self.player = MpvVideo(self.video)
             self.video_layout.addWidget(self.player, 1)
+            self.player.installEventFilter(self)
         except Exception as errore:
             self.player = None
             avviso = QLabel("libmpv: " + str(errore), self.video)
@@ -156,6 +157,12 @@ class MainWindow(QMainWindow):
         self.volume.valueChanged.connect(self._volume)
         self.posizione.sliderReleased.connect(self._seek)
         self._pieno = False
+        self.player2 = None
+        self.player_pip = None
+        self.pip_window = None
+        self._chiudendo_pip = False
+        self.split = False
+        self.schermo_attivo = 0
         self.nome_in_onda = ""
         self.ide_in_onda = None
         self.file_in_onda = None
@@ -249,36 +256,43 @@ class MainWindow(QMainWindow):
         iptv.addAction(self._azione("Open recordings folder", self.apri_registrazioni))
         view = self.menuBar().addMenu("View")
         view.addAction(self._azione("Fullscreen", self.schermo_intero, "F"))
+        view.addAction(self._azione("Picture in picture", self.pip_si_no))
+        view.addAction(self._azione("Split screen", self.split_si_no, "F2"))
         help_menu = self.menuBar().addMenu("Help")
         help_menu.addAction(self._azione("About XVB", self.informazioni))
 
 
 
 
-    def _comando(self, *argomenti):
-        if self.player:
-            self.player.comando(*argomenti)
+    def _attivo(self):
+        return self.player2 if self.split and self.schermo_attivo == 1 and self.player2 else self.player\n\n    def _comando(self, *argomenti):
+        player = self._attivo()\n        if player:\n            player.comando(*argomenti)
 
     def _imposta(self, nome, valore):
-        if self.player:
-            self.player.imposta(nome, valore)
+        player = self._attivo()
+        if player:
+            player.imposta(nome, valore)
 
     def _ciclo(self, nome):
-        if self.player:
-            self.player.ciclo(nome)
+        player = self._attivo()
+        if player:
+            player.ciclo(nome)
 
     def _ciclo_valori(self, nome, *valori):
-        if self.player:
-            self.player.comando("cycle-values", nome, *valori)
+        player = self._attivo()
+        if player:
+            player.comando("cycle-values", nome, *valori)
 
     def _regola(self, nome, valore):
-        if self.player:
-            self.player.regola(nome, valore)
+        player = self._attivo()
+        if player:
+            player.regola(nome, valore)
 
     def _azzera_video(self):
-        if self.player:
+        player = self._attivo()
+        if player:
             for nome in ("brightness", "contrast", "saturation", "gamma", "hue"):
-                self.player.imposta(nome, 0)
+                player.imposta(nome, 0)
 
 
     def aggiungi_lista_url(self):
@@ -593,7 +607,8 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, "XVB", "libmpv non disponibile")
             return
         try:
-            self.player.apri(percorso)
+            player = self._attivo()
+            player.apri(percorso)
             self.file_in_onda = percorso
             self.nome_in_onda = nome or os.path.basename(percorso.rstrip("/")) or percorso
             self.ide_in_onda = ide
@@ -603,27 +618,123 @@ class MainWindow(QMainWindow):
             QMessageBox.critical(self, "XVB", str(errore))
 
     def pausa(self):
-        if self.player:
-            self.player.pausa()
-            self.play_button.setText("▶" if self.player.leggi("pause") == "yes" else "Ⅱ")
+        player = self._attivo()
+        if player:
+            player.pausa()
+            self.play_button.setText("▶" if player.leggi("pause") == "yes" else "Ⅱ")
 
     def ferma(self):
-        if self.player:
-            self.player.ferma()
+        player = self._attivo()
+        if player:
+            player.ferma()
             self.file_in_onda = None
             self.nome_in_onda = ""
             self.play_button.setText("▶")
             self.riga_stato.setText("XVB")
 
     def _volume(self, valore):
-        if self.player:
-            self.player.volume(valore)
+        player = self._attivo()
+        if player:
+            player.volume(valore)
 
     def _seek(self):
-        if self.player:
-            durata = self.player.leggi("duration")
+        player = self._attivo()
+        if player:
+            durata = player.leggi("duration")
             if durata:
-                self.player.seek(float(durata) * self.posizione.value() / 1000.0)
+                player.seek(float(durata) * self.posizione.value() / 1000.0)
+
+
+    def eventFilter(self, oggetto, evento):
+        if evento.type() == evento.Type.MouseButtonPress:
+            if oggetto is self.player:
+                self.schermo_attivo = 0
+            elif oggetto is self.player2:
+                self.schermo_attivo = 1
+        return super().eventFilter(oggetto, evento)
+
+    def split_si_no(self):
+        if self.split:
+            self.chiudi_split()
+        else:
+            self.apri_split()
+
+    def apri_split(self):
+        if self.player is None or self.pip_window is not None:
+            return
+        try:
+            self.player2 = MpvVideo(self.video, options={"mute": "yes"})
+            self.player2.installEventFilter(self)
+            self.video_layout.addWidget(self.player2, 1)
+            self.split = True
+            self.schermo_attivo = 0
+        except Exception as errore:
+            self.player2 = None
+            self.riga_stato.setText("Split screen failed: " + str(errore))
+
+    def chiudi_split(self):
+        if not self.split:
+            return
+        self.schermo_attivo = 0
+        self.split = False
+        self.player2.ferma()
+        self.video_layout.removeWidget(self.player2)
+        self.player2.chiudi()
+        self.player2.setParent(None)
+        self.player2.deleteLater()
+        self.player2 = None
+
+    def pip_si_no(self):
+        if self.pip_window is not None:
+            self.esci_pip()
+            return
+        if not self.player or not self.file_in_onda:
+            return
+        try:
+            posizione = float(self.player.leggi("time-pos") or 0)
+            self.player.pausa(True)
+            self.pip_window = QDialog(self, Qt.Tool | Qt.WindowStaysOnTopHint)
+            self.pip_window.setWindowTitle("XVB")
+            layout = QVBoxLayout(self.pip_window)
+            layout.setContentsMargins(0, 0, 0, 0)
+            self.player_pip = MpvVideo(self.pip_window)
+            layout.addWidget(self.player_pip)
+            self.player_pip.apri(self.file_in_onda)
+            if posizione:
+                self.player_pip.seek(posizione)
+            self.pip_window.resize(480, 270)
+            self.pip_window.finished.connect(self._pip_finestra_chiusa)
+            self.pip_window.show()
+        except Exception as errore:
+            self.riga_stato.setText("Picture in picture failed: " + str(errore))
+            self.esci_pip()
+
+    def _pip_finestra_chiusa(self, *_):
+        if not self._chiudendo_pip:
+            self.esci_pip(chiudi_finestra=False)
+
+    def esci_pip(self, chiudi_finestra=True):
+        if self.pip_window is None:
+            return
+        finestra, player = self.pip_window, self.player_pip
+        self.pip_window = None
+        self.player_pip = None
+        self._chiudendo_pip = True
+        posizione = 0.0
+        if player:
+            try:
+                posizione = float(player.leggi("time-pos") or 0)
+                player.chiudi()
+            except Exception:
+                pass
+        if chiudi_finestra:
+            finestra.close()
+        finestra.deleteLater()
+        self._chiudendo_pip = False
+        if self.player:
+            if posizione:
+                self.player.seek(posizione)
+            self.player.pausa(False)
 
     def schermo_intero(self):
         if self.isFullScreen():
