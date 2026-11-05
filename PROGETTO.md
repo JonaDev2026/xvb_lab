@@ -423,7 +423,7 @@ XVB Lab potrà essere considerata equivalente alla Stable solo quando:
 - [x] Motore libmpv con Qt Render API in `engine/mpv.py`, superficie OpenGL Qt, comandi, proprietà ed eventi.
 - [x] Integrazione MPRIS in `integrations/mpris.py`.
 - [x] Finestra applicativa in `ui/main_window.py`, avvio da `main.py`.
-- [x] Widget UI suddivisi in moduli: `ui/search.py`, `ui/dialogs.py`, `ui/list.py`, `ui/guide.py`.
+- [x] Widget UI suddivisi in moduli: `ui/search.py`, `ui/dialogs.py`, `ui/list.py`, `ui/guide.py`, `ui/sidebar.py`, `ui/hud.py`.
 - [x] Albero laterale Qt6 in `ui/sidebar.py`, collegato a playlist M3U/categorie, guide EPG, libreria locale, dischi, registrazioni, preferiti e cartelle URL salvate/temporanee (Podcast, Music, Radio, IP cam, Film, Video).
 - [x] Controlli player, seek, volume, repeat, shuffle, preferiti, fullscreen, PiP e split screen collegati alle funzioni presenti nel controller.
 - [x] HUD video Qt per timer di spegnimento e registrazione, con indicatore REC pulsante e posizionamento sullo schermo attivo in modalità split.
