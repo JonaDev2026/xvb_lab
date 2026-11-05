@@ -363,8 +363,8 @@ Questa fase è il blocco tecnico più importante. Non iniziare a trasferire tutt
 - [ ] Unione guide e associazione canali.
 - [x] Finestra guida.
 - [x] Programmi attuali/successivi.
-- [ ] Registrazione immediata.
-- [ ] Programmazione e gestione registrazioni.
+- [x] Registrazione immediata.
+- [x] Programmazione e gestione registrazioni.
 
 ### Fase 5 — Libreria locale
 - [ ] Scansione cartelle.
