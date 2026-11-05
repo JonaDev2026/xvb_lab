@@ -611,6 +611,9 @@ class MainWindow(QMainWindow):
         except Exception:
             pass
 
+    def chiudi(self):
+        self.close()
+
     def mpris_alza(self):
         self.showNormal()
         self.raise_()
