@@ -1401,21 +1401,27 @@ class MainWindow(QMainWindow):
             int(base.blue() + (colore.blue() - base.blue()) * t)
         ).name()
 
+    def _stile_barra(self):
+        if not self.colore_barra:
+            return "QFrame{background:rgba(28,27,34,220)}" if self._overlay_attivo else "QFrame{background:%s}" % BARRA
+        cima = QColor(self._tinta_barra(0))
+        fondo = QColor(BARRA)
+        alfa = 220 if self._overlay_attivo else 255
+        return ("QFrame{background:qlineargradient(x1:0,y1:0,x2:0,y2:1,"
+                "stop:0 rgba(%d,%d,%d,%d),stop:1 rgba(%d,%d,%d,%d))}" %
+                (cima.red(), cima.green(), cima.blue(), alfa,
+                 fondo.red(), fondo.green(), fondo.blue(), alfa))
+
     def colora_stato(self, colore):
         self.colore_barra = colore
+        self.barra.setStyleSheet(self._stile_barra())
         if colore:
-            cima = self._tinta_barra(0)
-            fondo = BARRA
-            self.barra.setStyleSheet(
-                "QFrame{background:qlineargradient(x1:0,y1:0,x2:0,y2:1,stop:0 %s,stop:1 %s)}" %
-                (cima, fondo))
             self.posizione.setStyleSheet(
                 "QSlider::groove:horizontal{height:2px;background:#4a4a4a}"
                 "QSlider::sub-page:horizontal{background:%s}"
                 "QSlider::handle:horizontal{width:0;height:0;border:0}" % colore)
             self.volume.sfondo(self._tinta_barra)
         else:
-            self.barra.setStyleSheet("QFrame{background:%s}" % BARRA)
             self.posizione.setStyleSheet(
                 "QSlider::groove:horizontal{height:2px;background:#4a4a4a}"
                 "QSlider::sub-page:horizontal{background:#ffffff}"
@@ -3489,7 +3495,7 @@ class MainWindow(QMainWindow):
             self._overlay_attivo = True
             self.barra.setParent(self.video)
             self.barra.setAttribute(Qt.WA_StyledBackground, True)
-            self.barra.setStyleSheet("QFrame{background:rgba(28,27,34,220)}")
+            self.barra.setStyleSheet(self._stile_barra())
             for widget in self.barra.findChildren(QWidget):
                 widget.installEventFilter(self)
             self.video.installEventFilter(self)
@@ -3503,7 +3509,7 @@ class MainWindow(QMainWindow):
             return
         self._overlay_attivo = False
         self.barra.setParent(self._centrale)
-        self.barra.setStyleSheet("")
+        self.barra.setStyleSheet(self._stile_barra())
         self._layout_principale.insertWidget(2, self.barra)
         self.barra.show()
 
