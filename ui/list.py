@@ -54,9 +54,9 @@ class Elenco(QListWidget):
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setSelectionMode(QAbstractItemView.SingleSelection)
         self.setStyleSheet(
-            "QListWidget{background:%s;color:%s;border:0;outline:0}" % (PANNELLO, TESTO)
-            "QListWidget::item{border:0;padding:0}"
-            "QListWidget::item:selected{background:%s;color:white}" % SCELTO
+            ("QListWidget{background:%s;color:%s;border:0;outline:0}" % (PANNELLO, TESTO))
+            + "QListWidget::item{border:0;padding:0}"
+            + ("QListWidget::item:selected{background:%s;color:white}" % SCELTO)
         )
         self.voci, self.posto, self.dati = [], {}, {}
         self.scelta = None
