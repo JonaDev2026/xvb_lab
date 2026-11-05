@@ -260,6 +260,7 @@ class MainWindow(QMainWindow):
 
         self.barra = QFrame(centrale)
         self.barra.setFixedHeight(96)
+        self.barra.installEventFilter(self)
         self._overlay_attivo = False
         self._timer_overlay = QTimer(self)
         self._timer_overlay.setSingleShot(True)
@@ -2298,6 +2299,8 @@ class MainWindow(QMainWindow):
 
 
     def eventFilter(self, oggetto, evento):
+        if evento.type() == evento.Type.Resize and oggetto is self.video:
+            self._posiziona_overlay()
         if evento.type() in (evento.Type.MouseMove, evento.Type.MouseButtonPress):
             if self._overlay_attivo and (oggetto is self.player or oggetto is self.video
                                          or oggetto is self.barra
