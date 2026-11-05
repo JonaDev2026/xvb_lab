@@ -1785,30 +1785,142 @@ class MainWindow(QMainWindow):
         if url is not None:
             nome = percorso
             percorso = url
-        if self.player is None:
-            QMessageBox.warning(self, "XVB", "libmpv non disponibile")
+        player = self._attivo()
+        if player is None:
+            QMessageBox.warning(self, "XVB", _("libmpv not available"))
             return
+        self._eof_gestito = False
+        self._giro_traccia += 1
+        self.file_in_onda = percorso
+        self.nome_in_onda = nome or os.path.splitext(os.path.basename(percorso.rstrip("/")))[0] or percorso
+        self.ide_in_onda = ide
+        self.varianti = []
+        self.quale = -1
+        self.menu_qualita.setEnabled(False)
+        self.riga_stato.setText(self.nome_in_onda)
+        self._icona_preferito()
+        self._aggiorna_mpris()
+        if os.path.isabs(percorso) and os.path.isfile(percorso) and not percorso.startswith(REGISTRAZIONI + os.sep):
+            recenti = self.sessione.config.get("recenti", [])
+            recenti = [p for p in recenti if p != percorso and os.path.isfile(p)]
+            self.sessione.config["recenti"] = ([percorso] + recenti)[:12]
+            scrivi_config(self.sessione.config)
+            self._aggiorna_recenti()
         try:
-            player = self._attivo()
-            player.apri(percorso)
-            self._eof_gestito = False
-            self._giro_traccia += 1
-            self.file_in_onda = percorso
-            if os.path.isfile(percorso):
-                recenti = self.sessione.config.get("recenti", [])
-                recenti = [p for p in recenti if p != percorso and os.path.isfile(p)]
-                self.sessione.config["recenti"] = ([percorso] + recenti)[:8]
-                scrivi_config(self.sessione.config)
-                self._aggiorna_recenti()
-            self.nome_in_onda = nome or os.path.basename(percorso.rstrip("/")) or percorso
-            self.ide_in_onda = ide
-            self.riga_stato.setText(self.nome_in_onda)
-            self._icona_preferito()
-            self.play_button.setIcon(QIcon(os.path.join(QUI, "icone", "pausa.png")))
-            self.play_button.setToolTip(_("Pause"))
+            player.imposta("audio-files", "[]")
+            if percorso.startswith("http://") or percorso.startswith("https://"):
+                ritardi = self.sessione.config.get("ritardo", {})
+                player.imposta("audio-delay", float(ritardi.get(percorso, 0.0)))
+                player.imposta(
+                    "stream-lavf-o",
+                    "" if "jmp2.uk" in percorso else
+                    "reconnect=1,reconnect_streamed=1,reconnect_on_network_error=1,reconnect_delay_max=10")
+                self.applica_chiave(percorso, player)
+                self._stream_player = player
+                self.riga_stato.setText(_("looking for %s qualities...") % self.nome_in_onda)
+                worker = _RisolviStream(percorso)
+                worker.completato.connect(
+                    lambda u, elenco, errore, p=player: self._stream_pronto(p, u, elenco, errore))
+                worker.finished.connect(lambda w=worker: self._rimuovi_worker_stream(w))
+                self._stream_workers.append(worker)
+                worker.start()
+            else:
+                player.apri(percorso)
+                self.play_button.setIcon(QIcon(os.path.join(QUI, "icone", "pausa.png")))
+                self.play_button.setToolTip(_("Pause"))
             self._aggiorna_mpris()
         except Exception as errore:
             QMessageBox.critical(self, "XVB", str(errore))
+
+    def _rimuovi_worker_stream(self, worker):
+        if worker in self._stream_workers:
+            self._stream_workers.remove(worker)
+
+    def indirizzo_chiave(self, url):
+        if chiave_clearkey(CHIAVI.get(url)) and url.split("?")[0].lower().endswith(".mpd"):
+            try:
+                return "http://127.0.0.1:%d/m.mpd?u=%s" % (
+                    server_mpd().server_address[1], quote(url, safe=""))
+            except Exception:
+                pass
+        return url
+
+    def applica_chiave(self, url, player=None):
+        player = player or self._attivo()
+        protocolli = "file,http,https,tcp,tls,crypto,data,httpproxy,udp,rtp,rtmp,rtmps,srt"
+        opzioni = "protocol_whitelist=%%%d%%%s" % (len(protocolli), protocolli)
+        chiave = chiave_clearkey(CHIAVI.get(url))
+        if chiave:
+            opzioni += ",cenc_decryption_key=" + chiave
+        if player:
+            player.imposta("demuxer-lavf-o", opzioni)
+
+    def _stream_pronto(self, player, url, elenco, errore=""):
+        if self.file_in_onda != url:
+            return
+        self.varianti = elenco or []
+        self.menu_qualita.setEnabled(len(self.varianti) > 1)
+        if errore:
+            self.riga_stato.setText(_("Stream resolution failed: %s") % errore)
+        if self.varianti:
+            salvata = self.sessione.config.get("qualita", {}).get(url, len(self.varianti) - 1)
+            self.quale = salvata if isinstance(salvata, int) and -1 <= salvata < len(self.varianti) else len(self.varianti) - 1
+            if self.quale >= 0:
+                self.suona(self.quale, player)
+            else:
+                player.apri(self.indirizzo_chiave(url))
+        else:
+            self.quale = -1
+            player.apri(self.indirizzo_chiave(url))
+        self.play_button.setIcon(QIcon(os.path.join(QUI, "icone", "pausa.png")))
+        self.play_button.setToolTip(_("Pause"))
+        self.riga_stato.setText(self.nome_in_onda)
+        self._aggiorna_mpris()
+
+    def suona(self, indice, player=None):
+        player = player or self._stream_player or self._attivo()
+        if not player or not self.varianti:
+            return
+        _banda, video, _audio, _altezza, master = self.varianti[indice]
+        player.imposta("audio-files", "[]")
+        try:
+            os.makedirs(CACHE_VARIANTE, exist_ok=True)
+            nome = "variante2.m3u8" if self.split and player is self.player2 else "variante.m3u8"
+            destinazione = os.path.join(CACHE_VARIANTE, nome)
+            with open(destinazione, "w", encoding="utf-8") as stream:
+                stream.write(master)
+            player.apri(destinazione)
+        except Exception:
+            player.apri(video)
+        self.quale = indice
+        self.sessione.config.setdefault("qualita", {})[self.file_in_onda] = indice
+        scrivi_config(self.sessione.config)
+
+    def scegli_qualita(self, indice):
+        if indice == -1:
+            self.quale = -1
+            if self._stream_player:
+                self._stream_player.apri(self.indirizzo_chiave(self.file_in_onda))
+        elif indice != self.quale and self.varianti:
+            self.suona(indice)
+        self._aggiorna_mpris()
+
+    def _riempi_menu_qualita(self):
+        self.menu_qualita.clear()
+        if not self.varianti:
+            azione = self.menu_qualita.addAction(_("Automatic"))
+            azione.setEnabled(False)
+            return
+        self.menu_qualita.addAction(self._azione(
+            ("✓  " if self.quale == -1 else "") + _("Automatic"),
+            lambda: self.scegli_qualita(-1)))
+        for i, variante in enumerate(self.varianti):
+            banda, _video, _audio, altezza, _master = variante
+            testo = "%dp · %d kb/s" % (altezza, banda // 1000) if altezza else "%d kb/s" % (banda // 1000)
+            if self.quale == i:
+                testo = "✓  " + testo
+            self.menu_qualita.addAction(
+                self._azione(testo, lambda _=False, n=i: self.scegli_qualita(n)))
 
     def pausa(self):
         player = self._attivo()
