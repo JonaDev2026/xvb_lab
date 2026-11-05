@@ -47,14 +47,15 @@ from urllib.parse import urlparse, quote
 from urllib.request import Request, urlopen
 
 
-def _prepara_file_cartella(cartella, elementi, tag_cache):
+def _prepara_file_cartella(cartella, elementi, tag_cache, radici=None):
     risultato = []
     for nome, percorso, ide in elementi:
         estensione = os.path.splitext(percorso)[1][1:].lower()
         if estensione in AUDIO:
             titolo, artista, album, anno = tag_di(percorso, tag_cache)
             if not titolo:
-                titolo, artista_file, album_file, anno_file = dal_percorso(percorso, (cartella,))
+                titolo, artista_file, album_file, anno_file = dal_percorso(
+                    percorso, radici if radici is not None else (cartella,))
                 artista = artista or artista_file
                 album = album or album_file
                 anno = anno or anno_file
@@ -107,7 +108,7 @@ class _ScansionaCartelle(QThread):
                 cartella = os.path.dirname(percorso)
                 nome = os.path.splitext(os.path.basename(percorso))[0]
                 preparati.extend(_prepara_file_cartella(
-                    cartella, [(nome, percorso, None)], self.tag_cache))
+                    cartella, [(nome, percorso, None)], self.tag_cache, self.cartelle))
             risultati["__importati__"] = preparati
             self.completato.emit(risultati, "")
         except Exception as errore:
