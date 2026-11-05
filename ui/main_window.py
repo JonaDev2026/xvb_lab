@@ -954,6 +954,7 @@ class MainWindow(QMainWindow):
             return
         if self._percorso_attivo == "__media_folder__":
             self._cartella_media_attiva = self._categoria_attiva
+            self._categoria_attiva = None
             self._riempi_elenco()
             return
         if self._percorso_attivo == "__epg__":
