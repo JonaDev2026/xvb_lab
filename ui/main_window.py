@@ -792,9 +792,11 @@ class MainWindow(QMainWindow):
             subtitle = " · ".join(part for part in (artist, album, year) if part)
             item.setText(0, title or Path(path).stem)
             if subtitle:
-                item.setText(0, item.text(0) + "\\n" + subtitle)
+                item.setText(0, item.text(0) + "\n" + subtitle)
                 item.setSizeHint(0, QSize(0, 42))
             item.setToolTip(0, path)
+            query = self.search.text().casefold().strip()
+            item.setHidden(bool(query) and query not in item.text(0).casefold())
         self.media_tree.sortItems(0, Qt.SortOrder.AscendingOrder)
 
     def filter_media(self, text):
