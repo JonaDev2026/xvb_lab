@@ -11,13 +11,17 @@ from core.session import Sessione
 
 class _CaricaGuide(QThread):
     completato = Signal()
+    errore = Signal(str)
 
     def __init__(self, sessione):
         super().__init__()
         self.sessione = sessione
 
     def run(self):
-        self.sessione.carica_guide()
+        try:
+            self.sessione.carica_guide()
+        except Exception as errore:
+            self.errore.emit(str(errore))
         self.completato.emit()
 
 
@@ -61,9 +65,6 @@ class MainWindow(QMainWindow):
         self.canali = [(n, u, ide) for n, u, ide, _cat, _lista in self.sessione.canali]
         self.epg = self.sessione.epg
         self.epg_nomi = self.sessione.epg_nomi
-        self._thread_epg = _CaricaGuide(self.sessione)
-        self._thread_epg.completato.connect(self._epg_pronto)
-        self._thread_epg.start()
         self.selettore_lista = QComboBox(self.sinistra)
         self.selettore_lista.addItem("All playlists", None)
         for lista in self.sessione.liste:
@@ -148,6 +149,10 @@ class MainWindow(QMainWindow):
         self.volume.valueChanged.connect(self._volume)
         self.posizione.sliderReleased.connect(self._seek)
         self._pieno = False
+        self._thread_epg = _CaricaGuide(self.sessione)
+        self._thread_epg.completato.connect(self._epg_pronto)
+        self._thread_epg.errore.connect(self._epg_errore)
+        self._thread_epg.start()
 
     def _azione(self, nome, callback, scorciatoia=None):
         azione = QAction(nome, self)
@@ -178,6 +183,9 @@ class MainWindow(QMainWindow):
         self.epg_nomi = self.sessione.epg_nomi
         self.riga_stato.setText("EPG ready")
 
+    def _epg_errore(self, errore):
+        self.riga_stato.setText("EPG: " + errore)
+
     def ricarica_guida(self):
         if self._thread_epg.isRunning():
             return
@@ -185,6 +193,7 @@ class MainWindow(QMainWindow):
         self.sessione.epg_nomi = {}
         self._thread_epg = _CaricaGuide(self.sessione)
         self._thread_epg.completato.connect(self._epg_pronto)
+        self._thread_epg.errore.connect(self._epg_errore)
         self._thread_epg.start()
 
     def apri_guida(self):
