@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QTimer, QTime
+from PySide6.QtCore import Qt, QTimer, QDateTime
 from PySide6.QtGui import QAction, QIcon
 from PySide6.QtWidgets import (
     QFileDialog,
@@ -400,7 +400,6 @@ class MainWindow(QMainWindow):
         path, _ = QFileDialog.getOpenFileName(self, "Open file")
         if path:
             self.engine.load(path)
-            self.playback_status.setText("playing")
             self.title_status.setText(Path(path).name)
 
     def toggle_pause(self):
@@ -425,7 +424,7 @@ class MainWindow(QMainWindow):
         self.right_panel.setVisible(not self.right_panel.isVisible())
 
     def _update_clock(self):
-        self.clock_status.setText(QTime.currentTime().toString("HH:mm"))
+        self.clock_status.setText(QDateTime.currentDateTime().toString("ddd dd MMM  HH:mm"))
 
     def closeEvent(self, event):
         self.video.close_render_context()
