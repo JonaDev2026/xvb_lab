@@ -510,10 +510,10 @@ class MainWindow(QMainWindow):
         url = url.strip()
         liste_url = self.sessione.config.setdefault("liste_url", {})
         if url in liste_url:
-            self.riga_stato.setText(_("%s is already there") % nome_di(url))
+            self.riga_stato.setText(_("%s is already there") % NOMI_URL.get(url, url))
             return
         base = os.path.basename(urlparse(url).path.rstrip("/"))
-        base = re.sub(r"\\.(m3u8?|txt)$", "", base, flags=re.I) or "playlist"
+        base = re.sub(r"\.(m3u8?|txt)$", "", base, flags=re.I) or "playlist"
         nome = self._chiedi_testo(_("Add URL"), _("Name:"), base)
         if not nome or not nome.strip():
             return
