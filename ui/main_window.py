@@ -545,6 +545,7 @@ class MainWindow(QMainWindow):
         else:
             return
         save_config(self.config)
+        self._scan_token = getattr(self, "_scan_token", 0) + 1
         self._active_source = None
         self.media_tree.clear()
         self.title_status.setText("")
@@ -572,6 +573,7 @@ class MainWindow(QMainWindow):
         token = self._scan_token
         self._active_source = (source, value)
         self.media_tree.clear()
+        self.notification.hide()
         self.playback_status.setText("Loading...")
         thread = QThread(self)
         worker = FolderScanWorker(source, value, token)
@@ -595,6 +597,8 @@ class MainWindow(QMainWindow):
             item = QTreeWidgetItem([media["name"]])
             item.setData(0, Qt.ItemDataRole.UserRole, media["path"])
             item.setIcon(0, self._icon("music" if media["kind"] == "music" else "player"))
+            query = self.search.text().casefold().strip()
+            item.setHidden(bool(query) and query not in media["name"].casefold())
             self.media_tree.addTopLevelItem(item)
 
     def _show_media_items(self, items, error, source, value, token):
