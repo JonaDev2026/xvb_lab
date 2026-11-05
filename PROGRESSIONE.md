@@ -421,3 +421,24 @@ Avvicinare l'albero Local alla struttura della Stable 4.4.4, mantenendo la confi
 **Stato**
 
 - Implementazione scritta; da verificare dopo il pull.
+
+
+### 2026-11-05 — Icone musicali della libreria Local
+
+**Modifiche**
+
+- L'icona della cartella principale riflette il tipo prevalente dei contenuti: musica oppure video.
+- Quando la cartella principale contiene prevalentemente musica, le sottocartelle immediate usano icone vinile.
+- Il colore del vinile deriva dal nome della sottocartella con lo stesso algoritmo MD5 della Stable, quindi resta stabile tra le aperture.
+- Negli altri casi le sottocartelle mantengono l'icona musica/video in base al proprio contenuto.
+
+**Verifica**
+
+- Codice pubblicato su GitHub.
+- Compilazione e verifica grafica locali ancora da eseguire.
+- Da verificare dimensione e resa delle icone nella barra laterale Qt.
+
+**Commit**
+
+- UI: `1904ede61b26421bed1286e48c42c06ea70be694`
+- Rifinitura geometria icone: `935732a7c9d1ac20c277fa94fde6056a913edc70`
