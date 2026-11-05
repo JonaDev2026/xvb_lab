@@ -873,7 +873,9 @@ class MainWindow(QMainWindow):
         if not player:
             return
         try:
-            player.imposta("cdrom-device", dispositivo)
+            player.imposta("cdda-device", dispositivo)
+            player.imposta("cdda-span-a", 1)
+            player.imposta("cdda-span-b", 1)
             self.apri("cdda://", nome=_("Audio CD"))
         except Exception as errore:
             self.riga_stato.setText("CD: " + str(errore))
