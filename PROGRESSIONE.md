@@ -592,3 +592,22 @@ Avvicinare l'albero Local alla struttura della Stable 4.4.4, mantenendo la confi
 - L'apertura diretta di un file tramite Media → Open file ora registra il file corrente nella navigazione Local.
 - Previous/Next può quindi operare anche dopo l'apertura diretta di un file importato, se presente nella lista visibile.
 - Modifica pubblicata su GitHub; compilazione e verifica locale ancora da eseguire.
+
+
+### 2026-11-05 — Shuffle, repeat e avanzamento automatico
+
+**Modifiche**
+
+- Attivata la modalità Shuffle nel menu Playback: mescola i file della lista Local e mantiene il brano corrente in cima.
+- Disattivando Shuffle viene ripristinato l'ordine precedente della libreria.
+- La preferenza Shuffle viene salvata nella configurazione e ripristinata all'avvio e al caricamento di una sorgente.
+- Attivate le tre modalità No repeat, Repeat one e Repeat all, con selezione esclusiva e salvataggio persistente.
+- Estesa l'interfaccia libmpv con la lettura della proprietà eof-reached.
+- Un controllo periodico rileva la fine della riproduzione: ripete il file corrente, passa al successivo con ritorno all'inizio della lista oppure conclude la riproduzione in base alla modalità scelta.
+- Il controllo ignora lo stato EOF precedente durante il caricamento di un nuovo file.
+
+**Verifica**
+
+- Codice pubblicato su GitHub.
+- Compilazione e prove funzionali locali ancora da eseguire.
+- Da verificare in particolare il rilevamento EOF di libmpv, le tre modalità repeat, lo shuffle con filtri attivi e il ripristino dell'ordine.
