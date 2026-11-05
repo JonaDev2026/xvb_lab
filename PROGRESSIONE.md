@@ -316,3 +316,14 @@ Commit: `c689417`. Nessun test runtime eseguito.
 - La finestra non resta bloccata all'avvio mentre attraversa librerie locali estese.
 
 Commit: `19b6e1b`. Nessun test runtime eseguito.
+
+
+## Ripresa e avanzamento file locali
+
+- Ripristinata la memoria della posizione dei file locali: posizione e durata vengono salvate nella configurazione ogni dieci secondi, con salvataggio finale alla chiusura.
+- A meno di venti secondi dalla fine la posizione viene cancellata, così la riproduzione successiva riparte dall'inizio.
+- Il numero di posizioni memorizzate è limitato a 300, come nel comportamento Stable.
+- All'evento libmpv `FILE_LOADED`, i file locali riprendono dalla posizione salvata quando restano più di venti secondi.
+- Le barre di avanzamento dell'elenco ora mostrano anche il progresso dei file locali, oltre a quello dei programmi EPG.
+
+Commit: `1d6b011`. Nessun test runtime eseguito.
