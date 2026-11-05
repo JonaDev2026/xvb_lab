@@ -912,7 +912,8 @@ class MainWindow(QMainWindow):
         if not capitoli:
             return
         try:
-            attuale = int(float(player.leggi("chapter") or -1))
+            valore = player.leggi("chapter")
+            attuale = int(float(valore)) if valore is not None else -1
         except (TypeError, ValueError):
             attuale = -1
         if len(capitoli) <= 99:
