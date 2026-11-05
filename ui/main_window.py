@@ -40,6 +40,23 @@ from urllib.parse import urlparse, quote
 from urllib.request import Request, urlopen
 
 
+class _ScansionaCartelle(QThread):
+    completato = Signal(object, str)
+
+    def __init__(self, cartelle):
+        super().__init__()
+        self.cartelle = list(cartelle)
+
+    def run(self):
+        risultati = {}
+        try:
+            for cartella in self.cartelle:
+                risultati[cartella] = media_in(cartella)
+            self.completato.emit(risultati, "")
+        except Exception as errore:
+            self.completato.emit(risultati, str(errore))
+
+
 class _ScansionaCartella(QThread):
     completato = Signal(str, object, str)
 
@@ -2953,8 +2970,26 @@ class MainWindow(QMainWindow):
         scrivi_config(cfg)
         if liste:
             self.ricarica_liste(forza=False)
+        if not nuove_cartelle:
+            self._completa_apri_da_fuori(file_media, nuove_cartelle, {})
+            return
+        self.riga_stato.setText(_("Loading media folders..."))
+        worker = _ScansionaCartelle(nuove_cartelle)
+        worker.completato.connect(
+            lambda risultati, errore, fm=file_media, nc=nuove_cartelle:
+                self._cartelle_drop_scansionate(fm, nc, risultati, errore))
+        worker.finished.connect(lambda w=worker: self._rimuovi_worker_scansione(w))
+        self.__dict__.setdefault("_scan_workers", []).append(worker)
+        worker.start()
+
+    def _cartelle_drop_scansionate(self, file_media, cartelle, risultati, errore):
+        if errore:
+            self.riga_stato.setText(_("Unable to scan media folders: %s") % errore)
+        self._completa_apri_da_fuori(file_media, cartelle, risultati)
+
+    def _completa_apri_da_fuori(self, file_media, nuove_cartelle, risultati):
         for cartella in nuove_cartelle:
-            nuovi = self._media_locale(cartella)
+            nuovi = self._media_locale(cartella, risultati.get(cartella, []))
             if not nuovi:
                 continue
             self.sessione.canali.extend(nuovi)
