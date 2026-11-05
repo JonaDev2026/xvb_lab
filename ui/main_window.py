@@ -296,6 +296,7 @@ class MainWindow(QMainWindow):
         self.inizio_rec = 0.0
         self.fine_rec = 0.0
         self.piano = None
+        self._guida_selezionata = None
         self._timer_rec = QTimer(self)
         self._timer_rec.timeout.connect(self.controlla_registrazione)
         self._timer_rec.start(1000)
@@ -469,7 +470,8 @@ class MainWindow(QMainWindow):
         iptv.addSeparator()
         iptv.addAction(self._azione(_("Programme guide"), self.apri_guida))
         iptv.addAction(self._azione(_("Add guide URL"), self.aggiungi_epg_url))
-        iptv.addAction(self._azione(_("Reload guide"), self.ricarica_guida))
+        iptv.addAction(self._azione(_("Reload guide"), self.ricarica_epg_manuale))
+        iptv.addAction(self._azione(_("Remove selected guide"), self.togli_epg_selezionata))
         iptv.addSeparator()
         iptv.addAction(self._azione(_("Record now / Stop recording"), self.registra))
         iptv.addAction(self._azione(_("Schedule..."), self.pianifica))
@@ -627,6 +629,38 @@ class MainWindow(QMainWindow):
     def _epg_errore(self, errore):
         self.riga_stato.setText("EPG: " + errore)
 
+
+    def nome_guida(self, dove):
+        return (self.sessione.config.get("epg_nomi_utente", {}).get(dove)
+                or self.sessione.config.get("epg_nomi", {}).get(dove)
+                or os.path.basename(urlparse(dove).path) or dove)
+
+    def togli_epg_selezionata(self):
+        if self._guida_selezionata:
+            self.togli_epg(self._guida_selezionata)
+
+    def togli_epg(self, dove):
+        self.sessione.config["epg"] = [
+            d for d in self.sessione.config.get("epg", []) if d != dove]
+        self.sessione.config.get("epg_nomi", {}).pop(dove, None)
+        self.sessione.config.get("epg_nomi_utente", {}).pop(dove, None)
+        scrivi_config(self.sessione.config)
+        self._guida_selezionata = None
+        self.ricarica_guida()
+        self._riempi_liste()
+        self.riga_stato.setText(_("removed %s") % self.nome_guida(dove))
+
+    def ricarica_epg_manuale(self):
+        for dove in self.sessione.config.get("epg", []):
+            if os.path.isfile(dove):
+                continue
+            percorso = os.path.join(CACHE_EPG, hashlib.md5(dove.encode()).hexdigest())
+            try:
+                os.remove(percorso)
+            except OSError:
+                pass
+        self.ricarica_guida()
+
     def ricarica_guida(self):
         if self._thread_epg.isRunning():
             return
@@ -741,8 +775,10 @@ class MainWindow(QMainWindow):
                                    text=" EPG (%d)" % len(self.sessione.config.get("epg", [])),
                                    open=bool(self.sessione.config.get("epg")))
         for indice, guida in enumerate(self.sessione.config.get("epg", [])):
-            self.el_liste.insert(epg, "end", iid="epg:%d" % indice,
+            iid = "epg:%d" % indice
+            self.el_liste.insert(epg, "end", iid=iid,
                                  text=" " + os.path.basename(str(guida)))
+            self.el_liste.item(iid, valore=("__epg__", guida))
         m3u = self.el_liste.insert(iptv, "end", iid="m3u",
                                    text=" M3U (%d)" % len(self.sessione.liste),
                                    open=True)
@@ -795,6 +831,10 @@ class MainWindow(QMainWindow):
         if not dati:
             return
         self._percorso_attivo, self._categoria_attiva = dati
+        if self._percorso_attivo == "__epg__":
+            self._guida_selezionata = self._categoria_attiva
+            self.riga_stato.setText(self.nome_guida(self._guida_selezionata))
+            return
         if self._percorso_attivo == "__recording__":
             self.apri(self._categoria_attiva, nome=os.path.basename(self._categoria_attiva))
             return
