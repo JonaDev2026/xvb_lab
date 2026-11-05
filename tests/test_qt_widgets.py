@@ -1,4 +1,5 @@
 import json
+import json
 import time
 import hashlib
 import os
@@ -10,13 +11,30 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtWidgets import QApplication, QLabel, QVBoxLayout
 from ui.widgets import Ricerca, Cursore, Elenco, Finestrella, Tendina, Guida
-from ui.main_window import MainWindow, _AggiornaListe
+from ui.main_window import MainWindow, _AggiornaListe, _ScansionaCartelle
 
 
 class QtWidgetTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = QApplication.instance() or QApplication([])
+
+    def test_configured_imports_are_prepared_by_startup_worker(self):
+        with tempfile.TemporaryDirectory() as root:
+            percorso = os.path.join(root, "Imported Film (2022).mkv")
+            with open(percorso, "wb") as stream:
+                stream.write(b"video")
+            preparati = [("Imported Film", percorso, None, "Video", root, "2022")]
+            risultati = []
+            with patch("ui.main_window.media_in", return_value=[]), \\
+                 patch("ui.main_window._prepara_file_cartella", return_value=preparati) as prepara:
+                worker = _ScansionaCartelle([], {}, [percorso], ())
+                worker.completato.connect(lambda dati, errore: risultati.append((dati, errore)))
+                worker.run()
+            self.assertEqual(risultati[0][1], "")
+            self.assertEqual(risultati[0][0]["__importati__"], preparati)
+            prepara.assert_called_once_with(
+                root, [("Imported Film (2022)", percorso, None)], {})
 
     def test_main_window_module_imports(self):
         self.assertTrue(MainWindow)
