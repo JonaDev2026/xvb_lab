@@ -11,7 +11,7 @@ from core.tags import tag_di
 from core.media import AUDIO
 from core.constants import UA
 
-CACHE_ARTISTI = os.path.join(os.path.expanduser("~"), ".cache", "xvb", "artisti")
+CACHE_ARTISTI = os.path.join(os.path.expanduser("~"), ".cache", "xvb5", "artisti")
 CACHE_ARTISTI_INDEX = os.path.join(CACHE_ARTISTI, "artisti.json")
 
 
