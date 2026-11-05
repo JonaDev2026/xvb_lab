@@ -2447,11 +2447,6 @@ class MainWindow(QMainWindow):
                             player.imposta(proprieta, valore)
                     except Exception:
                         pass
-                for proprieta, valore in self.sessione.config.get("video", {}).get(percorso, {}).items():
-                    try:
-                        player.imposta(proprieta, valore)
-                    except Exception:
-                        pass
                 try:
                     player.imposta(
                         "stream-lavf-o",
@@ -2476,11 +2471,6 @@ class MainWindow(QMainWindow):
                         valore = self.sessione.config.get(chiave, {}).get(percorso)
                         if valore is not None:
                             player.imposta(proprieta, valore)
-                    except Exception:
-                        pass
-                for proprieta, valore in self.sessione.config.get("video", {}).get(percorso, {}).items():
-                    try:
-                        player.imposta(proprieta, valore)
                     except Exception:
                         pass
                 player.apri(percorso)
