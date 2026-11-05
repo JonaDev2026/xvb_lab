@@ -1630,7 +1630,7 @@ class MainWindow(QMainWindow):
             menu.addAction(_("Remove guide"), lambda: self.togli_epg(valore[1]))
         elif valore and valore[0] == "__imported_file__":
             menu.addAction(_("Set cover..."), lambda: self.metti_copertina(valore[1]))
-            if os.path.isfile(copertina_url(valore[1])):
+            if os.path.isfile(self.percorso_copertina(valore[1])):
                 menu.addAction(_("Remove cover"), lambda: self.togli_copertina(valore[1]))
             menu.addAction(_("Remove from library"), lambda: self.rimuovi_importato(valore[1]))
         elif valore and valore[0] == "__media_folder__" and valore[1] in self.sessione.config.get("cartelle", []):
@@ -1898,12 +1898,15 @@ class MainWindow(QMainWindow):
         finestra.show()
 
 
+    def percorso_copertina(self, dove):
+        return os.path.splitext(dove)[0] + ".jpg" if os.path.isabs(dove) else copertina_url(dove)
+
     def metti_copertina(self, dove):
         percorso, _ = QFileDialog.getOpenFileName(
             self, _("Choose cover"), "", "Images (*.png *.jpg *.jpeg *.webp)")
         if not percorso:
             return
-        destinazione = copertina_url(dove)
+        destinazione = self.percorso_copertina(dove)
         try:
             os.makedirs(os.path.dirname(destinazione), exist_ok=True)
             shutil.copy2(percorso, destinazione)
@@ -1914,7 +1917,7 @@ class MainWindow(QMainWindow):
 
     def togli_copertina(self, dove):
         try:
-            os.remove(copertina_url(dove))
+            os.remove(self.percorso_copertina(dove))
         except OSError:
             pass
         self._riempi_elenco()
@@ -2386,10 +2389,15 @@ class MainWindow(QMainWindow):
 
     def logo_di(self, url):
         if os.path.isabs(url):
-            copertina = copertina_url(url)
+            copertina = self.percorso_copertina(url)
             if os.path.isfile(copertina):
                 pix = QPixmap(copertina)
                 return pix if not pix.isNull() else None
+            poster = poster_film(url)
+            if poster:
+                pix = QPixmap(poster)
+                return pix if not pix.isNull() else None
+            copertina = copertina_url(url)
             estensione = os.path.splitext(url)[1][1:].lower()
             if estensione in AUDIO:
                 percorso = copertina_url(url)
@@ -2545,7 +2553,7 @@ class MainWindow(QMainWindow):
                 menu.addAction(_("Remove color"), lambda: self.togli_colore(url))
         elif os.path.isabs(url) or url.startswith("dvd://"):
             menu.addAction(_("Set cover..."), lambda: self.metti_copertina(url))
-            if os.path.isfile(copertina_url(url)):
+            if os.path.isfile(self.percorso_copertina(url)):
                 menu.addAction(_("Remove cover"), lambda: self.togli_copertina(url))
         if menu.actions():
             menu.addSeparator()
