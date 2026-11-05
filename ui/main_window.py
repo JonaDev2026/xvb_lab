@@ -40,18 +40,42 @@ from urllib.parse import urlparse, quote
 from urllib.request import Request, urlopen
 
 
+def _prepara_file_cartella(cartella, elementi, tag_cache):
+    risultato = []
+    for nome, percorso, ide in elementi:
+        estensione = os.path.splitext(percorso)[1][1:].lower()
+        if estensione in AUDIO:
+            titolo, artista, album, anno = tag_di(percorso, tag_cache)
+            if not titolo:
+                titolo, artista_file, album_file, anno_file = dal_percorso(percorso, (cartella,))
+                artista = artista or artista_file
+                album = album or album_file
+                anno = anno or anno_file
+            nome = titolo or nome
+            sotto = " · ".join(x for x in (artista, album, anno) if x)
+            categoria = "Music"
+        else:
+            titolo, anno = titolo_anno(percorso)
+            nome = titolo or nome
+            sotto = anno or ""
+            categoria = "Video"
+        risultato.append((nome, percorso, ide, categoria, cartella, sotto))
+    return risultato
+
+
 class _ScansionaCartelle(QThread):
     completato = Signal(object, str)
 
-    def __init__(self, cartelle):
+    def __init__(self, cartelle, tag_cache):
         super().__init__()
         self.cartelle = list(cartelle)
+        self.tag_cache = tag_cache
 
     def run(self):
         risultati = {}
         try:
             for cartella in self.cartelle:
-                risultati[cartella] = media_in(cartella)
+                risultati[cartella] = _prepara_file_cartella(cartella, media_in(cartella), self.tag_cache)
             self.completato.emit(risultati, "")
         except Exception as errore:
             self.completato.emit(risultati, str(errore))
@@ -60,14 +84,16 @@ class _ScansionaCartelle(QThread):
 class _ScansionaCartella(QThread):
     completato = Signal(str, object, str)
 
-    def __init__(self, cartella):
+    def __init__(self, cartella, tag_cache):
         super().__init__()
         self.cartella = cartella
+        self.tag_cache = tag_cache
 
     def run(self):
         try:
             elementi = media_in(self.cartella)
-            self.completato.emit(self.cartella, elementi, "")
+            preparati = _prepara_file_cartella(self.cartella, elementi, self.tag_cache)
+            self.completato.emit(self.cartella, preparati, "")
         except Exception as errore:
             self.completato.emit(self.cartella, [], str(errore))
 
@@ -2095,26 +2121,12 @@ class MainWindow(QMainWindow):
 
     def _media_locale(self, cartella, elementi=None):
         gia = {voce[1] for voce in self.sessione.canali}
+        preparati = (_prepara_file_cartella(cartella, media_in(cartella), self.tag_cache)
+                     if elementi is None else elementi)
         nuovi = []
-        for nome, percorso, ide in (media_in(cartella) if elementi is None else elementi):
+        for nome, percorso, ide, categoria, _origine, sotto in preparati:
             if percorso in gia:
                 continue
-            estensione = os.path.splitext(percorso)[1][1:].lower()
-            if estensione in AUDIO:
-                titolo, artista, album, anno = tag_di(percorso, self.tag_cache)
-                if not titolo:
-                    titolo, artista_file, album_file, anno_file = dal_percorso(percorso, (cartella,))
-                    artista = artista or artista_file
-                    album = album or album_file
-                    anno = anno or anno_file
-                nome = titolo or nome
-                sotto = " · ".join(x for x in (artista, album, anno) if x)
-                categoria = "Music"
-            else:
-                titolo, anno = titolo_anno(percorso)
-                nome = titolo or nome
-                sotto = anno or ""
-                categoria = "Video"
             self.sottotitoli[percorso] = sotto
             nuovi.append((nome, percorso, ide, categoria, cartella))
         return nuovi
@@ -2127,7 +2139,7 @@ class MainWindow(QMainWindow):
         if any(w.cartella == cartella and w.isRunning() for w in workers):
             return
         self.riga_stato.setText(_("Loading %s...") % os.path.basename(cartella.rstrip(os.sep)))
-        worker = _ScansionaCartella(cartella)
+        worker = _ScansionaCartella(cartella, self.tag_cache)
         worker.completato.connect(self._cartella_scansionata)
         worker.finished.connect(lambda w=worker: self._rimuovi_worker_scansione(w))
         workers.append(worker)
@@ -2974,7 +2986,7 @@ class MainWindow(QMainWindow):
             self._completa_apri_da_fuori(file_media, nuove_cartelle, {})
             return
         self.riga_stato.setText(_("Loading media folders..."))
-        worker = _ScansionaCartelle(nuove_cartelle)
+        worker = _ScansionaCartelle(nuove_cartelle, self.tag_cache)
         worker.completato.connect(
             lambda risultati, errore, fm=file_media, nc=nuove_cartelle:
                 self._cartelle_drop_scansionate(fm, nc, risultati, errore))
