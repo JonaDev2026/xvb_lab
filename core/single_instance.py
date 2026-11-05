@@ -70,6 +70,8 @@ class ServerUnico(QObject):
         except OSError:
             pass
         self.server.close()
+        if self._thread is not None:
+            self._thread.join(1)
         try:
             os.remove(self.percorso)
         except OSError:
