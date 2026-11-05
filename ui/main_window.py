@@ -3206,7 +3206,7 @@ class MainWindow(QMainWindow):
         cartelle_cfg.extend(nuove_cartelle)
         scrivi_config(cfg)
         if liste:
-            self.ricarica_liste(scegli=liste[0] if len(liste) == 1 else None, forza=False)
+            self.ricarica_liste(scegli=liste[0], forza=False)
         if not nuove_cartelle:
             self._completa_apri_da_fuori(file_media, nuove_cartelle, {})
             return
