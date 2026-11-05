@@ -264,8 +264,8 @@ class MainWindow(QMainWindow):
     def _riempi_elenco(self):
         if not hasattr(self, "elenco"):
             return
-        percorso = self.selettore_lista.currentData()
-        categoria = self.selettore_categoria.currentData()
+        percorso = self._percorso_attivo
+        categoria = self._categoria_attiva
         ricerca = self.cerca.get() if hasattr(self, "cerca") else ""
         self.elenco.delete(*self.elenco.get_children())
         self._canali_visibili = self.sessione.canali_per(percorso, categoria, ricerca)
@@ -279,7 +279,7 @@ class MainWindow(QMainWindow):
         if not selezione:
             return
         voce = self._canali_visibili[int(selezione[0])]
-        self.info_canale.setText("%s\n%s" % (voce[0], voce[3]))
+        self.riga_stato.setText(voce[0])
         self.apri(voce[1])
 
     def _apri_selezionato(self, _item=None):
