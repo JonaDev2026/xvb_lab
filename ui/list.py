@@ -53,7 +53,9 @@ class _VoceDelegate(QStyledItemDelegate):
             try:
                 img, titolo = e.poster_di(d.get("iid"), r.width() - 8, poster_h)
                 if img is not None:
-                    painter.drawPixmap(r.x() + 4, r.y() + 3, _pixmap(img))
+                    pix = _pixmap(img)
+                    if pix is not None:
+                        painter.drawPixmap(r.x() + 4, r.y() + 3, pix)
                 elif titolo:
                     painter.setPen(QColor(e.grigio))
                     painter.drawText(r.adjusted(8, 0, -8, -e.altezza_riga),
@@ -134,6 +136,7 @@ class Elenco(QListWidget):
         self.nome_sopra = 10
         self.segno = "logo"
         self.tinte = set()
+        self.tag_configurazioni = {}
         self.corti = {}
         self.pannello = kw.pop("pannello", "#1c1b22")
         self.fondo = kw.pop("fondo", "#121212")
@@ -157,6 +160,52 @@ class Elenco(QListWidget):
 
     def column(self, *a, **k):
         return None
+
+    def tag_configure(self, tag, **opzioni):
+        self.tag_configurazioni.setdefault(tag, {}).update(opzioni)
+        if tag == "onda" and "background" in opzioni:
+            self.onda = opzioni["background"]
+        elif tag == "scelto" and "background" in opzioni:
+            self.scelto = opzioni["background"]
+        elif tag == "zebra" and "background" in opzioni:
+            self.zebra = opzioni["background"]
+        self.viewport().update()
+
+    def tag_add(self, tag, *indici):
+        for indice in indici:
+            try:
+                riga = int(str(indice).split(".")[0])
+                posizione = max(0, (riga - 1) // 3)
+                if posizione < len(self.voci):
+                    iid = self.voci[posizione]
+                    tags = list(self.dati[iid].get("tags", ()))
+                    if tag not in tags:
+                        tags.append(tag)
+                    self.dati[iid]["tags"] = tuple(tags)
+                    self.disegna(iid)
+            except (TypeError, ValueError):
+                continue
+
+    def tag_remove(self, tag, *indici):
+        selezionati = indici or tuple("%d.0" % (i * 3 + 1) for i in range(len(self.voci)))
+        for indice in selezionati:
+            try:
+                riga = int(str(indice).split(".")[0])
+                posizione = max(0, (riga - 1) // 3)
+                if posizione < len(self.voci):
+                    iid = self.voci[posizione]
+                    self.dati[iid]["tags"] = tuple(
+                        t for t in self.dati[iid].get("tags", ()) if t != tag)
+                    self.disegna(iid)
+            except (TypeError, ValueError):
+                continue
+
+    def tag_raise(self, *a, **k):
+        self.viewport().update()
+
+    def event_generate(self, evento, *a, **k):
+        if evento == "<<TreeviewSelect>>":
+            self.treeviewSelect.emit()
 
     def _selezione(self, riga):
         self.scelta = self.voci[riga] if 0 <= riga < len(self.voci) else None
@@ -290,6 +339,11 @@ class Elenco(QListWidget):
         i = max(0, min(len(self.voci) - 1, i + dove))
         self.selection_set(self.voci[i], vedi=True)
         return "break"
+
+    def yview_scroll(self, quanti, unita="units"):
+        barra = self.verticalScrollBar()
+        passo = barra.singleStep() if unita == "units" else barra.pageStep()
+        barra.setValue(barra.value() + int(quanti) * passo)
 
     def wheelEvent(self, evento):
         super().wheelEvent(evento)
