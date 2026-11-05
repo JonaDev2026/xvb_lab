@@ -1098,6 +1098,20 @@ class MainWindow(QMainWindow):
         playback.addAction(self._azione(_("Set A-B loop point B"), self.loop_ab_imposta_b))
         playback.addAction(self._azione(_("Clear A-B loop"), self.loop_ab_azzera))
         playback.addSeparator()
+        playback.addAction(self._azione(_("Previous"), lambda: self.salta(-1)))
+        playback.addAction(self._azione(_("Next"), lambda: self.salta(1)))
+        self.azione_capitolo_precedente = self._azione(
+            _("Previous chapter"), lambda: self.vai_capitolo(-1, relativo=True))
+        self.azione_capitolo_successivo = self._azione(
+            _("Next chapter"), lambda: self.vai_capitolo(1, relativo=True))
+        playback.addAction(self.azione_capitolo_precedente)
+        playback.addAction(self.azione_capitolo_successivo)
+        self.menu_capitoli = playback.addMenu(_("Chapters"))
+        self.menu_capitoli.aboutToShow.connect(self._riempi_menu_capitoli)
+        self.azione_capitolo_precedente.setVisible(False)
+        self.azione_capitolo_successivo.setVisible(False)
+        self.menu_capitoli.menuAction().setVisible(False)
+        playback.addSeparator()
         for velocita in (0.5, 0.75, 1, 1.25, 1.5, 2):
             playback.addAction(self._azione("Speed x%g" % velocita,
                                             lambda _=False, v=velocita: self.metti_velocita(v)))
@@ -2759,6 +2773,7 @@ class MainWindow(QMainWindow):
         if player is not self._attivo():
             return
         if evento.get("id") == MpvVideo.MPV_EVENT_FILE_LOADED:
+            self._aggiorna_visibilita_capitoli()
             percorso = self._ripresa_traccia
             if percorso and percorso == self.file_in_onda:
                 self._ripresa_traccia = None
