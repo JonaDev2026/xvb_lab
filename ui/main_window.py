@@ -3260,6 +3260,16 @@ class MainWindow(QMainWindow):
             voce = next((v for v in self.sessione.canali if v[1] == percorso), None)
             self.apri(percorso, nome=voce[0] if voce else os.path.basename(percorso))
 
+    def _via_url_temporanei(self):
+        config = self.sessione.config
+        for url in config.get("url_aperti", []):
+            config.get("nomi_url", {}).pop(url, None)
+            try:
+                os.remove(copertina_url(url))
+            except OSError:
+                pass
+        config["url_aperti"] = []
+
     def url_di(self, categoria=None):
         if categoria is None:
             return self.sessione.config.get("url_aperti", [])
@@ -4012,6 +4022,8 @@ class MainWindow(QMainWindow):
         if self._artist_worker and self._artist_worker.isRunning():
             self._artist_worker.requestInterruption()
             self._artist_worker.wait(20000)
+        self._via_url_temporanei()
+        scrivi_config(self.sessione.config)
         self.artwork_artista.salva_cache()
         scrivi_tag(self.tag_cache)
         if self.pip_window is not None:
