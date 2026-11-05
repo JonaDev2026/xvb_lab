@@ -125,9 +125,9 @@ def cache_cover_art(path):
     folder = Path(path).parent
     stem = Path(path).stem
     candidates = [
+        folder / (stem + ".jpg"), folder / (stem + ".jpeg"), folder / (stem + ".png"),
         folder / "cover.jpg", folder / "cover.jpeg", folder / "cover.png",
         folder / "folder.jpg", folder / "folder.jpeg", folder / "folder.png",
-        folder / (stem + ".jpg"), folder / (stem + ".jpeg"), folder / (stem + ".png"),
     ]
     source = next((candidate for candidate in candidates if candidate.is_file()), None)
     data = None
