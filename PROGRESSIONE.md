@@ -56,3 +56,9 @@ Audit strutturale della Stable 4.4.4 completato: sorgente `xvb.py` del tag `v4.4
 - [ ] Test di parità funzionale con Stable.
 
 Nessuna funzione è ancora dichiarata migrata e l'applicazione non è pronta per il test. La vecchia implementazione Lab non è la base funzionale.
+
+- [x] Trasferita in `core/stream.py` la selezione delle varianti HLS master della Stable: risoluzioni, bitrate, gruppi audio esterni, URL assoluti e master ricostruito per mpv.
+- [x] Aggiunti test per master HLS multi-qualità, audio separato, playlist non master, errori di rete e host escluso `jmp2.uk`.
+- [x] Trasferita in `core/recordings.py` la presentazione delle registrazioni raggruppate per canale/giorno e il confronto numerico delle versioni.
+- [x] Trasferita in `core/colors.py` la fusione del colore dei programmi EPG con lo sfondo, mantenendo il fallback della Stable.
+- [x] Aggiunti test per registrazioni, confronto versioni e colori dei programmi EPG.
