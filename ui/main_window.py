@@ -424,23 +424,35 @@ class MainWindow(QMainWindow):
 
     def _populate_local_tree(self):
         self.playlist_tree.clear()
+        self._source_tree_items = {}
         root = QTreeWidgetItem(["Local"])
         root.setIcon(0, self._icon("player"))
         self.playlist_tree.addTopLevelItem(root)
-        root.setExpanded(True)
         for folder in self.config.get("folders", []):
-            if not Path(folder).is_dir():
+            path = Path(folder).expanduser()
+            if not path.is_dir():
                 continue
-            item = QTreeWidgetItem([Path(folder).name or folder])
-            item.setData(0, Qt.ItemDataRole.UserRole, ("folder", folder))
+            item = QTreeWidgetItem([path.name or str(path)])
+            item.setData(0, Qt.ItemDataRole.UserRole, ("folder", str(path.resolve())))
             item.setIcon(0, self._icon("player"))
             root.addChild(item)
-        imported = self.config.get("imported", [])
+            self._source_tree_items[("folder", str(path.resolve()))] = item
+        imported = [str(Path(path).expanduser().resolve()) for path in self.config.get("imported", [])
+                    if Path(path).expanduser().is_file()]
         if imported:
             item = QTreeWidgetItem([f"Imported media ({len(imported)})"])
             item.setData(0, Qt.ItemDataRole.UserRole, ("imported", imported))
             item.setIcon(0, self._icon("playlist"))
             root.addChild(item)
+            for path in imported:
+                child = QTreeWidgetItem([Path(path).stem])
+                child.setData(0, Qt.ItemDataRole.UserRole, ("imported", [path]))
+                child.setIcon(0, self._icon("music" if Path(path).suffix.lower().lstrip(".") in {
+                    "aac", "aif", "aiff", "alac", "ape", "flac", "m4a", "m4b", "m4p",
+                    "mid", "midi", "mp3", "mpc", "oga", "ogg", "opus", "wav", "wma", "wv"
+                } else "player"))
+                item.addChild(child)
+            item.setExpanded(False)
         root.setExpanded(True)
 
     def open_folder(self):
@@ -460,6 +472,7 @@ class MainWindow(QMainWindow):
             self._scan_source(source[0], source[1])
 
     def _scan_source(self, source, value):
+        self._active_source = (source, value)
         self.media_tree.clear()
         self.playback_status.setText("Loading...")
         thread = QThread(self)
@@ -486,6 +499,35 @@ class MainWindow(QMainWindow):
             item.setData(0, Qt.ItemDataRole.UserRole, media["path"])
             item.setIcon(0, self._icon("music" if media["kind"] == "music" else "player"))
             self.media_tree.addTopLevelItem(item)
+        source, value = getattr(self, "_active_source", (None, None))
+        if source == "folder":
+            root_path = Path(value).resolve()
+            source_item = getattr(self, "_source_tree_items", {}).get(("folder", str(root_path)))
+            if source_item is not None:
+                total = len(items)
+                source_item.setText(0, f"{root_path.name or str(root_path)} ({total})")
+                source_item.takeChildren()
+                groups = {}
+                for media in items:
+                    try:
+                        relative = Path(media["path"]).resolve().relative_to(root_path)
+                    except (ValueError, OSError):
+                        continue
+                    if len(relative.parts) > 1:
+                        groups.setdefault(relative.parts[0], []).append(media)
+                for dirname, children in sorted(groups.items(), key=lambda pair: pair[0].casefold()):
+                    child_path = root_path / dirname
+                    child = QTreeWidgetItem([f"{dirname} ({len(children)})"])
+                    child.setData(0, Qt.ItemDataRole.UserRole, ("folder", str(child_path)))
+                    music_count = sum(media["kind"] == "music" for media in children)
+                    icon = "music" if music_count > len(children) / 2 else "player"
+                    child.setIcon(0, self._icon(icon))
+                    source_item.addChild(child)
+                source_item.setExpanded(True)
+        elif source == "imported":
+            source_item = self.playlist_tree.currentItem()
+            if source_item is not None and source_item.data(0, Qt.ItemDataRole.UserRole):
+                source_item.setText(0, f"{source_item.text(0).split(' (')[0]} ({len(items)})")
         self.playback_status.setText(f"{len(items)} files")
 
     def filter_media(self, text):
