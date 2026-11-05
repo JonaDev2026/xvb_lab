@@ -58,6 +58,13 @@ class QtWidgetTests(unittest.TestCase):
         self.assertTrue(widget.exists("two"))
         self.assertTrue(widget.exists("four"))
 
+    def test_list_keyboard_selection_tracks_current_row(self):
+        widget = Elenco(None)
+        widget.insert("", "end", iid="one", text="One")
+        widget.insert("", "end", iid="two", text="Two")
+        widget.setCurrentRow(1)
+        self.assertEqual(widget.selection(), ("two",))
+
     def test_dialog_and_popup_construction(self):
         def corpo(parent):
             layout = QVBoxLayout(parent)
