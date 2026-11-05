@@ -349,6 +349,23 @@ class MainWindow(QMainWindow):
         comandi.addLayout(controlli)
         root.addWidget(self.barra)
 
+        self.avviso = QFrame(centrale)
+        self.avviso.setFixedHeight(42)
+        self.avviso.setStyleSheet("QFrame{background:%s}" % ACCENTO)
+        avviso_layout = QHBoxLayout(self.avviso)
+        avviso_layout.setContentsMargins(12, 0, 12, 0)
+        self.et_avviso = QLabel("", self.avviso)
+        self.et_avviso.setStyleSheet("color:#17121f")
+        avviso_layout.addWidget(self.et_avviso, 1)
+        self.avviso.installEventFilter(self)
+        self.et_avviso.installEventFilter(self)
+        self.avviso.hide()
+        self.avviso_chiave = (None, ())
+        self._timer_avviso = QTimer(self)
+        self._timer_avviso.setSingleShot(True)
+        self._timer_avviso.timeout.connect(self.chiudi_avviso)
+        root.insertWidget(1, self.avviso)
+
         stato = QWidget(centrale)
         stato.setFixedHeight(28)
         stato.setStyleSheet("background:#121217")
@@ -2739,6 +2756,19 @@ class MainWindow(QMainWindow):
             dialogo.contenuto.addWidget(QLabel(_("No audio devices were reported by mpv."), dialogo))
         dialogo.contenuto.addWidget(self.lista_uscita_audio)
 
+    def mostra_avviso(self, testo, secondi=8, chiave=None):
+        self.avviso_chiave = chiave or (None, ())
+        self.et_avviso.setText(testo)
+        self.avviso.show()
+        self._timer_avviso.stop()
+        if secondi:
+            self._timer_avviso.start(int(secondi * 1000))
+
+    def chiudi_avviso(self):
+        self._timer_avviso.stop()
+        self.avviso.hide()
+        self.avviso_chiave = (None, ())
+
     def _messaggio_temporaneo(self, testo):
         self.riga_stato.setText(testo)
         QTimer.singleShot(2500, self.aggiorna_info_canale)
@@ -2828,7 +2858,9 @@ class MainWindow(QMainWindow):
             self.nuova, self.pagina_nuova = tag, pagina
             self.azione_download.setText(_("Download %s") % tag)
             self.azione_download.setEnabled(bool(pagina))
-            self.riga_stato.setText(_("new version %s available: Help > Download") % tag)
+            self.mostra_avviso(
+                _("new version %s available: Help > Download") % tag, 0,
+                ("new version %s available: Help > Download", (tag,)))
         else:
             self.nuova, self.pagina_nuova = None, None
             self.azione_download.setText(_("Up to date"))
@@ -2865,6 +2897,8 @@ class MainWindow(QMainWindow):
 
 
     def eventFilter(self, oggetto, evento):
+        if evento.type() == evento.Type.MouseButtonPress and oggetto in (self.avviso, self.et_avviso):
+            self.chiudi_avviso()
         if evento.type() == evento.Type.Resize and oggetto is self.video:
             self._posiziona_overlay()
         if evento.type() in (evento.Type.MouseMove, evento.Type.MouseButtonPress):
@@ -2990,7 +3024,7 @@ class MainWindow(QMainWindow):
         self._overlay_attivo = False
         self.barra.setParent(self._centrale)
         self.barra.setStyleSheet("")
-        self._layout_principale.insertWidget(1, self.barra)
+        self._layout_principale.insertWidget(2, self.barra)
         self.barra.show()
 
     def _mostra_overlay(self):
@@ -3036,6 +3070,7 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, evento):
         self._timer_overlay.stop()
+        self._timer_avviso.stop()
         if self._versione_worker and self._versione_worker.isRunning():
             self._versione_worker.wait(12000)
         for worker in self._subtitle_workers:
