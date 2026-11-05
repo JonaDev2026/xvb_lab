@@ -115,8 +115,7 @@ class Sessione:
                 guide.append(leggi_epg(file_epg))
             except Exception:
                 continue
-        if guide:
-            self.epg_nomi, self.epg = unisci_guide(guide)
+        self.epg_nomi, self.epg = unisci_guide(guide)
 
     def categorie(self, percorso=None):
         nomi = set()
