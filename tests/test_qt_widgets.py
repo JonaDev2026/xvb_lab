@@ -1,5 +1,6 @@
 import os
 import unittest
+from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
@@ -15,6 +16,13 @@ class QtWidgetTests(unittest.TestCase):
 
     def test_main_window_module_imports(self):
         self.assertTrue(MainWindow)
+
+    def test_main_window_constructs_without_libmpv(self):
+        with patch("ui.main_window.MpvVideo", side_effect=RuntimeError("libmpv unavailable")):
+            window = MainWindow()
+            self.assertIsNone(window.player)
+            window.close()
+            self.app.processEvents()
 
     def test_search_callback_and_value(self):
         calls = []
