@@ -873,6 +873,7 @@ class MainWindow(QMainWindow):
         for index in range(self.media_tree.topLevelItemCount()):
             item = self.media_tree.topLevelItem(index)
             item.setHidden(bool(query) and query not in item.text(0).casefold())
+        self._update_playback_navigation()
 
     def play_selected_media(self, item, _column):
         path = item.data(0, Qt.ItemDataRole.UserRole)
