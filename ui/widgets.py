@@ -796,3 +796,8 @@ class _ElencoDelegate(QStyledItemDelegate):
         return QSize(max(1, option.rect.width()), max(58, h + 48))
 
 
+
+
+from ui.list import Elenco
+from ui.dialogs import Finestrella, Tendina
+from ui.guide import Guida
