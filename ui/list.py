@@ -68,6 +68,7 @@ class Elenco(QListWidget):
         self.poster_h = 0
         self.poster_onda_h = 0
         self.itemClicked.connect(self._selezionato)
+        self.currentItemChanged.connect(self._corrente_cambiato)
         self.setItemDelegate(_ElencoDelegate(self))
         self.setSpacing(0)
         self.setUniformItemSizes(False)
@@ -232,6 +233,24 @@ class Elenco(QListWidget):
         self.scelta = iid
         if self.singolo:
             self.singolo()
+
+    def _corrente_cambiato(self, corrente, precedente):
+        iid = corrente.data(Qt.UserRole) if corrente is not None else None
+        if iid != self.scelta:
+            self.scelta = iid
+            self.treeviewSelect.emit()
+
+    def keyPressEvent(self, evento):
+        if evento.key() in (Qt.Key_Left, Qt.Key_Right):
+            direzione = -1 if evento.key() == Qt.Key_Left else 1
+            if evento.modifiers() & Qt.ShiftModifier:
+                if hasattr(self, "avanza"):
+                    self.avanza(direzione * 10)
+            elif hasattr(self, "salta"):
+                self.salta(direzione)
+            evento.accept()
+            return
+        super().keyPressEvent(evento)
 
 
 class _ElencoDelegate(QStyledItemDelegate):
