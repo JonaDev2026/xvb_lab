@@ -812,7 +812,7 @@ class MainWindow(QMainWindow):
                 self.el_liste.item(figlio, valore=(lista["percorso"], categoria))
         if self.sessione.preferiti:
             preferiti = self.el_liste.insert(
-                iptv, "end", iid="preferiti", text=" " + _("Favorites"), open=True)
+                "", "end", iid="preferiti", text=" " + _("Favorites"), open=True)
             categorie = sorted(
                 {voce[3] or "MyPlaylist" for voce in self.sessione.preferiti},
                 key=str.casefold)
