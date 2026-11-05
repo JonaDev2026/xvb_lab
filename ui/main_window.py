@@ -3785,7 +3785,11 @@ class MainWindow(QMainWindow):
         nome = self._chiedi_testo(_("Rename..."), _("Name:"), self.nome_di_url(url))
         if nome is None:
             return
-        self.sessione.config.setdefault("nomi_url", {})[url] = nome.strip() or self.nome_di_url(url)
+        nomi = self.sessione.config.setdefault("nomi_url", {})
+        if nome.strip():
+            nomi[url] = nome.strip()
+        else:
+            nomi.pop(url, None)
         scrivi_config(self.sessione.config)
         self._riempi_liste()
         self._riempi_elenco()
