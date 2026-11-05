@@ -2056,6 +2056,20 @@ class MainWindow(QMainWindow):
                 self._stream_workers.append(worker)
                 worker.start()
             else:
+                for proprieta, chiave in (("audio-delay", "ritardo"),
+                                           ("sub-delay", "ritardo_sub"),
+                                           ("sub-scale", "scala_sub")):
+                    try:
+                        valore = self.sessione.config.get(chiave, {}).get(percorso)
+                        if valore is not None:
+                            player.imposta(proprieta, valore)
+                    except Exception:
+                        pass
+                for proprieta, valore in self.sessione.config.get("video", {}).get(percorso, {}).items():
+                    try:
+                        player.imposta(proprieta, valore)
+                    except Exception:
+                        pass
                 player.apri(percorso)
                 self.play_button.setIcon(QIcon(os.path.join(QUI, "icone", "pausa.png")))
                 self.play_button.setToolTip(_("Pause"))
