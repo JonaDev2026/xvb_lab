@@ -140,6 +140,20 @@ class QtWidgetTests(unittest.TestCase):
                 cerca.assert_called_once_with(path)
             window.close()
             self.app.processEvents()
+    def test_status_bar_shows_active_iptv_category_only(self):
+        with patch("ui.main_window.MpvVideo", side_effect=RuntimeError("libmpv unavailable")):
+            window = MainWindow()
+            url = "https://example.test/news"
+            window.sessione.canali = [("News", url, "news", "World", "playlist.m3u")]
+            window._imposta_categoria_attiva(url)
+            self.assertEqual(window.et_categoria.text(), "World")
+            self.assertFalse(window.et_categoria.isHidden())
+            window._imposta_categoria_attiva("/media/song.flac")
+            self.assertTrue(window.et_categoria.isHidden())
+            self.assertIsNone(window._categoria_attiva)
+            window.close()
+            self.app.processEvents()
+
     def test_status_bar_shows_current_and_next_epg_program(self):
         with patch("ui.main_window.MpvVideo", side_effect=RuntimeError("libmpv unavailable")), \
              patch("ui.main_window.time.time", return_value=150):
