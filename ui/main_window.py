@@ -15,7 +15,13 @@ from ui.handle import Maniglia
 from core.session import Sessione
 from core.media import media_in, AUDIO, e_media, tipo_preferiti, titolo_url, PREF_IPTV, PREF_MUSICA, PREF_VIDEO, durata_di
 from core.tags import leggi_tag, tag_di, scrivi_tag
-from core.metadata import titolo_anno, dal_percorso, copertina_url, copertina_dentro, poster_film
+from core.metadata import (
+    titolo_anno, dal_percorso, copertina_url, copertina_dentro, poster_film,
+    copertina_musicbrainz, copertina_da_brano, info_tmdb, generi_tmdb,
+    scarica_in, leggi_json, scrivi_json, TMDB_CHIAVE, LINGUE_TMDB,
+    FILE_PROVATI, FILE_INFO,
+)
+from i18n import lingua_corrente
 from integrations.mpris import avvia_mpris
 from integrations.opensubtitles import RicercaSottotitoli, ScaricaSottotitolo
 from core.config import scrivi_config, CARTELLE_LISTE, REGISTRAZIONI, leggi_config, QUI
@@ -263,6 +269,145 @@ class _AggiornaListe(QThread):
         self.completato.emit(cambiata)
 
 
+class _ScaricaCopertine(QThread):
+    avanzamento = Signal(int, int)
+    completato = Signal(int, int, object, object)
+
+    def __init__(self, file_, chiave, zitto, info, tag_cache, cartelle=()):
+        super().__init__()
+        self.file = None if file_ is None else list(file_)
+        self.chiave = chiave
+        self.zitto = zitto
+        self.info = dict(info or {})
+        self.tag_cache = tag_cache
+        self.cartelle = list(cartelle)
+
+    def run(self):
+        if self.file is None:
+            file_ = []
+            for cartella in self.cartelle:
+                try:
+                    file_.extend(voce[1] for voce in media_in(cartella))
+                except Exception:
+                    continue
+        else:
+            file_ = self.file
+        fatti = nuove = 0
+        album_visti = set()
+        chiave_tmdb = TMDB_CHIAVE
+        lingua = LINGUE_TMDB.get(lingua_corrente(), "en-US")
+        provati = leggi_json(FILE_PROVATI)
+        if not isinstance(provati, dict):
+            provati = {}
+        gia_provati = dict(provati)
+        try:
+            import mutagen
+        except ImportError:
+            mutagen = None
+        for numero, percorso in enumerate(file_, 1):
+            if self.isInterruptionRequested():
+                break
+            if not self.zitto:
+                self.avanzamento.emit(numero, len(file_))
+            cartella, base = os.path.split(percorso)
+            audio = os.path.splitext(percorso)[1][1:].lower() in AUDIO
+            voce = cartella if audio else percorso
+            if self.zitto and voce in gia_provati:
+                continue
+            provati[voce] = 1
+            radice = os.path.splitext(base)[0]
+            try:
+                if not audio:
+                    if not chiave_tmdb:
+                        continue
+                    titolo, anno = titolo_anno(percorso)
+                    info = info_tmdb(chiave_tmdb, titolo, anno, lingua)
+                    if info is None:
+                        continue
+                    generi = generi_tmdb(chiave_tmdb, lingua, self.info)
+                    info["generi"] = [
+                        generi.get(str(genere), "") for genere in info.get("generi", [])
+                        if generi.get(str(genere))
+                    ]
+                    self.info[percorso] = info
+                    nuove += 1
+                    esistenti = [radice + estensione for estensione in
+                                 (".jpg", ".jpeg", ".png")] + [
+                                     "poster.jpg", "poster.jpeg", "poster.png"]
+                    if info.get("poster") and not any(
+                            os.path.isfile(os.path.join(cartella, nome))
+                            for nome in esistenti):
+                        os.makedirs(cartella, exist_ok=True)
+                        scarica_in(info["poster"], os.path.join(cartella, radice + ".jpg"))
+                        fatti += 1
+                else:
+                    if mutagen is None:
+                        continue
+                    tag = mutagen.File(percorso, easy=True)
+                    tags = tag.tags if tag is not None and tag.tags else {}
+                    prendi = lambda nome: str((tags.get(nome) or [""])[0]).strip()
+                    artista = prendi("albumartist") or prendi("artist")
+                    album = prendi("album")
+                    titolo = prendi("title")
+                    anno = prendi("date")[:4]
+                    ha_anno = anno.isdigit()
+                    if not (artista and album):
+                        titolo_file, artista_file, album_file, anno_file = dal_percorso(
+                            percorso, self.cartelle)
+                        artista = artista or artista_file
+                        album = album or album_file
+                        titolo = titolo or titolo_file
+                        ha_anno = ha_anno or bool(anno_file)
+                    if artista and titolo and not album:
+                        copertine = [radice + estensione for estensione in
+                                     (".jpg", ".jpeg", ".png")]
+                        if any(os.path.isfile(os.path.join(cartella, nome))
+                               for nome in copertine) or copertina_dentro(percorso) is not None:
+                            continue
+                        urls, anno_mb, album_mb = copertina_da_brano(artista, titolo)
+                        time.sleep(1.1)
+                        if album_mb or anno_mb:
+                            self.info[percorso] = {"album": album_mb, "anno": anno_mb}
+                            nuove += 1
+                        for url in urls:
+                            try:
+                                os.makedirs(cartella, exist_ok=True)
+                                scarica_in(url, os.path.join(cartella, radice + ".jpg"))
+                                fatti += 1
+                                break
+                            except Exception:
+                                continue
+                        continue
+                    if cartella in album_visti:
+                        continue
+                    album_visti.add(cartella)
+                    nomi_copertina = [
+                        nome + estensione for nome in ("cover", "folder")
+                        for estensione in (".jpg", ".jpeg", ".png")
+                    ]
+                    ha_copertina = any(
+                        os.path.isfile(os.path.join(cartella, nome))
+                        for nome in nomi_copertina
+                    ) or copertina_dentro(percorso) is not None
+                    if not (artista and album) or (ha_copertina and ha_anno):
+                        continue
+                    url, anno_mb = copertina_musicbrainz(artista, album)
+                    time.sleep(1.1)
+                    if anno_mb and not ha_anno:
+                        self.info[cartella] = {"anno": anno_mb}
+                        nuove += 1
+                    if url and not ha_copertina:
+                        os.makedirs(cartella, exist_ok=True)
+                        scarica_in(url, os.path.join(cartella, "cover.jpg"))
+                        fatti += 1
+            except Exception:
+                continue
+        scrivi_json(FILE_PROVATI, provati)
+        if nuove:
+            scrivi_json(FILE_INFO, self.info)
+        self.completato.emit(fatti, nuove, self.info, self.chiave)
+
+
 class _VerificaVersione(QThread):
     completato = Signal(str, str)
     errore = Signal(str)
@@ -336,6 +481,8 @@ class MainWindow(QMainWindow):
         self.colori = leggi_colori()
         self._logo_threads = []
         self._cover_threads = []
+        self.info = leggi_json(FILE_INFO)
+        self._worker_copertine = None
         self.canali = [(n, u, ide) for n, u, ide, _cat, _lista in self.sessione.canali]
         for percorso in self.sessione.config.get("importati", []):
             if not os.path.isfile(percorso) or any(v[1] == percorso for v in self.sessione.canali):
@@ -610,6 +757,7 @@ class MainWindow(QMainWindow):
         self.pagina_nuova = None
         self._versione_worker = None
         QTimer.singleShot(8000, lambda: self.controlla_versione(zitto=True))
+        QTimer.singleShot(8000, self.controlla_copertine)
         self._indice_canale = -1
         self._giro_traccia = 0
         self.fermato = None
@@ -1071,6 +1219,56 @@ class MainWindow(QMainWindow):
                         pass
         self.riga_stato.setText("Buffer: " + voce[1])
 
+    def _avvia_scarica_copertine(self, file_, chiave, zitto=False):
+        worker = self._worker_copertine
+        if worker is not None and worker.isRunning():
+            return
+        worker = _ScaricaCopertine(
+            file_, chiave, zitto, self.info, self.tag_cache,
+            self.sessione.config.get("cartelle", []))
+        worker.avanzamento.connect(self._avanzamento_copertine)
+        worker.completato.connect(
+            lambda fatti, nuove, info, percorso, w=worker:
+            self._copertine_completate(w, fatti, nuove, info, percorso))
+        worker.finished.connect(
+            lambda w=worker: self._rimuovi_worker_copertine(w))
+        self._worker_copertine = worker
+        worker.start()
+
+    def controlla_copertine(self):
+        importati = self.sessione.config.get("importati", [])
+        cartelle = list(self.sessione.config.get("cartelle", []))
+        file_importati = [percorso for percorso in importati if os.path.isfile(percorso)]
+        if cartelle or file_importati:
+            self._avvia_scarica_copertine(None, None, True)
+
+    def scarica_copertine(self):
+        if not self._percorso_attivo or not self._canali_visibili:
+            self.riga_stato.setText(_("open a folder of films or music first"))
+            return
+        file_ = [voce[1] for voce in self._canali_visibili if os.path.isabs(voce[1])]
+        if not file_:
+            self.riga_stato.setText(_("open a folder of films or music first"))
+            return
+        self._avvia_scarica_copertine(file_, self._percorso_attivo)
+
+    def _avanzamento_copertine(self, numero, totale):
+        self.riga_stato.setText(
+            _("downloading posters and covers... %d/%d") % (numero, totale))
+
+    def _copertine_completate(self, worker, fatti, nuove, info, percorso):
+        self.info = info
+        if fatti or not worker.zitto:
+            self.riga_stato.setText(_("%d posters and covers downloaded") % fatti)
+        if nuove and percorso and self._percorso_attivo == percorso:
+            self._riempi_elenco()
+        elif fatti and percorso and self._percorso_attivo == percorso:
+            self._riempi_elenco()
+
+    def _rimuovi_worker_copertine(self, worker):
+        if self._worker_copertine is worker:
+            self._worker_copertine = None
+
     def _azione(self, nome, callback, scorciatoia=None):
         azione = QAction(nome, self)
         if scorciatoia:
@@ -1085,6 +1283,7 @@ class MainWindow(QMainWindow):
         media.addAction(self._azione(_("Open folder..."), self.apri_cartella))
         media.addAction(self._azione(_("Add playlist file..."), self.aggiungi_lista_file))
         media.addAction(self._azione(_("Open URL..."), self.apri_url, "Ctrl+L"))
+        media.addAction(self._azione(_("Download posters and covers"), self.scarica_copertine))
         self.menu_recenti = media.addMenu(_("Recent"))
         media.addAction(self._azione(_("Clear recent"), self.pulisci_recenti))
         media.addSeparator()
@@ -4089,6 +4288,9 @@ class MainWindow(QMainWindow):
         self._timer_avviso.stop()
         if self._versione_worker and self._versione_worker.isRunning():
             self._versione_worker.wait(12000)
+        if self._worker_copertine and self._worker_copertine.isRunning():
+            self._worker_copertine.requestInterruption()
+            self._worker_copertine.wait(25000)
         for worker in self._subtitle_workers:
             if worker.isRunning():
                 worker.wait(45000)
