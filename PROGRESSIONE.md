@@ -79,3 +79,19 @@ Nessuna funzione è ancora dichiarata migrata e l'applicazione non è pronta per
 
 - [x] Avviata la migrazione Qt6 dei widget visuali originali in `ui/widgets.py`: casella di ricerca Material con lente, segnaposto, callback ed Escape; cursore percentuale con trascinamento, rotella, callback e sfondo dinamico. Le API conservano i nomi originali `Ricerca` e `Cursore`.
 - [ ] Verificare la parità grafica dei widget Qt6 con la Stable e completare i widget `Guida`, `Tendina`, `Elenco` e `Finestrella`.
+
+
+## Prima integrazione Qt6
+
+- [x] Creato `engine/mpv.py`: istanza libmpv tramite API C, rendering OpenGL con `mpv_render_context` dentro `QOpenGLWidget`, caricamento file/URL, play/pausa, stop, seek e volume.
+- [x] Creato `ui/main_window.py`: finestra 1280×720 con pannello sinistro da 300 px, video centrale, pannello destro da 220 px, barra comandi da 96 px e stato da 28 px; menu principali Media, Playback, Video, Audio, IPTV, View e Help.
+- [x] Collegata la sessione alle funzioni originali di playlist e guida in `core/session.py`: caricamento liste configurate, categorie M3U, canali e guide XMLTV.
+- [x] Caricamento EPG eseguito in un thread Qt separato; le sorgenti remote passano dalla cache originale `prendi_epg`.
+- [x] Collegate alla finestra Qt le selezioni playlist/categoria, ricerca canali, apertura singolo canale, importazione cartelle locali, guida EPG e controlli mpv per playback, velocità, ripetizione, aspect ratio, deinterlacciamento, decodifica hardware, regolazioni video e tracce audio/sottotitoli.
+- [x] Migrati in `ui/widgets.py` i componenti Qt6 con API compatibili: `Ricerca`, `Cursore`, `Tendina`, `Elenco`, `Finestrella` e `Guida`.
+- [x] Aggiunto `main.py` come punto di avvio e `requirements.txt` per PySide6, Pillow e Mutagen.
+- [x] Aggiunti test smoke Qt6 e compilazione moduli nel workflow CI.
+
+### Stato effettivo
+
+La prima integrazione Qt6 esiste nel branch, ma non è ancora una migrazione completa e non è pronta per il pull di collaudo. La compatibilità grafica e comportamentale dei widget non è stata verificata contro la Stable; l'elenco Qt6 non ha ancora tutte le decorazioni dinamiche originali (loghi, poster, progressi e tag); restano da trasferire le classi applicative e i metodi di `TV`, l'intero flusso di playlist/EPG/registrazioni, le funzioni di libreria musicale e video, i menu dinamici e le interazioni complete. Il rendering libmpv è stato collegato a livello di codice, ma non verificato su X11/Wayland. Nessun test viene dichiarato superato finché CI e prova reale non lo confermano.
