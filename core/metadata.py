@@ -140,3 +140,41 @@ def poster_film(percorso):
              for estensione in (".jpg", ".jpeg", ".png")])
     return next((os.path.join(cartella, nome) for nome in nomi
                  if os.path.isfile(os.path.join(cartella, nome))), None)
+
+def copertina_musicbrainz(artista, album):
+    from urllib.parse import quote
+    query = 'releasegroup:"%s" AND artist:"%s"' % (album.replace('"', ""), artista.replace('"', ""))
+    risultati = json_da("https://musicbrainz.org/ws/2/release-group/?fmt=json&limit=3&query=" + quote(query))
+    for gruppo in risultati.get("release-groups") or []:
+        if gruppo.get("id"):
+            return ("https://coverartarchive.org/release-group/%s/front-500" % gruppo["id"],
+                    (gruppo.get("first-release-date") or "")[:4])
+    return None, ""
+
+
+def copertina_da_brano(artista, titolo):
+    from urllib.parse import quote
+    query = 'recording:"%s" AND artist:"%s"' % (titolo.replace('"', ""), artista.replace('"', ""))
+    risultati = json_da("https://musicbrainz.org/ws/2/recording/?fmt=json&limit=15&query=" + quote(query))
+    scelte = []
+    for registrazione in risultati.get("recordings") or []:
+        for pubblicazione in registrazione.get("releases") or []:
+            gruppo = pubblicazione.get("release-group") or {}
+            if not gruppo.get("id"):
+                continue
+            buono = (pubblicazione.get("status", "Official") == "Official"
+                     and gruppo.get("primary-type") in ("Album", "EP", "Single")
+                     and not gruppo.get("secondary-types"))
+            data = pubblicazione.get("date") or "9999"
+            scelte.append((not buono, gruppo.get("primary-type") != "Album", data,
+                           gruppo["id"], gruppo.get("title") or pubblicazione.get("title") or ""))
+    if not scelte:
+        return [], "", ""
+    scelte.sort()
+    _non_buono, _non_album, data, _id_gruppo, nome = scelte[0]
+    urls = []
+    for scelta in scelte:
+        url = "https://coverartarchive.org/release-group/%s/front-500" % scelta[3]
+        if url not in urls:
+            urls.append(url)
+    return urls[:3], (data[:4] if data[:4].isdigit() and data != "9999" else ""), nome
