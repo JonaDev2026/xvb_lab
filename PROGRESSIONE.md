@@ -186,3 +186,11 @@ Non eseguiti test né prove grafiche: restano per il pull concordato.
 - Ripristinato il pannello avviso originale da 42 px, cliccabile e con chiusura temporizzata; gli avvisi di aggiornamento vengono mostrati qui e restano visibili finché non vengono chiusi.
 - Corretto l'ordine del layout principale: contenuto, avviso, barra comandi da 96 px, stato da 28 px. L'overlay fullscreen rimuove e reinserisce la barra nella posizione corretta.
 - I test Qt ora controllano l'ordine della barra e dell'avviso nel layout; non sono stati eseguiti.
+
+## Riproduzione in sequenza dei file locali
+
+- Reintrodotto `prossimo_file()` della Stable: a fine file si passa alla voce successiva dell'elenco attivo; all'ultimo elemento si torna al primo soltanto con Repeat all; Repeat one riapre il file corrente.
+- Collegato il fine-riproduzione del motore libmpv a questa sequenza per i percorsi locali, mantenendo il comportamento di cambio canale Repeat all per gli stream.
+- La sequenza usa l'ordine effettivo di `_canali_visibili`, quindi rispetta playlist, categoria e filtro attivi.
+
+Non eseguiti test o prove con libmpv; il comportamento resta da verificare al pull.
