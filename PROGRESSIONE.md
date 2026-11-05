@@ -353,3 +353,13 @@ Commit: `b799089`, `39cca51`. Nessun test runtime eseguito.
 
 
 - Corretto il salvataggio della posizione per non interrompere il ciclo player quando la configurazione contiene dati non validi: il ripristino gestisce gli errori senza bloccare gli eventi libmpv.
+
+
+## Inizializzazione della finestra e verifica CI
+
+- Corretto l'ordine di inizializzazione dello stato del contenuto in riproduzione: `nome_in_onda`, `ide_in_onda` e `file_in_onda` vengono creati prima del primo popolamento dell'elenco.
+- Rimossa la seconda inizializzazione successiva, che avrebbe potuto azzerare lo stato.
+- GitHub Actions sul commit `05268c1` ha completato compilazione dei moduli e test di regressione/Qt con esito positivo.
+- Il test di costruzione della `MainWindow` viene eseguito senza libmpv; il rendering reale e la riproduzione restano da verificare sul sistema Linux di prova.
+
+Commit: `05268c1`.
