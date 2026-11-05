@@ -11,7 +11,8 @@ from core.media import media_in, AUDIO
 from core.tags import leggi_tag, tag_di, scrivi_tag
 from core.metadata import titolo_anno, dal_percorso, copertina_url, copertina_dentro, poster_film
 from integrations.mpris import avvia_mpris
-from core.config import scrivi_config, CARTELLE_LISTE, REGISTRAZIONI
+from core.config import scrivi_config, CARTELLE_LISTE, REGISTRAZIONI, leggi_config
+from i18n import _, imposta_lingua
 from core.playlists import liste_in_cartella, BUFFER, LOGHI
 from core.colors import CACHE_LOGHI, leggi_colori, scrivi_colori, colore_di, colore_dal_logo
 from core.constants import SCALA_FILE
@@ -78,6 +79,7 @@ class _CaricaCopertina(QThread):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+        imposta_lingua(leggi_config().get("lingua", "en"))
         self.setWindowTitle("XVB v4.4.4")
         self.resize(1280, 720)
         self.setMinimumSize(800, 480)
@@ -132,7 +134,7 @@ class MainWindow(QMainWindow):
         self.epg_nomi = self.sessione.epg_nomi
         self._percorso_attivo = None
         self._categoria_attiva = None
-        self.cerca = Ricerca(self.sinistra, self._filtra, vuota="Search")
+        self.cerca = Ricerca(self.sinistra, self._filtra, vuota=_("Search"))
         sx.addWidget(self.cerca)
         self.elenco = Elenco(self.sinistra)
         self.elenco.singolo = self._seleziona_canale
@@ -160,7 +162,7 @@ class MainWindow(QMainWindow):
         self.destra.setFixedWidth(220)
         dx = QVBoxLayout(self.destra)
         dx.setContentsMargins(8, 8, 8, 8)
-        self.et_liste = QLabel("Playlists", self.destra)
+        self.et_liste = QLabel(_("Playlists"), self.destra)
         self.et_liste.setStyleSheet("color:#9e9e9e")
         dx.addWidget(self.et_liste)
         self.el_liste = QTreeWidget(self.destra)
@@ -304,68 +306,68 @@ class MainWindow(QMainWindow):
         return azione
 
     def _costruisci_menu(self):
-        media = self.menuBar().addMenu("Media")
-        media.addAction(self._azione("Open file...", self.apri_file, "Ctrl+O"))
-        media.addAction(self._azione("Open folder...", self.apri_cartella))
-        media.addAction(self._azione("Open URL...", self.apri_url, "Ctrl+L"))
-        self.menu_recenti = media.addMenu("Recent")
-        media.addAction(self._azione("Clear recent", self.pulisci_recenti))
+        media = self.menuBar().addMenu(_("Media"))
+        media.addAction(self._azione(_("Open file..."), self.apri_file, "Ctrl+O"))
+        media.addAction(self._azione(_("Open folder..."), self.apri_cartella))
+        media.addAction(self._azione(_("Open URL..."), self.apri_url, "Ctrl+L"))
+        self.menu_recenti = media.addMenu(_("Recent"))
+        media.addAction(self._azione(_("Clear recent"), self.pulisci_recenti))
         media.addSeparator()
-        media.addAction(self._azione("Quit", self.close, "Ctrl+Q"))
-        playback = self.menuBar().addMenu("Playback")
-        playback.addAction(self._azione("Play / Pause", self.pausa, "Space"))
-        playback.addAction(self._azione("Stop", self.ferma, "S"))
-        playback.addAction(self._azione("Back 10 s", lambda: self._comando("seek", "-10", "relative")))
-        playback.addAction(self._azione("Forward 10 s", lambda: self._comando("seek", "10", "relative")))
+        media.addAction(self._azione(_("Quit"), self.close, "Ctrl+Q"))
+        playback = self.menuBar().addMenu(_("Playback"))
+        playback.addAction(self._azione(_("Play / Pause"), self.pausa, "Space"))
+        playback.addAction(self._azione(_("Stop"), self.ferma, "S"))
+        playback.addAction(self._azione(_("Back 10 s"), lambda: self._comando("seek", "-10", "relative")))
+        playback.addAction(self._azione(_("Forward 10 s"), lambda: self._comando("seek", "10", "relative")))
         playback.addSeparator()
         for velocita in (0.5, 0.75, 1, 1.25, 1.5, 2):
             playback.addAction(self._azione("Speed x%g" % velocita,
                                             lambda _=False, v=velocita: self._imposta("speed", v)))
         playback.addAction(self._azione("Repeat file", lambda: self._ciclo_valori("loop-file", "no", "inf")))
         playback.addAction(self._azione("Repeat playlist", lambda: self._ciclo_valori("loop-playlist", "no", "inf")))
-        video = self.menuBar().addMenu("Video")
+        video = self.menuBar().addMenu(_("Video"))
         for nome, valore in (("Auto", "-1"), ("16:9", "16:9"), ("4:3", "4:3"), ("21:9", "21:9")):
             video.addAction(self._azione("Aspect " + nome,
                                          lambda _=False, v=valore: self._imposta("video-aspect-override", v)))
-        video.addAction(self._azione("Deinterlace", lambda: self._ciclo("deinterlace")))
-        video.addAction(self._azione("Hardware decoding", lambda: self._ciclo_valori("hwdec", "no", "auto-safe")))
+        video.addAction(self._azione(_("Deinterlace"), lambda: self._ciclo("deinterlace")))
+        video.addAction(self._azione(_("Hardware decoding"), lambda: self._ciclo_valori("hwdec", "no", "auto-safe")))
         video.addSeparator()
         for nome, valore in (("Brightness +", ("brightness", 10)), ("Brightness -", ("brightness", -10)),
                              ("Contrast +", ("contrast", 10)), ("Contrast -", ("contrast", -10)),
                              ("Saturation +", ("saturation", 10)), ("Saturation -", ("saturation", -10))):
             video.addAction(self._azione(nome, lambda _=False, v=valore: self._regola(*v)))
-        video.addAction(self._azione("Reset picture", lambda: self._azzera_video()))
-        video.addAction(self._azione("Screenshot", lambda: self._comando("screenshot")))
-        audio = self.menuBar().addMenu("Audio")
-        audio.addAction(self._azione("Next audio track", lambda: self._ciclo("aid")))
-        audio.addAction(self._azione("Next subtitle track", lambda: self._ciclo("sid")))
-        audio.addAction(self._azione("Subtitles on/off", lambda: self._ciclo("sub-visibility")))
+        video.addAction(self._azione(_("Reset picture"), lambda: self._azzera_video()))
+        video.addAction(self._azione(_("Screenshot"), lambda: self._comando("screenshot")))
+        audio = self.menuBar().addMenu(_("Audio"))
+        audio.addAction(self._azione(_("Next audio track"), lambda: self._ciclo("aid")))
+        audio.addAction(self._azione(_("Next subtitle track"), lambda: self._ciclo("sid")))
+        audio.addAction(self._azione(_("Subtitles on/off"), lambda: self._ciclo("sub-visibility")))
         audio.addAction(self._azione("Subtitle delay +100 ms", lambda: self._regola("sub-delay", 0.1)))
         audio.addAction(self._azione("Subtitle delay -100 ms", lambda: self._regola("sub-delay", -0.1)))
         audio.addAction(self._azione("Audio delay +100 ms", lambda: self._regola("audio-delay", 0.1)))
         audio.addAction(self._azione("Audio delay -100 ms", lambda: self._regola("audio-delay", -0.1)))
-        iptv = self.menuBar().addMenu("IPTV")
-        iptv.addAction(self._azione("Add playlist URL", self.aggiungi_lista_url))
-        iptv.addAction(self._azione("Open playlists folder", self.apri_cartella_liste))
-        iptv.addAction(self._azione("Reload playlists", self.ricarica_liste))
+        iptv = self.menuBar().addMenu(_("IPTV"))
+        iptv.addAction(self._azione(_("Add playlist URL"), self.aggiungi_lista_url))
+        iptv.addAction(self._azione(_("Open playlists folder"), self.apri_cartella_liste))
+        iptv.addAction(self._azione(_("Reload playlists"), self.ricarica_liste))
         iptv.addSeparator()
-        iptv.addAction(self._azione("Programme guide", self.apri_guida))
-        iptv.addAction(self._azione("Add guide URL", self.aggiungi_epg_url))
-        iptv.addAction(self._azione("Reload guide", self.ricarica_guida))
+        iptv.addAction(self._azione(_("Programme guide"), self.apri_guida))
+        iptv.addAction(self._azione(_("Add guide URL"), self.aggiungi_epg_url))
+        iptv.addAction(self._azione(_("Reload guide"), self.ricarica_guida))
         iptv.addSeparator()
-        iptv.addAction(self._azione("Record now / Stop recording", self.registra))
-        iptv.addAction(self._azione("Schedule...", self.pianifica))
-        iptv.addAction(self._azione("Cancel schedule", self.annulla_piano))
-        iptv.addAction(self._azione("Open recordings folder", self.apri_registrazioni))
-        view = self.menuBar().addMenu("View")
-        view.addAction(self._azione("Fullscreen", self.schermo_intero, "F"))
-        view.addAction(self._azione("Picture in picture", self.pip_si_no))
-        view.addAction(self._azione("Split screen", self.split_si_no, "F2"))
-        buffer_menu = view.addMenu("Buffer")
+        iptv.addAction(self._azione(_("Record now / Stop recording"), self.registra))
+        iptv.addAction(self._azione(_("Schedule..."), self.pianifica))
+        iptv.addAction(self._azione(_("Cancel schedule"), self.annulla_piano))
+        iptv.addAction(self._azione(_("Open recordings folder"), self.apri_registrazioni))
+        view = self.menuBar().addMenu(_("View"))
+        view.addAction(self._azione(_("Fullscreen"), self.schermo_intero, "F"))
+        view.addAction(self._azione(_("Picture in picture"), self.pip_si_no))
+        view.addAction(self._azione(_("Split screen"), self.split_si_no, "F2"))
+        buffer_menu = view.addMenu(_("Buffer"))
         for chiave, etichetta, *_resto in BUFFER:
             buffer_menu.addAction(self._azione(etichetta, lambda _=False, k=chiave: self.metti_buffer(k)))
-        help_menu = self.menuBar().addMenu("Help")
-        help_menu.addAction(self._azione("About XVB", self.informazioni))
+        help_menu = self.menuBar().addMenu(_("Help"))
+        help_menu.addAction(self._azione(_("About XVB"), self.informazioni))
 
 
 
@@ -406,7 +408,7 @@ class MainWindow(QMainWindow):
 
 
     def aggiungi_lista_url(self):
-        url, ok = QInputDialog.getText(self, "Add playlist URL", "URL")
+        url, ok = QInputDialog.getText(self, _("Add playlist URL"), "URL")
         if not ok or not url.strip():
             return
         cfg = self.sessione.config
@@ -449,7 +451,7 @@ class MainWindow(QMainWindow):
         QDesktopServices.openUrl(QUrl.fromLocalFile(percorso))
 
     def aggiungi_epg_url(self):
-        url, ok = QInputDialog.getText(self, "Add guide URL", "URL")
+        url, ok = QInputDialog.getText(self, _("Add guide URL"), "URL")
         if not ok or not url.strip():
             return
         cfg = self.sessione.config
@@ -678,7 +680,7 @@ class MainWindow(QMainWindow):
         return nuovi
 
     def apri_cartella(self):
-        cartella = QFileDialog.getExistingDirectory(self, "Open folder")
+        cartella = QFileDialog.getExistingDirectory(self, _("Open folder"))
         if not cartella:
             return
         nuovi = self._media_locale(cartella)
@@ -702,7 +704,7 @@ class MainWindow(QMainWindow):
         self.riga_stato.setText("%d media files" % len(nuovi))
 
     def informazioni(self):
-        QMessageBox.about(self, "XVB", "XVB Player 4.4.4")
+        QMessageBox.about(self, "XVB", _("XVB Player 4.4.4"))
 
 
 
@@ -876,11 +878,11 @@ class MainWindow(QMainWindow):
         if not self.file_in_onda or not self.nome_in_onda:
             self.riga_stato.setText("Open the channel to record first")
             return
-        inizio, ok = QInputDialog.getText(self, "Schedule", "Start (HH:MM):",
+        inizio, ok = QInputDialog.getText(self, _("Schedule"), _("Start (HH:MM):"),
                                           text=time.strftime("%H:%M"))
         if not ok or not inizio:
             return
-        fine, ok = QInputDialog.getText(self, "Schedule", "End (HH:MM):")
+        fine, ok = QInputDialog.getText(self, _("Schedule"), _("End (HH:MM):"))
         if not ok or not fine:
             return
         try:
@@ -937,12 +939,12 @@ class MainWindow(QMainWindow):
         self._aggiorna_recenti()
 
     def apri_file(self):
-        percorso, _ = QFileDialog.getOpenFileName(self, "Open file")
+        percorso, _ = QFileDialog.getOpenFileName(self, _("Open file"))
         if percorso:
             self.apri(percorso)
 
     def apri_url(self):
-        url, ok = QInputDialog.getText(self, "Open URL", "URL")
+        url, ok = QInputDialog.getText(self, _("Open URL"), "URL")
         if ok and url.strip():
             self.apri(url.strip())
 
