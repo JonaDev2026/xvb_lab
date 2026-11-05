@@ -2440,13 +2440,6 @@ class MainWindow(QMainWindow):
                     player.imposta("audio-delay", float(ritardi.get(percorso, 0.0)))
                 except Exception:
                     pass
-                for proprieta, chiave in (("sub-delay", "ritardo_sub"), ("sub-scale", "scala_sub")):
-                    try:
-                        valore = self.sessione.config.get(chiave, {}).get(percorso)
-                        if valore is not None:
-                            player.imposta(proprieta, valore)
-                    except Exception:
-                        pass
                 try:
                     player.imposta(
                         "stream-lavf-o",
@@ -2464,15 +2457,11 @@ class MainWindow(QMainWindow):
                 self._stream_workers.append(worker)
                 worker.start()
             else:
-                for proprieta, chiave in (("audio-delay", "ritardo"),
-                                           ("sub-delay", "ritardo_sub"),
-                                           ("sub-scale", "scala_sub")):
-                    try:
-                        valore = self.sessione.config.get(chiave, {}).get(percorso)
-                        if valore is not None:
-                            player.imposta(proprieta, valore)
-                    except Exception:
-                        pass
+                try:
+                    player.imposta("audio-delay", float(
+                        self.sessione.config.get("ritardo", {}).get(percorso, 0.0)))
+                except Exception:
+                    pass
                 player.apri(percorso)
                 self.play_button.setIcon(QIcon(os.path.join(QUI, "icone", "pausa.png")))
                 self.play_button.setToolTip(_("Pause"))
@@ -2722,12 +2711,6 @@ class MainWindow(QMainWindow):
         except Exception:
             self._messaggio_temporaneo(_("nothing is playing"))
             return
-        ritardi = self.sessione.config.setdefault("ritardo_sub", {})
-        if abs(valore) < 0.05:
-            ritardi.pop(url, None)
-        else:
-            ritardi[url] = valore
-        scrivi_config(self.sessione.config)
         self._messaggio_temporaneo(_("subtitle delay %+.1fs") % valore)
 
     def scala_sottotitoli(self, di):
@@ -2742,12 +2725,6 @@ class MainWindow(QMainWindow):
         except Exception:
             self._messaggio_temporaneo(_("nothing is playing"))
             return
-        scale = self.sessione.config.setdefault("scala_sub", {})
-        if abs(valore - 1.0) < 0.05:
-            scale.pop(url, None)
-        else:
-            scale[url] = valore
-        scrivi_config(self.sessione.config)
         self._messaggio_temporaneo(_("subtitle size %d%%") % round(valore * 100))
 
     def azzera_sottotitoli(self):
@@ -2759,11 +2736,6 @@ class MainWindow(QMainWindow):
             player.imposta("sub-scale", 1.0)
         except Exception:
             pass
-        url = self.file_in_onda
-        if url:
-            self.sessione.config.setdefault("ritardo_sub", {}).pop(url, None)
-            self.sessione.config.setdefault("scala_sub", {}).pop(url, None)
-            scrivi_config(self.sessione.config)
         self._messaggio_temporaneo(_("subtitle delay %+.1fs") % 0.0)
 
     def controlla_versione(self, zitto=False):
