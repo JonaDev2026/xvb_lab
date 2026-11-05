@@ -5,7 +5,7 @@ from PySide6.QtWidgets import (
     QPushButton, QFileDialog, QInputDialog, QMessageBox, QSlider, QTreeWidget, QTreeWidgetItem
 )
 from engine.mpv import MpvVideo
-from ui.widgets import Cursore, Elenco, Ricerca, Guida
+from ui.widgets import Cursore, Elenco, Finestrella, Ricerca, Guida
 from ui.sidebar import Sidebar
 from core.session import Sessione
 from core.media import media_in, AUDIO
@@ -494,9 +494,19 @@ class MainWindow(QMainWindow):
                 player.imposta(nome, 0)
 
 
+    def _chiedi_testo(self, titolo, etichetta, valore=""):
+        def corpo(widget):
+            layout = QVBoxLayout(widget)
+            testo = QLabel(etichetta, widget)
+            testo.setStyleSheet("color:#9e9e9e")
+            layout.addWidget(testo)
+        finestra = Finestrella(self, titolo, corpo, chiedi=etichetta,
+                               valore=valore, larga=460)
+        return finestra.risposta if finestra.exec() == QDialog.Accepted else None
+
     def aggiungi_lista_url(self):
-        url, ok = QInputDialog.getText(self, _("Add playlist URL"), "URL")
-        if not ok or not url.strip():
+        url = self._chiedi_testo(_("Add playlist URL"), "URL")
+        if not url or not url.strip():
             return
         cfg = self.sessione.config
         liste = cfg.get("liste", [])
@@ -538,8 +548,8 @@ class MainWindow(QMainWindow):
         QDesktopServices.openUrl(QUrl.fromLocalFile(percorso))
 
     def aggiungi_epg_url(self):
-        url, ok = QInputDialog.getText(self, _("Add guide URL"), "URL")
-        if not ok or not url.strip():
+        url = self._chiedi_testo(_("Add guide URL"), "URL")
+        if not url or not url.strip():
             return
         cfg = self.sessione.config
         guide = cfg.get("epg", [])
