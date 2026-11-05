@@ -97,8 +97,8 @@ def avvia_mpris(app, dispatcher=None):
             self.qt(app.mpris_posizione, int(us) / 1e6)
 
         @dbus.service.method(MPRIS_PLAYER, in_signature="s")
-        def OpenUri(self, _uri):
-            pass
+        def OpenUri(self, uri):
+            self.qt(app.apri, uri)
 
         @dbus.service.signal(MPRIS_PLAYER, signature="x")
         def Seeked(self, us):
@@ -109,7 +109,7 @@ def avvia_mpris(app, dispatcher=None):
                 return dbus.Dictionary({
                     "CanQuit": True, "CanRaise": True, "HasTrackList": False,
                     "Identity": "XVB Player", "DesktopEntry": "xvb",
-                    "SupportedUriSchemes": dbus.Array(["file", "http", "https"], signature="s"),
+                    "SupportedUriSchemes": dbus.Array(["file", "http", "https", "rtsp", "rtmp"], signature="s"),
                     "SupportedMimeTypes": dbus.Array([], signature="s"),
                 }, signature="sv")
             if iface != MPRIS_PLAYER:
