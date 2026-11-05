@@ -427,6 +427,7 @@ XVB Lab potrà essere considerata equivalente alla Stable solo quando:
 - [x] Controlli player, seek, volume, repeat, shuffle, preferiti, fullscreen, PiP e split screen collegati alle funzioni presenti nel controller.
 - [x] Test di regressione presenti in `tests/` e workflow CI configurato.
 - [x] Aggiornamento automatico delle guide EPG ripristinato: controllo ogni 30 minuti, cache remota di sei ore e rilevamento delle modifiche ai file locali, con test CI superati.
+- [x] Albero Registrazioni collegato alla lista centrale per gruppo canale/data; durata dei file locali calcolata in background per le barre di avanzamento. Test Qt e CI superati.
 - [x] Corretto l'ordine di inizializzazione dello stato in `MainWindow`; compilazione e suite di test Qt/regressione superate dalla CI sul commit `05268c1`.
 
 ### Lavoro ancora aperto
