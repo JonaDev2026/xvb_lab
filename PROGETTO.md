@@ -424,7 +424,7 @@ XVB Lab potrà essere considerata equivalente alla Stable solo quando:
 - [x] Integrazione MPRIS in `integrations/mpris.py`.
 - [x] Finestra applicativa in `ui/main_window.py`, avvio da `main.py`.
 - [x] Widget UI suddivisi in moduli: `ui/search.py`, `ui/dialogs.py`, `ui/list.py`, `ui/guide.py`.
-- [x] Albero laterale Qt6 in `ui/sidebar.py`, collegato alle playlist, categorie, libreria locale, dischi, registrazioni e preferiti.
+- [x] Albero laterale Qt6 in `ui/sidebar.py`, collegato a playlist M3U/categorie, guide EPG, libreria locale, dischi, registrazioni, preferiti e cartelle URL salvate/temporanee (Podcast, Music, Radio, IP cam, Film, Video).
 - [x] Controlli player, seek, volume, repeat, shuffle, preferiti, fullscreen, PiP e split screen collegati alle funzioni presenti nel controller.
 - [x] Test di regressione presenti in `tests/` e workflow CI configurato.
 - [x] Aggiornamento automatico delle guide EPG ripristinato: controllo ogni 30 minuti, cache remota di sei ore e rilevamento delle modifiche ai file locali, con test CI superati.
@@ -436,6 +436,7 @@ XVB Lab potrà essere considerata equivalente alla Stable solo quando:
 - [x] Corretto l'ordine di inizializzazione dello stato in `MainWindow`; compilazione e suite di test Qt/regressione superate dalla CI sul commit `05268c1`.
 - [x] Barra di stato Qt6 con programma EPG corrente/successivo e categoria del canale IPTV effettivamente in riproduzione; test Qt e CI superati.
 - [x] Menu Playback con navigazione Previous/Next e capitoli libmpv dinamici; test Qt e CI superati.
+- [x] Menu contestuali Qt per canali IPTV e file locali: rinomina visualizzata, loghi/copertine, colori manuali, preferiti; rinomina guide EPG e gestione URL dalla sidebar. Test aggiunti, CI ancora da verificare sui commit più recenti.
 
 ### Lavoro ancora aperto
 
