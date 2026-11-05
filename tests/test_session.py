@@ -54,6 +54,18 @@ class SessionTests(unittest.TestCase):
         self.assertEqual(EPG_ICONE, {})
         self.assertEqual(EPG_ICONE_NOME, {})
         scrivi.assert_called_once_with(sessione.config)
+    def test_empty_guide_list_clears_previous_epg_data(self):
+        sessione = Sessione.__new__(Sessione)
+        sessione.config = {"epg": []}
+        sessione.epg_nomi = {"news": "news.id"}
+        sessione.epg = {"news.id": [(1, 2, "Old programme")]}
+        EPG_ICONE[('old', 1)] = 'old'
+        EPG_ICONE_NOME[('old', 1, 'old')] = 'old'
+        sessione.carica_guide()
+        self.assertEqual(sessione.epg_nomi, {})
+        self.assertEqual(sessione.epg, {})
+        self.assertEqual(EPG_ICONE, {})
+        self.assertEqual(EPG_ICONE_NOME, {})
 
 if __name__ == "__main__":
     unittest.main()
