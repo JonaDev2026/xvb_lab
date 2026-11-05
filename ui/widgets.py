@@ -518,7 +518,7 @@ class Guida(QDialog):
     def __init__(self, app):
         super().__init__(app.root)
         self.app = app
-        self.setWindowTitle("TV guide")
+        self.setWindowTitle(_("TV guide"))
         self.resize(1100, 620)
         self.setMinimumSize(700, 300)
         self.da = int(__import__("time").time() // 1800 * 1800) - 1800
@@ -596,7 +596,10 @@ class Guida(QDialog):
 
     def _apri(self, i):
         nome, url, ide, _prog = self.righe[i]
-        self.app.apri(nome, url, ide)
+        if hasattr(self.app, "apri_canale_guida"):
+            self.app.apri_canale_guida(nome, url, ide)
+        else:
+            self.app.apri(nome, url, ide)
         QTimer.singleShot(400, self.tela.update)
 
     def chiudi(self):
@@ -626,7 +629,7 @@ class _TelaGuida(QWidget):
         adesso = time.time()
         for i, (nome, url, ide, prog) in enumerate(g.righe):
             y0 = i * g.RIGA
-            p.fillRect(0, y0, self.width(), g.RIGA, QColor("#1c1b22" if i % 2 else "#121212"))
+            p.fillRect(0, y0, self.width(), g.RIGA, QColor("#1c1b22"))
             colore = QColor(g.app.colore_canale(nome, url))
             for a, b, titolo in prog:
                 xa, xb = max(g.x_di(a), 0), g.x_di(b)
