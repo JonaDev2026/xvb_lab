@@ -1904,6 +1904,18 @@ class MainWindow(QMainWindow):
                                          and voce[4] not in ("__favorite__", "__favorite_music__", "__favorite_video__")))
                                  and (categoria is None or voce[3] == categoria)
                                  and (not ricerca or ricerca.casefold() in (voce[0] + " " + self.sottotitoli.get(voce[1], "") + " " + voce[1]).casefold())]
+        percorsi_visibili = {voce[1] for voce in self._canali_visibili}
+        if self._ordine_shuffle and not percorsi_visibili.intersection(self._ordine_shuffle):
+            self._ordine_shuffle = None
+            self._ordine_vero = None
+        if self.shuffle_attivo and self._canali_visibili and not self._ordine_shuffle:
+            if all(os.path.isabs(voce[1]) for voce in self._canali_visibili):
+                self._ordine_vero = list(self._canali_visibili)
+                mischiati = list(self._canali_visibili)
+                random.shuffle(mischiati)
+                in_onda = [v for v in mischiati if v[1] == self.file_in_onda]
+                mischiati = in_onda + [v for v in mischiati if v[1] != self.file_in_onda]
+                self._ordine_shuffle = [v[1] for v in mischiati]
         if self.shuffle_attivo and self._ordine_shuffle:
             ordine = {percorso: i for i, percorso in enumerate(self._ordine_shuffle)}
             self._canali_visibili.sort(key=lambda voce: ordine.get(voce[1], len(ordine)))
