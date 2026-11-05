@@ -1,4 +1,4 @@
-from PySide6.QtCore import Qt, QUrl, QThread, Signal
+from PySide6.QtCore import Qt, QUrl, QThread, Signal, QTimer
 from PySide6.QtGui import QAction, QKeySequence, QIcon
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QFrame, QVBoxLayout, QHBoxLayout, QLabel,
@@ -153,6 +153,23 @@ class MainWindow(QMainWindow):
         self._thread_epg.completato.connect(self._epg_pronto)
         self._thread_epg.errore.connect(self._epg_errore)
         self._thread_epg.start()
+        self._timer_player = QTimer(self)
+        self._timer_player.timeout.connect(self._aggiorna_player)
+        self._timer_player.start(500)
+
+
+    def _aggiorna_player(self):
+        if not self.player:
+            return
+        try:
+            posizione = self.player.leggi("time-pos")
+            durata = self.player.leggi("duration")
+            if posizione and durata and not self.posizione.isSliderDown():
+                totale = float(durata)
+                if totale > 0:
+                    self.posizione.setValue(int(float(posizione) * 1000 / totale))
+        except Exception:
+            return
 
     def _azione(self, nome, callback, scorciatoia=None):
         azione = QAction(nome, self)
