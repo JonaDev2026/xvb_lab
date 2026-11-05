@@ -819,7 +819,7 @@ class MainWindow(QMainWindow):
                                  text=" " + os.path.basename(str(guida)))
             self.el_liste.item(iid, valore=("__epg__", guida))
         m3u = self.el_liste.insert(iptv, "end", iid="m3u",
-                                   text=" M3U (%d)" % len(self.sessione.liste),
+                                   text=" M3U (%d)" % sum(1 for v in self.sessione.liste if not os.path.isdir(v["percorso"])),
                                    open=True)
         gruppi_m3u = {}
         for indice, lista in enumerate(self.sessione.liste):
@@ -960,8 +960,14 @@ class MainWindow(QMainWindow):
         categoria = self._categoria_attiva
         ricerca = self.cerca.get() if hasattr(self, "cerca") else ""
         self.elenco.delete(*self.elenco.get_children())
-        self._canali_visibili = [voce for voce in self.sessione.canali
-                                 if (percorso is None
+        if percorso == "__media_folder__":
+            cartella = getattr(self, "_cartella_media_attiva", "")
+            base = [voce for voce in self.sessione.canali
+                    if voce[4] == cartella or voce[1].startswith(cartella.rstrip(os.sep) + os.sep)]
+        else:
+            base = self.sessione.canali
+        self._canali_visibili = [voce for voce in base
+                                 if (percorso is None or percorso == "__media_folder__"
                                      or voce[4] == percorso
                                      or (percorso == "__local__" and os.path.isdir(voce[4]))
                                      or (percorso in ("__iptv__", "__m3u__")
