@@ -904,8 +904,13 @@ class MainWindow(QMainWindow):
 
     def _riempi_liste(self):
         self.el_liste.clear()
-        dischi_root = self.el_liste.insert("", "end", iid="dischi", text=" " + _("Discs"), open=True)
-        for indice, (punto, etichetta) in enumerate(dischi()):
+        supporti = dischi()
+        cd_presenti = cd_audio()
+        dischi_root = None
+        if supporti or cd_presenti:
+            dischi_root = self.el_liste.insert(
+                "", "end", iid="dischi", text=" " + _("Discs"), open=True)
+        for indice, (punto, etichetta) in enumerate(supporti):
             if e_dvd(punto):
                 if not dvd_cifrato(punto):
                     iid = "dvd:%d" % indice
@@ -915,7 +920,7 @@ class MainWindow(QMainWindow):
                 iid = "data:%d" % indice
                 self.el_liste.insert(dischi_root, "end", iid=iid, text=" " + titolo_da_etichetta(etichetta))
                 self.el_liste.item(iid, valore=("__data__", punto))
-        for indice, (dispositivo, tracce) in enumerate(cd_audio()):
+        for indice, (dispositivo, tracce) in enumerate(cd_presenti):
             iid = "cd:%d" % indice
             self.el_liste.insert(dischi_root, "end", iid=iid, text=" CD Audio · %d tracks" % tracce)
             self.el_liste.item(iid, valore=("__cd__", dispositivo))
