@@ -398,8 +398,7 @@ class QtWidgetTests(unittest.TestCase):
             window.close()
             self.app.processEvents()
 
-if __name__ == "__main__":
-    unittest.main()
+    def test_status_bar_shows_active_iptv_category_only(self):
         with patch("ui.main_window.MpvVideo", side_effect=RuntimeError("libmpv unavailable")):
             window = MainWindow()
             url = "https://example.test/news"
