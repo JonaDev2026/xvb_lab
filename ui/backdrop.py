@@ -12,6 +12,7 @@ class Sfondo(QWidget):
         super().__init__(parent)
         self._predefinita = os.path.join(QUI, "icone", "screen.png")
         self._percorso = None
+        self._predefinita_attiva = True
         self._pixmap = QPixmap()
         self._effetto = QGraphicsOpacityEffect(self)
         self._effetto.setOpacity(1.0)
@@ -26,9 +27,12 @@ class Sfondo(QWidget):
 
     def imposta(self, immagine=None, dissolvi=False, attesa=300):
         percorso = immagine if isinstance(immagine, str) else None
-        if percorso == self._percorso and not self._pixmap.isNull():
+        if percorso is None and self._predefinita_attiva and not self._pixmap.isNull():
+            return
+        if percorso is not None and not self._predefinita_attiva and percorso == self._percorso and not self._pixmap.isNull():
             return
         self._percorso = percorso
+        self._predefinita_attiva = percorso is None
         nuovo = QPixmap(percorso or self._predefinita)
         if nuovo.isNull():
             nuovo = QPixmap(self._predefinita)
@@ -48,6 +52,7 @@ class Sfondo(QWidget):
         else:
             self._pixmap = QPixmap(self._predefinita)
         self._percorso = None
+        self._predefinita_attiva = False
         if dissolvi:
             self.dissolvi(attesa)
         else:
