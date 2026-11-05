@@ -54,6 +54,27 @@ class _ScaricaColoreLogo(QThread):
         self.completato.emit(self.url, colore)
 
 
+
+class _CaricaCopertina(QThread):
+    completato = Signal(str)
+
+    def __init__(self, url, destinazione):
+        super().__init__()
+        self.url = url
+        self.destinazione = destinazione
+
+    def run(self):
+        try:
+            dati = copertina_dentro(self.url)
+            if dati:
+                os.makedirs(os.path.dirname(self.destinazione), exist_ok=True)
+                with open(self.destinazione, "wb") as stream:
+                    stream.write(dati)
+        except Exception:
+            pass
+        self.completato.emit(self.url)
+
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -95,6 +116,7 @@ class MainWindow(QMainWindow):
         self.sottotitoli = {}
         self.colori = leggi_colori()
         self._logo_threads = []
+        self._cover_threads = []
         for cartella in self.sessione.config.get("cartelle", []):
             if os.path.isdir(cartella):
                 locali = self._media_locale(cartella)
@@ -563,16 +585,16 @@ class MainWindow(QMainWindow):
             estensione = os.path.splitext(url)[1][1:].lower()
             if estensione in AUDIO:
                 percorso = copertina_url(url)
-                if not os.path.isfile(percorso):
-                    dati = copertina_dentro(url)
-                    if dati:
-                        try:
-                            os.makedirs(os.path.dirname(percorso), exist_ok=True)
-                            with open(percorso, "wb") as stream:
-                                stream.write(dati)
-                        except OSError:
-                            pass
-                return QPixmap(percorso) if os.path.isfile(percorso) else None
+                if os.path.isfile(percorso):
+                    pix = QPixmap(percorso)
+                    return pix if not pix.isNull() else None
+                if not any(w.url == url and w.isRunning() for w in self._cover_threads):
+                    worker = _CaricaCopertina(url, percorso)
+                    worker.completato.connect(self._copertina_pronta)
+                    worker.finished.connect(lambda w=worker: self._rimuovi_worker_copertina(w))
+                    self._cover_threads.append(worker)
+                    worker.start()
+                return None
             poster = poster_film(url)
             return QPixmap(poster) if poster else None
         logo = LOGHI.get(url)
@@ -590,6 +612,15 @@ class MainWindow(QMainWindow):
             self._logo_threads.append(worker)
             worker.start()
         return None
+
+
+    def _rimuovi_worker_copertina(self, worker):
+        if worker in self._cover_threads:
+            self._cover_threads.remove(worker)
+
+    def _copertina_pronta(self, _url):
+        if hasattr(self, "elenco"):
+            self._riempi_elenco()
 
     def _rimuovi_worker_logo(self, worker):
         if worker in self._logo_threads:
