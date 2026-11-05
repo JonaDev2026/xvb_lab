@@ -10,9 +10,10 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QPoint
 from PySide6.QtGui import QColor, QPixmap
-from PySide6.QtWidgets import QApplication, QLabel, QMenu, QVBoxLayout
+from PySide6.QtWidgets import QApplication, QLabel, QMenu, QVBoxLayout, QWidget
 from ui.widgets import Ricerca, Cursore, Elenco, Finestrella, Tendina, Guida
 from ui.main_window import MainWindow, _AggiornaListe, _ScansionaCartelle, _prepara_file_cartella, _ScaricaCopertine
+from ui.hud import HudVideo
 
 
 class QtWidgetTests(unittest.TestCase):
@@ -346,6 +347,41 @@ class QtWidgetTests(unittest.TestCase):
                 window.rinomina_url(url)
             self.assertNotIn(url, window.sessione.config["nomi_url"])
             self.assertNotEqual(window.nome_di_url(url), "Old name")
+            window.close()
+            self.app.processEvents()
+
+    def test_video_hud_visibility_and_split_position(self):
+        parent = QWidget()
+        parent.resize(800, 450)
+        parent.show()
+        hud = HudVideo(parent)
+        hud.set_state("05:00", "REC 00:12", 3)
+        self.app.processEvents()
+        self.assertTrue(hud.isVisible())
+        self.assertEqual(hud.height(), 62)
+        hud.posiziona(True, 1)
+        self.assertEqual(hud.x(), 658)
+        hud.set_state()
+        self.assertFalse(hud.isVisible())
+        parent.close()
+        self.app.processEvents()
+
+    def test_main_window_hud_tracks_sleep_timer_and_recording(self):
+        with patch("ui.main_window.MpvVideo", side_effect=RuntimeError("libmpv unavailable")):
+            window = MainWindow()
+            window.timer_fine = time.time() + 120
+            window._aggiorna_hud()
+            self.assertTrue(window.hud_video.isVisible())
+            self.assertTrue(window.hud_video.timer_text)
+            window.timer_fine = None
+            window.registrando = "/tmp/xvb-hud-recording.mkv"
+            window.inizio_rec = time.time() - 8
+            window._aggiorna_hud()
+            self.assertTrue(window.hud_video.recording_text.startswith("REC "))
+            window.registrando = ""
+            window._aggiorna_hud()
+            self.assertFalse(window.hud_video.isVisible())
+            self.assertFalse(window._timer_hud.isActive())
             window.close()
             self.app.processEvents()
 
