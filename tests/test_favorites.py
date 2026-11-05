@@ -14,7 +14,7 @@ class FavoritesTests(unittest.TestCase):
             url = "https://example.org/live"
             playlists.CHIAVI[url] = "key-id:key-value"
             try:
-                with patch.object(favorites, "CARTELLE_LISTE", (lists,)):
+                with patch.object(favorites, "CARTELLE_LISTE", (lists,)), patch.object(playlists, "CACHE_LISTE", os.path.join(root, "cache")):
                     favorites.scrivi_preferiti([
                         ("Channel One", url, "channel.id", "News")
                     ])
