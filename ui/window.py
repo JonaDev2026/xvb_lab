@@ -107,6 +107,12 @@ class FinestraXVB(QMainWindow):
         comandi = QVBoxLayout(self.barra)
         comandi.setContentsMargins(12, 5, 12, 5)
         comandi.setSpacing(5)
+        self.seek = QSlider(Qt.Horizontal, self.barra)
+        self.seek.setRange(0, 100)
+        self.seek.setFixedHeight(10)
+        self.seek.setStyleSheet("QSlider::groove:horizontal{height:2px;background:#4a4a4a}QSlider::sub-page:horizontal{background:#ffffff}QSlider::handle:horizontal{width:0;background:transparent;border:0}")
+        self.seek.sliderMoved.connect(self._seek)
+        comandi.addWidget(self.seek)
         riga = QHBoxLayout()
         riga.setSpacing(8)
         self.pulsanti = {}
@@ -141,7 +147,7 @@ class FinestraXVB(QMainWindow):
             riga.addWidget(b)
         riga.addStretch(1)
         for chiave, etichetta in (
-            ("favorite_on", "Favorite"), ("pip", "Picture in picture"),
+            ("favorite_off", "Favorite"), ("pip", "Picture in picture"),
             ("pieno", "Fullscreen"), ("setting", "Quality"),
             ("playlist", "Playlists"), ("volume", "Mute")
         ):
@@ -162,8 +168,9 @@ class FinestraXVB(QMainWindow):
             self.pulsanti[chiave] = b
             riga.addWidget(b)
         comandi.addLayout(riga)
-        self.cursore = Cursore(self.barra, self._seek, larga=170, alta=26)
-        comandi.addWidget(self.cursore)
+        self.volume = Cursore(self.barra, self._volume, larga=85, alta=26)
+        self.volume.setFixedWidth(85)
+        riga.addWidget(self.volume)
         video_layout.addWidget(self.barra)
         principale.addWidget(self.video_area, 1)
 
@@ -195,7 +202,7 @@ class FinestraXVB(QMainWindow):
                 "-10": ("avanza", -10), "+10": ("avanza", 10),
                 "play": ("pausa", None), "stop": ("ferma", None),
                 "rec": ("registra", None), "repeat": ("gira_ripeti", None),
-                "shuffle": ("shuffle", None), "favorite_on": ("preferito", None),
+                "shuffle": ("shuffle", None), "favorite_off": ("preferito", None),
                 "pieno": ("schermo_intero", None), "pip": ("pip_si_no", None),
                 "setting": ("apri_menu_qualita", None),
                 "playlist": ("sidebar", None), "volume": ("muto", None),
@@ -215,6 +222,12 @@ class FinestraXVB(QMainWindow):
     def _seek(self, valore):
         if self.controller:
             metodo = getattr(self.controller, "seek_percentuale", None)
+            if callable(metodo):
+                metodo(valore)
+
+    def _volume(self, valore):
+        if self.controller:
+            metodo = getattr(self.controller, "alza_volume", None)
             if callable(metodo):
                 metodo(valore)
 
