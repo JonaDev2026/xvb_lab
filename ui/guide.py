@@ -57,13 +57,14 @@ class _TelaGuida(QWidget):
             y = i * g.RIGA
             fondo = g.pannello if i % 2 else g.fondo
             p.fillRect(0, y, g.NOMI, g.RIGA, QColor(fondo))
-            logo = g.app.logo_di(url)
+            logo = g.app.logo_di(url) if hasattr(g.app, "logo_di") else None
             if logo is not None:
                 p.drawPixmap(8, y + (g.RIGA - logo.height()) // 2, logo)
             else:
-                pallino = g.app.pallino_di(nome, url)
-                if pallino is not None:
-                    p.drawPixmap(8, y + (g.RIGA - pallino.height()) // 2, pallino)
+                colore = g.app.colore_canale(nome, url) if hasattr(g.app, "colore_canale") else g.accento
+                p.setBrush(QColor(colore))
+                p.setPen(Qt.NoPen)
+                p.drawEllipse(12, y + (g.RIGA - 14) // 2, 14, 14)
             p.setPen(QColor(g.testo))
             p.drawText(g.LOGO_L + 18, y, g.NOMI - g.LOGO_L - 24, g.RIGA,
                        Qt.AlignVCenter | Qt.AlignLeft, nome[:18])
@@ -228,5 +229,8 @@ class Guida(QDialog):
         i = int(y // self.RIGA)
         if 0 <= i < len(self.righe):
             nome, url, ide, _ = self.righe[i]
-            self.app.apri(nome, url, ide)
+            if hasattr(self.app, "apri_canale_guida"):
+                self.app.apri_canale_guida(nome, url, ide)
+            else:
+                self.app.apri(nome, url, ide)
             QTimer.singleShot(400, self.ridisegna)
