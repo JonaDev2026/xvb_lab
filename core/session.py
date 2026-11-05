@@ -5,7 +5,7 @@ from core.config import leggi_config, scrivi_config, CARTELLE_LISTE, CARTELLE_VE
 from core.playlists import (
     categorie, categorie_m3u, leggi_lista, liste_in_cartella, nome_di, NOMI_URL, CACHE_LISTE
 )
-from core.epg import leggi_epg, prendi_epg, unisci_guide, nome_dentro
+from core.epg import leggi_epg, prendi_epg, unisci_guide, nome_dentro, EPG_ICONE, EPG_ICONE_NOME
 from core.favorites import leggi_preferiti_cat, PREF_MUSICA, PREF_VIDEO
 
 
@@ -99,6 +99,8 @@ class Sessione:
             self.canali.append((nome, url, ide, categoria or "Video", "__favorite_video__"))
 
     def carica_guide(self):
+        EPG_ICONE.clear()
+        EPG_ICONE_NOME.clear()
         guide = []
         percorsi = self.config.get("epg", [])
         if isinstance(percorsi, str):
