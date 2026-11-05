@@ -399,3 +399,15 @@ Commit: `e0d9104`, `dbbd49e`, `aae3fb8`, `4e2d5d3`, `e2d1ac8`, `631865e`, `6efe1
 - Aggiunto un test Qt per il timer, l'aggiornamento dello stato e l'arresto alla chiusura. GitHub Actions sul commit `aeb2978` ha superato compilazione e suite di regressione/Qt.
 
 Commit: `60f8e2a`, `b35ab4c`, `9c133bc`, `757de30`, `aeb2978`.
+
+
+## Avvio da file manager e istanza singola
+
+- Ripristinato il socket Unix `xvb.sock` nel runtime utente (`XDG_RUNTIME_DIR`, con fallback in `~/.cache/xvb`) usando il protocollo della Stable 4.4.4.
+- Una seconda istanza inoltra i percorsi alla finestra già aperta; senza argomenti porta semplicemente la finestra in primo piano.
+- L'ascolto parte dopo il collegamento dei segnali alla finestra, così i file inviati durante l'avvio non vengono persi.
+- `main.py` gestisce gli argomenti: una playlist M3U singola viene aggiunta e selezionata; file e cartelle vengono aperti tramite il flusso drag-and-drop già migrato.
+- La chiusura arresta il socket e rimuove il file di runtime.
+- Aggiunti test per inoltro file e riattivazione della finestra. GitHub Actions sul commit `2786e12` ha superato compilazione e suite di regressione/Qt (87 test).
+
+Commit: `8a13358`, `ba3fb7f`, `c785c2a`, `f79da58`, `e076863`, `8f4a0ff`, `2786e12`.
