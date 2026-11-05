@@ -223,6 +223,9 @@ class Tendina(QFrame):
         self._watch_timer = QTimer(self)
         self._watch_timer.setInterval(150)
         self._watch_timer.timeout.connect(self._sorveglia)
+        self._layout = QVBoxLayout(self)
+        self._layout.setContentsMargins(1, 1, 1, 1)
+        self._layout.setSpacing(0)
         self.setObjectName("xvbTendina")
         self.setStyleSheet(
             "QFrame#xvbTendina{background:#1c1b22;border:1px solid #51466b}"
@@ -239,9 +242,14 @@ class Tendina(QFrame):
              chi=None, altrove=None):
         self.chiudi()
         self.al_chiudere, self.chi, self.altrove = al_chiudere, chi, altrove
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(1, 1, 1, 1)
-        layout.setSpacing(0)
+        layout = self._layout
+        while layout.count():
+            voce_layout = layout.takeAt(0)
+            widget = voce_layout.widget()
+            if widget is not None:
+                widget.deleteLater()
+            elif voce_layout.layout() is not None:
+                voce_layout.layout().deleteLater()
         piatte = []
         for voce in voci:
             if voce and voce[0] is SCORRE:
