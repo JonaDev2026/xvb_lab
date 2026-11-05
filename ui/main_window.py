@@ -18,7 +18,7 @@ from i18n import _, imposta_lingua, LINGUE
 from core.playlists import liste_in_cartella, BUFFER, LOGHI, NOMI_URL, CACHE_LISTE, CHIAVI, copia_lista_url, e_una_lista, _CACHE_PARSED_LOCK, _CACHE_PARSED_MEMORIA
 from core.colors import CACHE_LOGHI, leggi_colori, scrivi_colori, colore_di, colore_dal_logo
 from core.stream import varianti, chiave_clearkey, server_mpd, CACHE_VARIANTE
-from core.constants import (SCALA_FILE, CATEGORIE_URL, VERSIONE, FONDO, PANNELLO,
+from core.constants import (SCALA_FILE, CATEGORIE_URL, VERSIONE, DONA, FONDO, PANNELLO,
                             BARRA, STATO, TASTO, SCELTO, TESTO, GRIGIO, ACCENTO,
                             CERCA, IN_ONDA, TESTO_ONDA)
 from core.discs import dischi, cd_audio, dvd_cifrato, e_dvd, titolo_da_etichetta
@@ -511,7 +511,26 @@ class MainWindow(QMainWindow):
                           sopra=True, chi=pulsante)
 
     def _sidebar(self):
-        self.destra.setVisible(not self.destra.isVisible())
+        mostra = self.sinistra.isHidden() and self.destra.isHidden()
+        self.sinistra.setVisible(mostra)
+        self.destra.setVisible(mostra)
+
+    def _nascondi_pannello(self, pannello):
+        pannello.setVisible(not pannello.isVisible())
+
+    def _aggiorna_menu_view(self):
+        self.azione_lista.setText(_("Show list") if self.sinistra.isHidden() else _("Hide list"))
+        self.azione_sidebar.setText(_("Show sidebar") if self.destra.isHidden() else _("Hide sidebar"))
+        self.azione_top.setChecked(bool(self.sessione.config.get("in_cima")))
+
+    def sempre_in_cima(self):
+        attivo = not bool(self.sessione.config.get("in_cima"))
+        self.sessione.config["in_cima"] = attivo
+        scrivi_config(self.sessione.config)
+        visibile = self.isVisible()
+        self.setWindowFlag(Qt.WindowStaysOnTopHint, attivo)
+        if visibile:
+            self.show()
 
     def _muto(self):
         self._muto_attivo = not getattr(self, "_muto_attivo", False)
@@ -636,6 +655,15 @@ class MainWindow(QMainWindow):
         view.addAction(self._azione(_("Fullscreen"), self.schermo_intero, "F"))
         view.addAction(self._azione(_("Picture in picture"), self.pip_si_no))
         view.addAction(self._azione(_("Split screen"), self.split_si_no, "F2"))
+        self.azione_top = self._azione(_("Always on top"), self.sempre_in_cima)
+        self.azione_top.setCheckable(True)
+        view.addAction(self.azione_top)
+        view.addSeparator()
+        self.azione_lista = self._azione(_("Hide list"), lambda: self._nascondi_pannello(self.sinistra))
+        self.azione_sidebar = self._azione(_("Hide sidebar"), lambda: self._nascondi_pannello(self.destra))
+        view.addAction(self.azione_lista)
+        view.addAction(self.azione_sidebar)
+        view.aboutToShow.connect(self._aggiorna_menu_view)
         lingua = view.addMenu(_("Language"))
         for codice, nome in LINGUE:
             lingua.addAction(self._azione(nome, lambda _=False, c=codice: self.cambia_lingua(c)))
@@ -644,6 +672,7 @@ class MainWindow(QMainWindow):
             buffer_menu.addAction(self._azione(etichetta, lambda _=False, k=chiave: self.metti_buffer(k)))
         help_menu = self.menuBar().addMenu(_("Help"))
         help_menu.addAction(self._azione(_("About XVB"), self.informazioni))
+        help_menu.addAction(self._azione(_("Donate"), self.dona))
 
 
 
@@ -2449,10 +2478,13 @@ class MainWindow(QMainWindow):
             self._disattiva_overlay()
             self.showNormal()
             self.menuBar().show()
-            self.sinistra.show()
-            self.destra.show()
+            sinistra, destra = getattr(self, "_sidebar_prima", (True, True))
+            self.sinistra.setVisible(sinistra)
+            self.destra.setVisible(destra)
+            self._sidebar_prima = None
             self.riga_stato.parentWidget().show()
         else:
+            self._sidebar_prima = (self.sinistra.isVisible(), self.destra.isVisible())
             self.menuBar().hide()
             self.sinistra.hide()
             self.destra.hide()
