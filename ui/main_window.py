@@ -176,6 +176,7 @@ class MainWindow(QMainWindow):
                 self.sottotitoli[percorso] = anno or ""
                 categoria = "Video"
             self.sessione.canali.append((nome, percorso, None, categoria, "__importati__"))
+        self.canali = [(n, u, ide) for n, u, ide, _cat, _lista in self.sessione.canali]
 
         self.epg = self.sessione.epg
         self.epg_nomi = self.sessione.epg_nomi
@@ -596,6 +597,8 @@ class MainWindow(QMainWindow):
         menu = QMenu(self)
         if valore and valore[0] == "__epg__":
             menu.addAction(_("Remove guide"), lambda: self.togli_epg(valore[1]))
+        elif valore and valore[0] == "__imported_file__":
+            menu.addAction(_("Remove from library"), lambda: self.rimuovi_importato(valore[1]))
         elif valore and valore[0] == "__media_folder__" and valore[1] in self.sessione.config.get("cartelle", []):
             menu.addAction(_("Remove media folder"), lambda: self.rimuovi_cartella_media(valore[1]))
         elif valore and isinstance(valore[0], str) and valore[0].startswith(("http://", "https://")):
@@ -605,6 +608,18 @@ class MainWindow(QMainWindow):
         if menu.actions():
             menu.exec(self.el_liste.mapToGlobal(posizione))
 
+
+
+    def rimuovi_importato(self, percorso):
+        self.sessione.config["importati"] = [
+            p for p in self.sessione.config.get("importati", []) if p != percorso]
+        scrivi_config(self.sessione.config)
+        self.sessione.canali = [v for v in self.sessione.canali
+                                if not (v[4] == "__importati__" and v[1] == percorso)]
+        self.sottotitoli.pop(percorso, None)
+        self.canali = [(n, u, ide) for n, u, ide, _cat, _lista in self.sessione.canali]
+        self._riempi_liste()
+        self._riempi_elenco()
 
     def rimuovi_cartella_media(self, cartella):
         cfg = self.sessione.config
@@ -1664,6 +1679,7 @@ class MainWindow(QMainWindow):
             self.sessione.canali.append((nome, percorso, None, categoria, "__importati__"))
             aggiunti += 1
         scrivi_config(self.sessione.config)
+        self.canali = [(n, u, ide) for n, u, ide, _cat, _lista in self.sessione.canali]
         self._riempi_liste()
         self._percorso_attivo, self._categoria_attiva = "__importati__", None
         self._riempi_elenco()
