@@ -8,6 +8,8 @@ from engine.mpv import MpvVideo
 from ui.widgets import Elenco, Ricerca, Guida
 from core.session import Sessione
 from core.media import media_in, AUDIO
+from core.tags import leggi_tag, tag_di, scrivi_tag
+from core.metadata import titolo_anno, dal_percorso
 from core.config import scrivi_config, CARTELLE_LISTE, REGISTRAZIONI
 from core.playlists import liste_in_cartella
 import os
@@ -68,6 +70,8 @@ class MainWindow(QMainWindow):
         sx.setSpacing(6)
         self.root = self
         self.sessione = Sessione()
+        self.tag_cache = leggi_tag()
+        self.sottotitoli = {}
         self.canali = [(n, u, ide) for n, u, ide, _cat, _lista in self.sessione.canali]
         self.epg = self.sessione.epg
         self.epg_nomi = self.sessione.epg_nomi
@@ -78,6 +82,7 @@ class MainWindow(QMainWindow):
         self.elenco = Elenco(self.sinistra)
         self.elenco.singolo = self._seleziona_canale
         self.elenco.itemDoubleClicked.connect(self._apri_selezionato)
+        self.elenco.prog_di = self._progresso_di
         sx.addWidget(self.elenco, 1)
         self._riempi_elenco()
 
@@ -323,10 +328,7 @@ class MainWindow(QMainWindow):
             if lista["percorso"].startswith(("http://", "https://")):
                 continue
             if os.path.isdir(lista["percorso"]):
-                nuovi = [(n, p, ide,
-                      "Music" if os.path.splitext(p)[1][1:].lower() in AUDIO else "Video",
-                      lista["percorso"])
-                     for n, p, ide in media_in(lista["percorso"])]
+                nuovi = self._media_locale(lista["percorso"])
                 if nuovi:
                     nuova.canali.extend(nuovi)
                     nuova.liste.append(lista)
@@ -438,10 +440,14 @@ class MainWindow(QMainWindow):
         categoria = self._categoria_attiva
         ricerca = self.cerca.get() if hasattr(self, "cerca") else ""
         self.elenco.delete(*self.elenco.get_children())
-        self._canali_visibili = self.sessione.canali_per(percorso, categoria, ricerca)
+        self._canali_visibili = [voce for voce in self.sessione.canali
+                                 if (percorso is None or voce[4] == percorso)
+                                 and (categoria is None or voce[3] == categoria)
+                                 and (not ricerca or ricerca.casefold() in (voce[0] + " " + self.sottotitoli.get(voce[1], "") + " " + voce[1]).casefold())]
         for i, voce in enumerate(self._canali_visibili):
             nome, url, ide, gruppo, _lista = voce
-            self.elenco.insert("", "end", iid=str(i), text=nome + "\n" + gruppo,
+            sotto = self.sottotitoli.get(url) or gruppo
+            self.elenco.insert("", "end", iid=str(i), text=nome + "\n" + sotto,
                                colore="#9e9e9e")
 
     def _seleziona_canale(self):
@@ -459,15 +465,54 @@ class MainWindow(QMainWindow):
             self.apri(voce[1], nome=voce[0], ide=voce[2])
 
 
+
+    def _progresso_di(self, iid):
+        try:
+            voce = self._canali_visibili[int(iid)]
+            nome, url, ide = voce[:3]
+            chiave = ide if ide and ide in self.sessione.epg else self.sessione.epg_nomi.get(
+                __import__("core.epg", fromlist=["nome_piatto"]).nome_piatto(nome))
+            if not chiave:
+                return None
+            adesso = time.time()
+            for inizio, fine, _titolo in self.sessione.epg.get(chiave, []):
+                if inizio <= adesso < fine:
+                    return (adesso - inizio) / float(max(1, fine - inizio))
+        except Exception:
+            return None
+        return None
+
+    def _media_locale(self, cartella):
+        gia = {voce[1] for voce in self.sessione.canali}
+        nuovi = []
+        for nome, percorso, ide in media_in(cartella):
+            if percorso in gia:
+                continue
+            estensione = os.path.splitext(percorso)[1][1:].lower()
+            if estensione in AUDIO:
+                titolo, artista, album, anno = tag_di(percorso, self.tag_cache)
+                if not titolo:
+                    titolo, artista_file, album_file, anno_file = dal_percorso(percorso, (cartella,))
+                    artista = artista or artista_file
+                    album = album or album_file
+                    anno = anno or anno_file
+                nome = titolo or nome
+                sotto = " · ".join(x for x in (artista, album, anno) if x)
+                categoria = "Music"
+            else:
+                titolo, anno = titolo_anno(percorso)
+                nome = titolo or nome
+                sotto = anno or ""
+                categoria = "Video"
+            self.sottotitoli[percorso] = sotto
+            nuovi.append((nome, percorso, ide, categoria, cartella))
+        return nuovi
+
     def apri_cartella(self):
         cartella = QFileDialog.getExistingDirectory(self, "Open folder")
         if not cartella:
             return
-        gia = {voce[1] for voce in self.sessione.canali}
-        nuovi = [(nome, percorso, ide,
-                  "Music" if os.path.splitext(percorso)[1][1:].lower() in AUDIO else "Video",
-                  cartella)
-                 for nome, percorso, ide in media_in(cartella) if percorso not in gia]
+        nuovi = self._media_locale(cartella)
         if not nuovi:
             self.riga_stato.setText("No media files found")
             return
@@ -786,6 +831,7 @@ class MainWindow(QMainWindow):
         self._timer_rec.stop()
         if self._thread_epg.isRunning():
             self._thread_epg.wait(65000)
+        scrivi_tag(self.tag_cache)
         if self.pip_window is not None:
             self.esci_pip()
         if self.player2:
