@@ -282,6 +282,53 @@ class QtWidgetTests(unittest.TestCase):
             window.close()
             self.app.processEvents()
 
+    def test_saved_and_temporary_urls_are_restored_in_sidebar(self):
+        with patch("ui.main_window.MpvVideo", side_effect=RuntimeError("libmpv unavailable")):
+            window = MainWindow()
+            radio = "https://example.test/radio"
+            podcast = "https://example.test/podcast"
+            temporary = "https://example.test/live"
+            window.sessione.config["url_salvati"] = {
+                "radio": [radio],
+                "podcast": [podcast],
+            }
+            window.sessione.config["url_aperti"] = [temporary]
+            window.sessione.config.setdefault("nomi_url", {})[radio] = "My Radio"
+            window._riempi_liste()
+            self.assertTrue(window.el_liste.exists("url"))
+            self.assertEqual(window.el_liste.item("urlcat:radio", "valore"),
+                             ("__url_cat__", "radio"))
+            self.assertEqual(window.el_liste.item("urlcat:radio:0", "valore"),
+                             ("__url__", radio))
+            self.assertEqual(window.el_liste.item("urlcat:radio:0", "text"), " My Radio")
+            self.assertEqual(window.el_liste.item("urlcat:temporary", "valore"),
+                             ("__url_cat__", None))
+            self.assertEqual(window.el_liste.item("urlcat:temporary:0", "valore"),
+                             ("__url__", temporary))
+            window.close()
+            self.app.processEvents()
+
+    def test_url_sidebar_categories_filter_and_open_the_selected_url(self):
+        with patch("ui.main_window.MpvVideo", side_effect=RuntimeError("libmpv unavailable")):
+            window = MainWindow()
+            radio = "https://example.test/radio"
+            temporary = "https://example.test/live"
+            window.sessione.config["url_salvati"] = {"radio": [radio]}
+            window.sessione.config["url_aperti"] = [temporary]
+            window._riempi_liste()
+            window._scegli_voce_liste("urlcat:radio")
+            self.assertEqual(window._percorso_attivo, "__url__")
+            self.assertEqual(window._categoria_attiva, "radio")
+            self.assertEqual([voce[1] for voce in window._canali_visibili], [radio])
+            with patch.object(window, "apri_url_da") as apri:
+                window._scegli_voce_liste("urlcat:radio:0")
+                apri.assert_called_once_with(radio)
+            window._scegli_voce_liste("url")
+            self.assertEqual(window._categoria_attiva, None)
+            self.assertEqual([voce[1] for voce in window._canali_visibili], [temporary])
+            window.close()
+            self.app.processEvents()
+
     def test_main_window_module_imports(self):
         self.assertTrue(MainWindow)
 
