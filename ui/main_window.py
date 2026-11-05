@@ -526,29 +526,27 @@ class MainWindow(QMainWindow):
 
     def _riempi_liste(self):
         self.el_liste.clear()
-        percorso_iptv = self.el_liste.insert(
-            "", "end", iid="iptv", text=" IPTV",
-            image=QPixmap("icone/tv.png"), open=True)
-        percorso_epg = self.el_liste.insert(
-            percorso_iptv, "end", iid="epg", text=" EPG (%d)" % len(self.sessione.config.get("epg", [])),
-            open=bool(self.sessione.config.get("epg")))
+        iptv = self.el_liste.insert("", "end", iid="iptv", text=" IPTV",
+                                    image=QPixmap("icone/tv.png"), open=True)
+        epg = self.el_liste.insert(iptv, "end", iid="epg",
+                                   text=" EPG (%d)" % len(self.sessione.config.get("epg", [])),
+                                   open=bool(self.sessione.config.get("epg")))
         for indice, guida in enumerate(self.sessione.config.get("epg", [])):
-            self.el_liste.insert(percorso_epg, "end", iid="epg:%d" % indice,
+            self.el_liste.insert(epg, "end", iid="epg:%d" % indice,
                                  text=" " + os.path.basename(str(guida)))
-        percorso_m3u = self.el_liste.insert(
-            percorso_iptv, "end", iid="m3u", text=" M3U (%d)" % len(self.sessione.liste),
-            open=True)
-        percorso_locale = self.el_liste.insert(
-            "", "end", iid="locale", text=" Local", open=True)
+        m3u = self.el_liste.insert(iptv, "end", iid="m3u",
+                                   text=" M3U (%d)" % len(self.sessione.liste),
+                                   open=True)
+        locale = self.el_liste.insert("", "end", iid="locale",
+                                      text=" Local", open=True)
         for indice, lista in enumerate(self.sessione.liste):
-            locale = os.path.isdir(lista["percorso"])
-            parent = percorso_locale if locale else percorso_m3u
+            locale_lista = os.path.isdir(lista["percorso"])
+            padre = locale if locale_lista else m3u
             iid = "lista:%d" % indice
             nodo = self.el_liste.insert(
-                parent, "end", iid=iid,
-                text=" " + lista["nome"],
-                image=QPixmap("icone/player.png") if locale else None,
-                open=locale)
+                padre, "end", iid=iid, text=" " + lista["nome"],
+                image=QPixmap("icone/player.png") if locale_lista else None,
+                open=locale_lista)
             self.el_liste.item(iid, valore=(lista["percorso"], None))
             categorie = sorted(set(lista["categorie"].values()), key=str.casefold)
             for j, categoria in enumerate(categorie):
@@ -558,8 +556,7 @@ class MainWindow(QMainWindow):
                 self.el_liste.item(figlio, valore=(lista["percorso"], categoria))
         if self.sessione.preferiti:
             preferiti = self.el_liste.insert(
-                percorso_iptv, "end", iid="preferiti",
-                text=" " + _("Favorites"), open=True)
+                iptv, "end", iid="preferiti", text=" " + _("Favorites"), open=True)
             categorie = sorted(
                 {voce[3] or "MyPlaylist" for voce in self.sessione.preferiti},
                 key=str.casefold)
@@ -568,8 +565,740 @@ class MainWindow(QMainWindow):
                     preferiti, "end", iid="preferiti:%d" % j,
                     text=" " + categoria)
                 self.el_liste.item(figlio, valore=("__favorite__", categoria))
-        self.el_liste.item(percorso_iptv, valore=(None, None))
-        self.el_liste.item(percorso_epg, valore=("__epg__", None))
-        self.el_liste.item(percorso_m3u, valore=(None, None))
-        self.el_liste.item(percorso_locale, valore=(None, None))
+        self.el_liste.item(iptv, valore=(None, None))
+        self.el_liste.item(epg, valore=("__epg__", None))
+        self.el_liste.item(m3u, valore=(None, None))
+        self.el_liste.item(locale, valore=(None, None))
 
+    def _scegli_voce_liste(self, item, _colonna=0):
+        dati = self.el_liste.item(item, "valore") if isinstance(item, str) else item.data(0, Qt.UserRole)
+        if not dati:
+            return
+        self._percorso_attivo, self._categoria_attiva = dati
+        self._riempi_elenco()
+
+    def _filtra(self, *_):
+        self._riempi_elenco()
+
+    def _riempi_elenco(self):
+        if not hasattr(self, "elenco"):
+            return
+        percorso = self._percorso_attivo
+        categoria = self._categoria_attiva
+        ricerca = self.cerca.get() if hasattr(self, "cerca") else ""
+        self.elenco.delete(*self.elenco.get_children())
+        self._canali_visibili = [voce for voce in self.sessione.canali
+                                 if (percorso is None or voce[4] == percorso)
+                                 and (categoria is None or voce[3] == categoria)
+                                 and (not ricerca or ricerca.casefold() in (voce[0] + " " + self.sottotitoli.get(voce[1], "") + " " + voce[1]).casefold())]
+        for i, voce in enumerate(self._canali_visibili):
+            nome, url, ide, gruppo, _lista = voce
+            sotto = self.sottotitoli.get(url) or gruppo
+            self.elenco.insert("", "end", iid=str(i), text=nome + "\n" + sotto,
+                               colore=self.colore_canale(nome, url), logo=self.logo_di(url))
+
+    def _seleziona_canale(self):
+        selezione = self.elenco.selection()
+        if not selezione:
+            return
+        voce = self._canali_visibili[int(selezione[0])]
+        self._indice_canale = int(selezione[0])
+        self.riga_stato.setText(voce[0])
+        self.apri(voce[1], nome=voce[0], ide=voce[2])
+
+    def _apri_selezionato(self, _item=None):
+        selezione = self.elenco.selection()
+        if selezione:
+            voce = self._canali_visibili[int(selezione[0])]
+            self._indice_canale = int(selezione[0])
+            self.apri(voce[1], nome=voce[0], ide=voce[2])
+
+
+
+
+    def colore_canale(self, nome, url):
+        if os.path.isabs(url):
+            try:
+                posizione = next(i for i, voce in enumerate(self.sessione.canali) if voce[1] == url)
+            except StopIteration:
+                posizione = 0
+            return SCALA_FILE[posizione % len(SCALA_FILE)]
+        return (self.sessione.config.get("colori_canali", {}).get(url)
+                or self.colori.get(url) or colore_di(nome))
+
+    def logo_di(self, url):
+        if os.path.isabs(url):
+            estensione = os.path.splitext(url)[1][1:].lower()
+            if estensione in AUDIO:
+                percorso = copertina_url(url)
+                if os.path.isfile(percorso):
+                    pix = QPixmap(percorso)
+                    return pix if not pix.isNull() else None
+                if not any(w.url == url and w.isRunning() for w in self._cover_threads):
+                    worker = _CaricaCopertina(url, percorso)
+                    worker.completato.connect(self._copertina_pronta)
+                    worker.finished.connect(lambda w=worker: self._rimuovi_worker_copertina(w))
+                    self._cover_threads.append(worker)
+                    worker.start()
+                return None
+            poster = poster_film(url)
+            return QPixmap(poster) if poster else None
+        logo = LOGHI.get(url)
+        if not logo:
+            return None
+        import hashlib
+        percorso = os.path.join(CACHE_LOGHI, hashlib.md5(logo.encode()).hexdigest())
+        if os.path.isfile(percorso) and os.path.getsize(percorso):
+            pix = QPixmap(percorso)
+            return pix if not pix.isNull() else None
+        if not any(w.url == url and w.isRunning() for w in self._logo_threads):
+            worker = _ScaricaColoreLogo(url, logo)
+            worker.completato.connect(self._logo_pronto)
+            worker.finished.connect(lambda w=worker: self._rimuovi_worker_logo(w))
+            self._logo_threads.append(worker)
+            worker.start()
+        return None
+
+
+    def _rimuovi_worker_copertina(self, worker):
+        if worker in self._cover_threads:
+            self._cover_threads.remove(worker)
+
+    def _copertina_pronta(self, _url):
+        if hasattr(self, "elenco"):
+            self._riempi_elenco()
+
+    def _rimuovi_worker_logo(self, worker):
+        if worker in self._logo_threads:
+            self._logo_threads.remove(worker)
+
+    def _logo_pronto(self, url, colore):
+        if colore:
+            self.colori[url] = colore
+            scrivi_colori(self.colori)
+        if hasattr(self, "elenco"):
+            self._riempi_elenco()
+        if getattr(self, "_finestra_guida", None):
+            self._finestra_guida.ridisegna()
+
+    def _progresso_di(self, iid):
+        try:
+            voce = self._canali_visibili[int(iid)]
+            nome, url, ide = voce[:3]
+            chiave = ide if ide and ide in self.sessione.epg else self.sessione.epg_nomi.get(
+                __import__("core.epg", fromlist=["nome_piatto"]).nome_piatto(nome))
+            if not chiave:
+                return None
+            adesso = time.time()
+            for inizio, fine, _titolo in self.sessione.epg.get(chiave, []):
+                if inizio <= adesso < fine:
+                    return (adesso - inizio) / float(max(1, fine - inizio))
+        except Exception:
+            return None
+        return None
+
+    def _media_locale(self, cartella):
+        gia = {voce[1] for voce in self.sessione.canali}
+        nuovi = []
+        for nome, percorso, ide in media_in(cartella):
+            if percorso in gia:
+                continue
+            estensione = os.path.splitext(percorso)[1][1:].lower()
+            if estensione in AUDIO:
+                titolo, artista, album, anno = tag_di(percorso, self.tag_cache)
+                if not titolo:
+                    titolo, artista_file, album_file, anno_file = dal_percorso(percorso, (cartella,))
+                    artista = artista or artista_file
+                    album = album or album_file
+                    anno = anno or anno_file
+                nome = titolo or nome
+                sotto = " · ".join(x for x in (artista, album, anno) if x)
+                categoria = "Music"
+            else:
+                titolo, anno = titolo_anno(percorso)
+                nome = titolo or nome
+                sotto = anno or ""
+                categoria = "Video"
+            self.sottotitoli[percorso] = sotto
+            nuovi.append((nome, percorso, ide, categoria, cartella))
+        return nuovi
+
+    def apri_cartella(self):
+        cartella = QFileDialog.getExistingDirectory(self, _("Open folder"))
+        if not cartella:
+            return
+        nuovi = self._media_locale(cartella)
+        if not nuovi:
+            self.riga_stato.setText("No media files found")
+            return
+        self.sessione.canali.extend(nuovi)
+        cartelle = self.sessione.config.setdefault("cartelle", [])
+        if cartella not in cartelle:
+            cartelle.append(cartella)
+            scrivi_config(self.sessione.config)
+        self.canali.extend((n, p, i) for n, p, i, _c, _l in nuovi)
+        self.sessione.liste.append({
+            "percorso": cartella, "nome": os.path.basename(cartella),
+            "canali": [(n, p, i) for n, p, i, _c, _l in nuovi],
+            "categorie": {p: categoria for _n, p, _i, categoria, _l in nuovi},
+        })
+        self._riempi_liste()
+        self._percorso_attivo, self._categoria_attiva = cartella, None
+        self._riempi_elenco()
+        self.riga_stato.setText("%d media files" % len(nuovi))
+
+    def informazioni(self):
+        QMessageBox.about(self, "XVB", _("XVB Player 4.4.4"))
+
+
+
+
+    def tracce(self, tipo):
+        player = self._attivo()
+        if not player:
+            return []
+        try:
+            valore = player.leggi("track-list")
+            elenco = json.loads(valore) if valore else []
+            return [traccia for traccia in elenco if traccia.get("type") == tipo]
+        except Exception:
+            return []
+
+    @staticmethod
+    def nome_traccia(traccia):
+        nome = traccia.get("title") or traccia.get("lang") or ""
+        codec = traccia.get("codec") or ""
+        return ("%s (%s)" % (nome, codec) if nome and codec
+                else nome or codec or str(traccia.get("id")))
+
+    def _riempi_menu_tracce(self, menu, tipo):
+        menu.clear()
+        tracce = self.tracce(tipo)
+        if not tracce:
+            azione = menu.addAction(_("No tracks available"))
+            azione.setEnabled(False)
+            return
+        proprieta = "aid" if tipo == "audio" else "sid"
+        for traccia in tracce:
+            testo = self.nome_traccia(traccia)
+            if traccia.get("selected"):
+                testo = "✓  " + testo
+            menu.addAction(self._azione(
+                testo, lambda _=False, i=traccia.get("id"): self.metti_traccia(proprieta, i)))
+
+    def metti_traccia(self, proprieta, identificativo):
+        player = self._attivo()
+        if player:
+            player.imposta(proprieta, identificativo)
+
+    def carica_sottotitoli(self):
+        percorso, _ = QFileDialog.getOpenFileName(
+            self, _("Load subtitles"), "", "Subtitles (*.srt *.ass *.ssa *.sub *.vtt *.idx *.sup)")
+        if percorso:
+            self._comando("sub-add", percorso, "select")
+
+    def boost(self):
+        attivo = not bool(self.sessione.config.get("boost"))
+        self.sessione.config["boost"] = attivo
+        scrivi_config(self.sessione.config)
+        self._volume(self.volume.value())
+
+    def normalizza(self):
+        attivo = not bool(self.sessione.config.get("normalizza"))
+        self.sessione.config["normalizza"] = attivo
+        scrivi_config(self.sessione.config)
+        self.applica_filtri_audio()
+
+    def applica_filtri_audio(self):
+        filtri = []
+        if self.sessione.config.get("normalizza"):
+            filtri.append("dynaudnorm=f=150:g=15")
+        bande = self.sessione.config.get("eq_bande", [0] * 10)
+        if not isinstance(bande, list) or len(bande) != 10:
+            bande = [0] * 10
+        for frequenza, guadagno in zip((31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000), bande):
+            guadagno = max(-12, min(12, int(guadagno)))
+            if guadagno:
+                filtri.append("equalizer=f=%d:width_type=o:width=1:g=%d" % (frequenza, guadagno))
+        player = self._attivo()
+        if player:
+            player.imposta("af", "lavfi=[" + ",".join(filtri) + "]" if filtri else "")
+
+    def equalizzatore_audio(self):
+        originali = list(self.sessione.config.get("eq_bande", [0] * 10))
+        if len(originali) != 10:
+            originali = [0] * 10
+        finestra = QDialog(self)
+        finestra.setWindowTitle(_("Audio equalizer"))
+        finestra.setModal(True)
+        finestra.setStyleSheet("QDialog{background:#1c1b22;color:#e0e0e0}")
+        layout = QVBoxLayout(finestra)
+        col = QHBoxLayout()
+        layout.addLayout(col)
+        slider = []
+        for frequenza, valore in zip(("31", "62", "125", "250", "500", "1k", "2k", "4k", "8k", "16k"), originali):
+            cella = QVBoxLayout()
+            cella.addWidget(QLabel(frequenza))
+            s = QSlider(Qt.Vertical)
+            s.setRange(-12, 12)
+            s.setValue(int(valore))
+            s.valueChanged.connect(lambda _v: self._eq_anteprima(slider))
+            slider.append(s)
+            cella.addWidget(s)
+            col.addLayout(cella)
+        comandi = QHBoxLayout()
+        flat = QPushButton(_("Flat"))
+        cancel = QPushButton(_("Cancel"))
+        ok = QPushButton(_("OK"))
+        comandi.addWidget(flat)
+        comandi.addStretch(1)
+        comandi.addWidget(cancel)
+        comandi.addWidget(ok)
+        layout.addLayout(comandi)
+        flat.clicked.connect(lambda: [s.setValue(0) for s in slider])
+        cancel.clicked.connect(finestra.reject)
+        ok.clicked.connect(finestra.accept)
+        finestra.resize(620, 290)
+        risultato = finestra.exec()
+        if risultato:
+            self.sessione.config["eq_bande"] = [s.value() for s in slider]
+            scrivi_config(self.sessione.config)
+        else:
+            self.sessione.config["eq_bande"] = originali
+        self.applica_filtri_audio()
+
+    def _eq_anteprima(self, slider):
+        self.sessione.config["eq_bande"] = [s.value() for s in slider]
+        self.applica_filtri_audio()
+
+    def _aggiorna_mpris(self):
+        self.mpv = self._attivo()
+        if not self._mpris:
+            return
+        player = self.mpv
+        titolo, artista, album, arte = self.nome_in_onda, "", "", ""
+        durata = player.duration if player else 0
+        if self.file_in_onda and os.path.isabs(self.file_in_onda):
+            tag_titolo, artista, album, _anno = tag_di(self.file_in_onda, self.tag_cache)
+            titolo = tag_titolo or titolo
+            copertina = copertina_url(self.file_in_onda)
+            if os.path.isfile(copertina):
+                arte = copertina
+        try:
+            pausa = player.leggi("pause") == "yes" if player else True
+            self._mpris.aggiorna({
+                "titolo": titolo,
+                "artista": artista,
+                "album": album,
+                "arte": arte,
+                "stato": "Stopped" if not self.file_in_onda else ("Paused" if pausa else "Playing"),
+                "volume": self.volume.value() / 100.0,
+                "durata": durata,
+                "shuffle": self.shuffle_attivo,
+                "giro_ripeti": {"uno": "Track", "tutti": "Playlist"}.get(self.ripeti, "None"),
+                "giro": self._giro_traccia,
+            })
+        except Exception:
+            pass
+
+    def chiudi(self):
+        self.close()
+
+    def mpris_alza(self):
+        self.showNormal()
+        self.raise_()
+        self.activateWindow()
+
+    def mpris_comando(self, comando):
+        player = self._attivo()
+        if not player:
+            return
+        if comando == "playpause":
+            self.pausa()
+        elif comando == "play":
+            player.pausa(False)
+        elif comando == "pause":
+            player.pausa(True)
+        self._aggiorna_mpris()
+
+    def mpris_posizione(self, secondi):
+        player = self._attivo()
+        if player:
+            player.seek(secondi)
+        self._aggiorna_mpris()
+
+    def avanza(self, secondi):
+        player = self._attivo()
+        if player:
+            player.seek(secondi, assoluto=False)
+
+    def salta(self, direzione):
+        if not self._canali_visibili:
+            return
+        if self._indice_canale < 0:
+            self._indice_canale = 0
+        if self.shuffle_attivo and len(self._canali_visibili) > 1:
+            candidati = [i for i in range(len(self._canali_visibili)) if i != self._indice_canale]
+            self._indice_canale = random.choice(candidati)
+        else:
+            self._indice_canale = (self._indice_canale + direzione) % len(self._canali_visibili)
+        voce = self._canali_visibili[self._indice_canale]
+        self.apri(voce[1], nome=voce[0], ide=voce[2])
+
+    def mpris_shuffle(self, attivo):
+        self.shuffle_attivo = bool(attivo)
+        self.sessione.config["shuffle"] = self.shuffle_attivo
+        scrivi_config(self.sessione.config)
+        self._aggiorna_mpris()
+
+    def metti_ripeti(self, modalita):
+        self.ripeti = modalita or ""
+        self.sessione.config["ripeti"] = self.ripeti
+        scrivi_config(self.sessione.config)
+        player = self._attivo()
+        if player:
+            player.imposta("loop-file", "inf" if self.ripeti == "uno" else "no")
+        self._aggiorna_mpris()
+
+    def _programma_corrente(self):
+        if not self.ide_in_onda and not self.nome_in_onda:
+            return None
+        chiave = self.ide_in_onda if self.ide_in_onda in self.sessione.epg else self.sessione.epg_nomi.get(
+            __import__("core.epg", fromlist=["nome_piatto"]).nome_piatto(self.nome_in_onda))
+        if not chiave:
+            return None
+        adesso = time.time()
+        for programma in self.sessione.epg.get(chiave, []):
+            if programma[0] <= adesso < programma[1]:
+                return programma
+        return None
+
+    def registra(self):
+        if self.registrando:
+            self.ferma_registrazione()
+            return
+        f = self.file_in_onda or ""
+        if not f.startswith(("http://", "https://")) or not self.nome_in_onda:
+            self.riga_stato.setText("Open an IPTV stream before recording")
+            return
+        self.avvia_registrazione(self.nome_in_onda, 0.0)
+
+    def avvia_registrazione(self, nome, fine):
+        player = self._attivo()
+        if not player:
+            return
+        try:
+            os.makedirs(REGISTRAZIONI, exist_ok=True)
+            programma = self._programma_corrente()
+            titolo = (programma[2] if programma and programma[2] else "") or nome
+            pulisci = lambda t: re.sub(r'[\\/:*?"<>|]+', "", t).strip() or "xvb"
+            cartella = os.path.join(REGISTRAZIONI, pulisci(nome))
+            os.makedirs(cartella, exist_ok=True)
+            video = player.leggi("vid")
+            estensione = "mkv" if video not in (None, "no", "0") else "mka"
+            destinazione = os.path.join(
+                cartella, "%s - %s.%s" % (
+                    pulisci(titolo), time.strftime("%Y-%m-%d %H-%M"), estensione))
+            player.imposta("stream-record", destinazione)
+        except Exception as errore:
+            self.riga_stato.setText("Cannot record: " + str(errore))
+            return
+        self.registrando = destinazione
+        self.fine_rec = fine
+        self.inizio_rec = time.time()
+        self._mostra_rec()
+
+    def ferma_registrazione(self):
+        player = self._attivo()
+        if player:
+            try:
+                player.imposta("stream-record", "")
+            except Exception:
+                pass
+        destinazione = self.registrando
+        self.registrando = ""
+        self.fine_rec = 0.0
+        if destinazione:
+            self.riga_stato.setText("Saved " + os.path.basename(destinazione))
+            self._riempi_liste()
+
+    def _mostra_rec(self):
+        if not self.registrando:
+            return
+        durata = int(time.time() - self.inizio_rec)
+        ore, resto = divmod(durata, 3600)
+        cronometro = ("%d:%02d:%02d" % (ore, resto // 60, resto % 60)
+                      if ore else "%02d:%02d" % (resto // 60, resto % 60))
+        stato = "REC " + cronometro
+        if self.fine_rec:
+            stato += "  until " + time.strftime("%H:%M", time.localtime(self.fine_rec))
+        self.riga_stato.setText(stato)
+
+    @staticmethod
+    def ora_di(testo, dopo=None):
+        h, m = (int(x) for x in testo.strip().split(":"))
+        if not (0 <= h < 24 and 0 <= m < 60):
+            raise ValueError(testo)
+        adesso = time.localtime()
+        t = time.mktime((adesso.tm_year, adesso.tm_mon, adesso.tm_mday,
+                         h, m, 0, 0, 0, -1))
+        base = dopo if dopo is not None else time.time()
+        while t <= base:
+            t += 86400
+        return t
+
+    def pianifica(self):
+        if not self.file_in_onda or not self.nome_in_onda:
+            self.riga_stato.setText("Open the channel to record first")
+            return
+        inizio, ok = QInputDialog.getText(self, _("Schedule"), _("Start (HH:MM):"),
+                                          text=time.strftime("%H:%M"))
+        if not ok or not inizio:
+            return
+        fine, ok = QInputDialog.getText(self, _("Schedule"), _("End (HH:MM):"))
+        if not ok or not fine:
+            return
+        try:
+            t0 = self.ora_di(inizio)
+            t1 = self.ora_di(fine, dopo=t0)
+        except (ValueError, TypeError):
+            self.riga_stato.setText("Time must be HH:MM")
+            return
+        self.piano = (self.nome_in_onda, self.file_in_onda, self.ide_in_onda, t0, t1)
+        self.riga_stato.setText("Scheduled %s: %s–%s" % (
+            self.nome_in_onda, time.strftime("%H:%M", time.localtime(t0)),
+            time.strftime("%H:%M", time.localtime(t1))))
+
+    def annulla_piano(self):
+        self.piano = None
+        self.riga_stato.setText("Schedule cancelled")
+
+    def controlla_registrazione(self):
+        adesso = time.time()
+        if self.piano and adesso >= self.piano[3]:
+            nome, url, ide, _inizio, fine = self.piano
+            self.piano = None
+            if adesso < fine:
+                if self.file_in_onda != url:
+                    self.apri(url, nome=nome, ide=ide)
+                    QTimer.singleShot(5000, lambda: self.avvia_registrazione(nome, fine))
+                else:
+                    self.avvia_registrazione(nome, fine)
+        if self.registrando and self.fine_rec and adesso >= self.fine_rec:
+            self.ferma_registrazione()
+        elif self.registrando:
+            self._mostra_rec()
+
+    def apri_registrazioni(self):
+        os.makedirs(REGISTRAZIONI, exist_ok=True)
+        QDesktopServices.openUrl(QUrl.fromLocalFile(REGISTRAZIONI))
+
+
+    def recenti(self):
+        return [p for p in self.sessione.config.get("recenti", []) if os.path.isfile(p)][:8]
+
+    def _aggiorna_recenti(self):
+        if not hasattr(self, "menu_recenti"):
+            return
+        self.menu_recenti.clear()
+        for percorso in self.recenti():
+            self.menu_recenti.addAction(
+                self._azione(os.path.basename(percorso), lambda _=False, p=percorso: self.apri(p)))
+        self.menu_recenti.setEnabled(bool(self.recenti()))
+
+    def pulisci_recenti(self):
+        self.sessione.config["recenti"] = []
+        scrivi_config(self.sessione.config)
+        self._aggiorna_recenti()
+
+    def apri_file(self):
+        percorso, _ = QFileDialog.getOpenFileName(self, _("Open file"))
+        if percorso:
+            self.apri(percorso)
+
+    def apri_url(self):
+        url, ok = QInputDialog.getText(self, _("Open URL"), "URL")
+        if ok and url.strip():
+            self.apri(url.strip())
+
+    def apri(self, percorso, url=None, ide=None, nome=None):
+        if url is not None:
+            nome = percorso
+            percorso = url
+        if self.player is None:
+            QMessageBox.warning(self, "XVB", "libmpv non disponibile")
+            return
+        try:
+            player = self._attivo()
+            player.apri(percorso)
+            self._giro_traccia += 1
+            self.file_in_onda = percorso
+            if os.path.isfile(percorso):
+                recenti = self.sessione.config.get("recenti", [])
+                recenti = [p for p in recenti if p != percorso and os.path.isfile(p)]
+                self.sessione.config["recenti"] = ([percorso] + recenti)[:8]
+                scrivi_config(self.sessione.config)
+                self._aggiorna_recenti()
+            self.nome_in_onda = nome or os.path.basename(percorso.rstrip("/")) or percorso
+            self.ide_in_onda = ide
+            self.riga_stato.setText(self.nome_in_onda)
+            self.play_button.setText("Ⅱ")
+            self._aggiorna_mpris()
+        except Exception as errore:
+            QMessageBox.critical(self, "XVB", str(errore))
+
+    def pausa(self):
+        player = self._attivo()
+        if player:
+            player.pausa()
+            self.play_button.setText("▶" if player.leggi("pause") == "yes" else "Ⅱ")
+            self._aggiorna_mpris()
+
+    def ferma(self):
+        player = self._attivo()
+        if player:
+            player.ferma()
+            self.file_in_onda = None
+            self.nome_in_onda = ""
+            self.play_button.setText("▶")
+            self.riga_stato.setText("XVB")
+            self._aggiorna_mpris()
+
+    def _volume(self, valore):
+        player = self._attivo()
+        if player:
+            player.volume(float(valore) * (1.5 if self.sessione.config.get("boost") else 1.0))
+        self.sessione.config["volume"] = int(valore)
+        scrivi_config(self.sessione.config)
+        self._aggiorna_mpris()
+
+    def _seek(self):
+        player = self._attivo()
+        if player:
+            durata = player.leggi("duration")
+            if durata:
+                player.seek(float(durata) * self.posizione.value() / 1000.0)
+
+
+    def eventFilter(self, oggetto, evento):
+        if evento.type() == evento.Type.MouseButtonPress:
+            if oggetto is self.player:
+                self.schermo_attivo = 0
+            elif oggetto is self.player2:
+                self.schermo_attivo = 1
+        return super().eventFilter(oggetto, evento)
+
+    def split_si_no(self):
+        if self.split:
+            self.chiudi_split()
+        else:
+            self.apri_split()
+
+    def apri_split(self):
+        if self.player is None or self.pip_window is not None:
+            return
+        try:
+            self.player2 = MpvVideo(self.video, options={"mute": "yes"})
+            self.player2.installEventFilter(self)
+            self.video_layout.addWidget(self.player2, 1)
+            self.split = True
+            self.schermo_attivo = 0
+        except Exception as errore:
+            self.player2 = None
+            self.riga_stato.setText("Split screen failed: " + str(errore))
+
+    def chiudi_split(self):
+        if not self.split:
+            return
+        self.schermo_attivo = 0
+        self.split = False
+        self.player2.ferma()
+        self.video_layout.removeWidget(self.player2)
+        self.player2.chiudi()
+        self.player2.setParent(None)
+        self.player2.deleteLater()
+        self.player2 = None
+
+    def pip_si_no(self):
+        if self.pip_window is not None:
+            self.esci_pip()
+            return
+        if not self.player or not self.file_in_onda:
+            return
+        try:
+            posizione = float(self.player.leggi("time-pos") or 0)
+            self.player.pausa(True)
+            self.pip_window = QDialog(self, Qt.Tool | Qt.WindowStaysOnTopHint)
+            self.pip_window.setWindowTitle("XVB")
+            layout = QVBoxLayout(self.pip_window)
+            layout.setContentsMargins(0, 0, 0, 0)
+            self.player_pip = MpvVideo(self.pip_window)
+            layout.addWidget(self.player_pip)
+            self.player_pip.apri(self.file_in_onda)
+            if posizione:
+                self.player_pip.seek(posizione)
+            self.pip_window.resize(480, 270)
+            self.pip_window.finished.connect(self._pip_finestra_chiusa)
+            self.pip_window.show()
+        except Exception as errore:
+            self.riga_stato.setText("Picture in picture failed: " + str(errore))
+            self.esci_pip()
+
+    def _pip_finestra_chiusa(self, *_):
+        if not self._chiudendo_pip:
+            self.esci_pip(chiudi_finestra=False)
+
+    def esci_pip(self, chiudi_finestra=True):
+        if self.pip_window is None:
+            return
+        finestra, player = self.pip_window, self.player_pip
+        self.pip_window = None
+        self.player_pip = None
+        self._chiudendo_pip = True
+        posizione = 0.0
+        if player:
+            try:
+                posizione = float(player.leggi("time-pos") or 0)
+                player.chiudi()
+            except Exception:
+                pass
+        if chiudi_finestra:
+            finestra.close()
+        finestra.deleteLater()
+        self._chiudendo_pip = False
+        if self.player:
+            if posizione:
+                self.player.seek(posizione)
+            self.player.pausa(False)
+
+    def schermo_intero(self):
+        if self.isFullScreen():
+            self.showNormal()
+            self.menuBar().show()
+            self.barra.show()
+            self.sinistra.show()
+            self.destra.show()
+        else:
+            self.menuBar().hide()
+            self.barra.hide()
+            self.sinistra.hide()
+            self.destra.hide()
+            self.showFullScreen()
+
+    def closeEvent(self, evento):
+        self._timer_player.stop()
+        self._timer_rec.stop()
+        if self._thread_epg.isRunning():
+            self._thread_epg.wait(65000)
+        for worker in self._logo_threads + self._cover_threads:
+            if worker.isRunning():
+                worker.wait(12000)
+        scrivi_tag(self.tag_cache)
+        if self.pip_window is not None:
+            self.esci_pip()
+        if self.player2:
+            self.player2.chiudi()
+            self.player2 = None
+        if self.player:
+            self.player.chiudi()
+        super().closeEvent(evento)
