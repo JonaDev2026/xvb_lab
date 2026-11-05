@@ -12,12 +12,12 @@ class Finestrella(QDialog):
                  maschera=False, colori=None):
         super().__init__(root)
         c = colori or {}
-        pannello = c.get("pannello", "#1b1b1f")
-        cerca = c.get("cerca", "#252529")
-        testo = c.get("testo", "#f2f2f2")
-        grigio = c.get("grigio", "#92929a")
-        accento = c.get("accento", "#a78bfa")
-        scelto = c.get("scelto", "#393044")
+        pannello = c.get("pannello", "#1c1b22")
+        cerca = c.get("cerca", "#42414d")
+        testo = c.get("testo", "#e0e0e0")
+        grigio = c.get("grigio", "#9e9e9e")
+        accento = c.get("accento", "#bb86fc")
+        scelto = c.get("scelto", "#0071e3")
         self.setWindowTitle(titolo)
         self.setModal(True)
         self.setWindowFlag(Qt.WindowContextHelpButtonHint, False)
@@ -99,11 +99,11 @@ class Tendina:
              al_chiudere=None, chi=None, altrove=None):
         self.chiudi()
         self.al_chiudere, self.chi, self.altrove = al_chiudere, chi, altrove
-        pannello = self.colori.get("pannello", "#1b1b1f")
-        testo = self.colori.get("testo", "#f2f2f2")
-        grigio = self.colori.get("grigio", "#92929a")
-        accento = self.colori.get("accento", "#a78bfa")
-        scelto = self.colori.get("scelto", "#393044")
+        pannello = self.colori.get("pannello", "#1c1b22")
+        testo = self.colori.get("testo", "#e0e0e0")
+        grigio = self.colori.get("grigio", "#9e9e9e")
+        accento = self.colori.get("accento", "#bb86fc")
+        scelto = self.colori.get("scelto", "#0071e3")
         menu = QMenu(self.root)
         menu.setStyleSheet(
             "QMenu{background:%s;color:%s;border:1px solid %s;padding:3px}"
