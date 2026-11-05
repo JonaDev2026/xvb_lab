@@ -529,3 +529,11 @@ Avvicinare l'albero Local alla struttura della Stable 4.4.4, mantenendo la confi
 
 - Cache copertine: `ea76d57599796bfb1600a31207709524c77b2d65`
 - Visualizzazione copertine: `f18d862467b29acb3092e5140aff0c947d74bf6e`
+
+## Copertine manuali dei file locali
+
+- Aggiunto al menu contestuale dei brani il comando `Set cover...` per associare un'immagine scelta dall'utente al singolo file.
+- Aggiunto `Remove cover` quando è presente una copertina personalizzata.
+- Le immagini personalizzate del singolo brano hanno priorità sulle copertine generiche della cartella.
+- Dopo la modifica, l'icona della traccia viene aggiornata senza una nuova scansione completa.
+- Modifiche scritte su GitHub; compilazione e comportamento grafico non ancora verificati localmente.
