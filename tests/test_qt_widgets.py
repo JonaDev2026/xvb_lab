@@ -139,6 +139,28 @@ class QtWidgetTests(unittest.TestCase):
                 cerca.assert_called_once_with(path)
             window.close()
             self.app.processEvents()
+    def test_status_bar_shows_current_and_next_epg_program(self):
+        with patch("ui.main_window.MpvVideo", side_effect=RuntimeError("libmpv unavailable")), \\
+             patch("ui.main_window.time.time", return_value=150):
+            window = MainWindow()
+            window.nome_in_onda = "News"
+            window.ide_in_onda = "news"
+            window.file_in_onda = "https://example.test/news"
+            window.sessione.epg = {"news": [
+                (100, 200, "Current bulletin"),
+                (200, 300, "Evening report"),
+            ]}
+            window.sessione.epg_nomi = {}
+            window.aggiorna_info_canale()
+            self.assertEqual(window.riga_stato.text(), "News  ·  Current bulletin")
+            self.assertEqual(window.et_ora_programma.text(),
+                             "%s–%s" % (time.strftime("%H:%M", time.localtime(100)),
+                                        time.strftime("%H:%M", time.localtime(200))))
+            self.assertEqual(window.et_prossimo.text(), "Next: Evening report")
+            self.assertTrue(window.et_prossimo.isVisible())
+            window.close()
+            self.app.processEvents()
+
     def test_mpris_metadata_timer_runs_only_when_service_is_available(self):
         class Servizio:
             def __init__(self):
