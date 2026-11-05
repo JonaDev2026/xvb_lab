@@ -1,5 +1,5 @@
 from PySide6.QtCore import Qt, Signal, QSize
-from PySide6.QtGui import QColor, QBrush, QPixmap, QImage
+from PySide6.QtGui import QColor, QBrush, QIcon
 from PySide6.QtWidgets import QTreeWidget, QTreeWidgetItem, QAbstractItemView
 
 from .list import _pixmap
@@ -16,6 +16,7 @@ class Sidebar(QTreeWidget):
     def __init__(self, parent=None, colori=None):
         super().__init__(parent)
         c = colori or {}
+        self._progressivo = 0
         self.pannello = c.get("pannello", "#1c1b22")
         self.testo = c.get("testo", "#e0e0e0")
         self.grigio = c.get("grigio", "#9e9e9e")
@@ -47,11 +48,14 @@ class Sidebar(QTreeWidget):
 
     def insert(self, parent, index="end", iid=None, text="", image=None,
                values=(), open=False, tags=()):
+        if iid is None:
+            iid = str(self._progressivo)
+            self._progressivo += 1
         item = QTreeWidgetItem()
         item.setText(0, text)
         pix = _pixmap(image)
         if pix is not None:
-            item.setIcon(0, __import__("PySide6.QtGui", fromlist=["QIcon"]).QIcon(pix))
+            item.setIcon(0, QIcon(pix))
         if values:
             item.setText(1, str(values[0]))
         item.setData(0, _DATA, {
@@ -72,7 +76,7 @@ class Sidebar(QTreeWidget):
             item.setBackground(0, QBrush(QColor(self.zebra)))
         if iid is not None:
             item.setData(0, Qt.UserRole, iid)
-        return item
+        return iid
 
     def item_by_id(self, iid):
         for item in self._tutti():
@@ -95,7 +99,7 @@ class Sidebar(QTreeWidget):
             padre = self.invisibleRootItem()
         else:
             padre = parent if isinstance(parent, QTreeWidgetItem) else self.item_by_id(parent)
-        return tuple(padre.child(i) for i in range(padre.childCount())) if padre else ()
+        return tuple(padre.child(i).data(0, Qt.UserRole) for i in range(padre.childCount())) if padre else ()
 
     def exists(self, iid):
         return self.item_by_id(iid) is not None
@@ -149,7 +153,6 @@ class Sidebar(QTreeWidget):
                 valori = kw["values"]
                 item.setText(1, str(valori[0]) if valori else "")
             if "image" in kw:
-                from PySide6.QtGui import QIcon
                 pix = _pixmap(kw["image"])
                 item.setIcon(0, QIcon(pix) if pix is not None else QIcon())
             if "open" in kw:
@@ -157,7 +160,7 @@ class Sidebar(QTreeWidget):
         return dict(dati)
 
     def selection(self):
-        return tuple(self.selectedItems())
+        return tuple(item.data(0, Qt.UserRole) for item in self.selectedItems())
 
     def selection_set(self, iid):
         item = iid if isinstance(iid, QTreeWidgetItem) else self.item_by_id(iid)
