@@ -926,6 +926,10 @@ class MainWindow(QMainWindow):
             self.riga_stato.setText("CD: " + str(errore))
 
     def apri_disco_dati(self, mountpoint):
+        if any(v["percorso"] == mountpoint for v in self.sessione.liste):
+            self._percorso_attivo, self._categoria_attiva = mountpoint, None
+            self._riempi_elenco()
+            return
         nuovi = self._media_locale(mountpoint)
         if not nuovi:
             self.riga_stato.setText(_("No media files found"))
