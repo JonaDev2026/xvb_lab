@@ -501,12 +501,16 @@ class MainWindow(QMainWindow):
         self.duration_label = QLabel("00:00")
         self.duration_label.setMinimumWidth(42)
         controls.addWidget(self.duration_label)
-        controls.addWidget(self._tool_button("favorite_off", "Favorite", enabled=False))
+        self.favorite_button = self._tool_button("favorite_off", "Favorite", enabled=False)
+        self.favorite_button.hide()
+        controls.addWidget(self.favorite_button)
         self.playlist_button = self._tool_button("playlist", "Playlists", self.toggle_right_panel)
         controls.addWidget(self.playlist_button)
         controls.addWidget(self._tool_button("pieno", "Fullscreen", self.toggle_fullscreen))
         controls.addWidget(self._tool_button("pip", "Picture in picture", enabled=False))
-        controls.addWidget(self._tool_button("setting", "Quality", enabled=False))
+        self.quality_button = self._tool_button("setting", "Quality", enabled=False)
+        self.quality_button.hide()
+        controls.addWidget(self.quality_button)
         self.volume_slider = QSlider(Qt.Orientation.Horizontal)
         self.volume_slider.setRange(0, 100)
         self.volume_slider.setValue(max(0, min(100, int(self.config.get("volume", 100)))))
@@ -565,7 +569,7 @@ class MainWindow(QMainWindow):
     def _icon_size(self, name):
         if name == "stop":
             return self._size(24, 24)
-        return self._size(34, 30)
+        return self._size(34, 34)
 
     def _size(self, width, height):
         from PySide6.QtCore import QSize
