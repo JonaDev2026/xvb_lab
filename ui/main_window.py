@@ -10,6 +10,7 @@ from engine.mpv import MpvVideo
 from ui.widgets import Cursore, Elenco, Finestrella, Ricerca, Guida, Tendina
 from ui.sidebar import Sidebar
 from ui.backdrop import Sfondo
+from core.artist_artwork import ArtistArtwork
 from ui.handle import Maniglia
 from core.session import Sessione
 from core.media import media_in, AUDIO, e_media, tipo_preferiti, titolo_url, PREF_IPTV, PREF_MUSICA, PREF_VIDEO
@@ -91,6 +92,49 @@ class _CaricaCopertina(QThread):
         except Exception:
             pass
         self.completato.emit(self.url)
+
+class _CaricaFotoArtisti(QThread):
+    foto = Signal(str, str)
+
+    def __init__(self, artwork, file_audio, corrente):
+        super().__init__()
+        self.artwork = artwork
+        self.file_audio = list(file_audio)
+        self.corrente = corrente
+
+    def run(self):
+        try:
+            if self.corrente in self.file_audio:
+                indice = self.file_audio.index(self.corrente)
+                self.file_audio = self.file_audio[indice:] + self.file_audio[:indice]
+            elif self.corrente:
+                self.file_audio.insert(0, self.corrente)
+            visti = set()
+            richieste = 0
+            for percorso in self.file_audio:
+                if self.isInterruptionRequested():
+                    break
+                artista = self.artwork.artista_del_file(percorso)
+                chiave = artista.casefold()
+                if not artista or chiave in visti:
+                    continue
+                visti.add(chiave)
+                destinazione = self.artwork.percorso_foto(artista)
+                if os.path.isfile(destinazione) and os.path.getsize(destinazione) > 0:
+                    continue
+                foto = self.artwork.scarica_foto(artista)
+                if foto:
+                    self.foto.emit(artista, foto)
+                richieste += 1
+                time.sleep(2.1)
+                if richieste and richieste % 30 == 0:
+                    self.artwork.salva_cache()
+                    time.sleep(5)
+        except Exception:
+            pass
+        finally:
+            self.artwork.salva_cache()
+
 
 
 
@@ -199,6 +243,8 @@ class MainWindow(QMainWindow):
         sx.setSpacing(6)
         self.root = self
         self.tag_cache = leggi_tag()
+        self.artwork_artista = ArtistArtwork(self.tag_cache, self.sessione.config.get("cartelle", []))
+        self._artist_worker = None
         self.sottotitoli = {}
         self.colori = leggi_colori()
         self._logo_threads = []
@@ -538,11 +584,16 @@ class MainWindow(QMainWindow):
             except Exception:
                 pass
         if solo_audio:
-            immagine = self.logo_di(percorso)
-            if immagine is not None:
-                self.sfondo.imposta_pixmap(immagine)
+            artista = self.artwork_artista.artista_del_file(percorso) if os.path.isabs(percorso) else ""
+            foto = self.artwork_artista.percorso_foto(artista) if artista else ""
+            if foto and os.path.isfile(foto) and os.path.getsize(foto) > 0:
+                self.sfondo.imposta(foto)
             else:
-                self.sfondo.imposta()
+                immagine = self.logo_di(percorso)
+                if immagine is not None:
+                    self.sfondo.imposta_pixmap(immagine)
+                else:
+                    self.sfondo.imposta()
             self.player.hide()
         else:
             self.sfondo.imposta()
@@ -1691,6 +1742,30 @@ class MainWindow(QMainWindow):
             self._riempi_elenco()
         self._aggiorna_sfondo()
 
+    def _richiedi_foto_artisti(self, corrente):
+        worker = self._artist_worker
+        if worker is not None and worker.isRunning():
+            return
+        file_audio = [voce[1] for voce in self.sessione.canali
+                      if os.path.isabs(voce[1])
+                      and os.path.splitext(voce[1])[1][1:].lower() in AUDIO]
+        worker = _CaricaFotoArtisti(self.artwork_artista, file_audio, corrente)
+        self._artist_worker = worker
+        worker.foto.connect(self._foto_artista_pronta)
+        worker.start()
+
+    def _foto_artista_pronta(self, artista, percorso):
+        corrente = self.file_in_onda or ""
+        if not (corrente and os.path.isabs(corrente)
+                and os.path.splitext(corrente)[1][1:].lower() in AUDIO):
+            return
+        if self.artwork_artista.artista_del_file(corrente).casefold() != artista.casefold():
+            return
+        if os.path.isfile(percorso):
+            self.sfondo.imposta(percorso)
+            if self.player:
+                self.player.hide()
+
     def _rimuovi_worker_logo(self, worker):
         if worker in self._logo_threads:
             self._logo_threads.remove(worker)
@@ -2753,6 +2828,8 @@ class MainWindow(QMainWindow):
         self._eof_gestito = False
         self._giro_traccia += 1
         self.file_in_onda = percorso
+        if os.path.isabs(percorso) and os.path.splitext(percorso)[1][1:].lower() in AUDIO:
+            self._richiedi_foto_artisti(percorso)
         self._segna_in_onda()
         self.nome_in_onda = nome or os.path.splitext(os.path.basename(percorso.rstrip("/")))[0] or percorso
         self.ide_in_onda = ide
@@ -3343,6 +3420,10 @@ class MainWindow(QMainWindow):
         for worker in self._logo_threads + self._cover_threads:
             if worker.isRunning():
                 worker.wait(12000)
+        if self._artist_worker and self._artist_worker.isRunning():
+            self._artist_worker.requestInterruption()
+            self._artist_worker.wait(20000)
+        self.artwork_artista.salva_cache()
         scrivi_tag(self.tag_cache)
         if self.pip_window is not None:
             self.esci_pip()
