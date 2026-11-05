@@ -36,7 +36,7 @@ class Ricerca(QWidget):
         if obj is self.casella and e.type() == e.Type.KeyPress and e.key() == Qt.Key_Escape:
             self.casella.clear()
             self.cambia()
-            self.clearFocus()
+            self.casella.clearFocus()
             return True
         return super().eventFilter(obj, e)
 
