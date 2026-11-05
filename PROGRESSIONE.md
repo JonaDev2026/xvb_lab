@@ -611,3 +611,21 @@ Avvicinare l'albero Local alla struttura della Stable 4.4.4, mantenendo la confi
 - Codice pubblicato su GitHub.
 - Compilazione e prove funzionali locali ancora da eseguire.
 - Da verificare in particolare il rilevamento EOF di libmpv, le tre modalità repeat, lo shuffle con filtri attivi e il ripristino dell'ordine.
+
+
+### 2026-11-05 — Controlli di riproduzione visibili
+
+**Modifiche**
+
+- Portati nella barra inferiore i controlli Shuffle e Repeat, collegati alle stesse impostazioni del menu Playback.
+- Il pulsante Repeat cicla tra No repeat, Repeat all e Repeat one; il tooltip mostra la modalità attiva.
+- Shuffle è un pulsante selezionabile con stato visivo e tooltip aggiornato.
+- Aggiunta la barra di avanzamento con posizione e durata formattate; trascinando il cursore si effettua la ricerca temporale nel file.
+- Aggiunta a libmpv la lettura delle proprietà numeriche time-pos e duration.
+- Play/Pause aggiorna icona e tooltip in base allo stato pause del motore.
+- La barra aggiorna posizione e stato ogni mezzo secondo.
+
+**Verifica**
+
+- Codice pubblicato su GitHub.
+- Compilazione e controllo visivo/funzionale sul sistema locale ancora da eseguire.
