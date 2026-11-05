@@ -1,5 +1,5 @@
 from PySide6.QtCore import Qt, QUrl, QThread, Signal, QTimer, QSize
-from PySide6.QtGui import QAction, QKeySequence, QIcon, QDesktopServices, QPixmap, QShortcut, QCursor, QTransform
+from PySide6.QtGui import QAction, QKeySequence, QIcon, QDesktopServices, QPixmap, QShortcut, QCursor, QTransform, QColor
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QFrame, QVBoxLayout, QHBoxLayout, QLabel, QDialog, QMenu,
     QPushButton, QFileDialog, QInputDialog, QMessageBox, QSlider, QTreeWidget, QTreeWidgetItem,
@@ -1388,6 +1388,40 @@ class MainWindow(QMainWindow):
         except OSError:
             pass
         self._riempi_elenco()
+
+    def _tinta_barra(self, y):
+        if not self.colore_barra:
+            return BARRA
+        colore = QColor(self.colore_barra)
+        base = QColor(BARRA)
+        altezza = max(1, self.barra.height())
+        t = 0.22 * max(0.0, 1.0 - y / float(altezza)) ** 1.6
+        return QColor(
+            int(base.red() + (colore.red() - base.red()) * t),
+            int(base.green() + (colore.green() - base.green()) * t),
+            int(base.blue() + (colore.blue() - base.blue()) * t)
+        ).name()
+
+    def colora_stato(self, colore):
+        self.colore_barra = colore
+        if colore:
+            cima = self._tinta_barra(0)
+            fondo = BARRA
+            self.barra.setStyleSheet(
+                "QFrame{background:qlineargradient(x1:0,y1:0,x2:0,y2:1,stop:0 %s,stop:1 %s)}" %
+                (cima, fondo))
+            self.posizione.setStyleSheet(
+                "QSlider::groove:horizontal{height:2px;background:#4a4a4a}"
+                "QSlider::sub-page:horizontal{background:%s}"
+                "QSlider::handle:horizontal{width:0;height:0;border:0}" % colore)
+            self.volume.sfondo(self._tinta_barra)
+        else:
+            self.barra.setStyleSheet("QFrame{background:%s}" % BARRA)
+            self.posizione.setStyleSheet(
+                "QSlider::groove:horizontal{height:2px;background:#4a4a4a}"
+                "QSlider::sub-page:horizontal{background:#ffffff}"
+                "QSlider::handle:horizontal{width:0;height:0;border:0}")
+            self.volume.sfondo(None)
 
     def colore_canale(self, nome, url):
         if url.startswith(REGISTRAZIONI + os.sep):
@@ -2951,6 +2985,7 @@ class MainWindow(QMainWindow):
             self._richiedi_foto_artisti(percorso)
         self._segna_in_onda()
         self.nome_in_onda = nome or os.path.splitext(os.path.basename(percorso.rstrip("/")))[0] or percorso
+        self.colora_stato(self.colore_canale(self.nome_in_onda, percorso))
         self.ide_in_onda = ide
         self.varianti = []
         self.quale = -1
@@ -3117,6 +3152,7 @@ class MainWindow(QMainWindow):
             self.play_button.setIcon(QIcon(os.path.join(QUI, "icone", "play.png")))
             self.play_button.setToolTip(_("Play"))
             self.riga_stato.setText("XVB")
+            self.colora_stato(None)
             self._icona_preferito()
             self._aggiorna_sfondo()
             self._aggiorna_mpris()
