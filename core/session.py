@@ -1,8 +1,9 @@
+import hashlib
 import os
 
 from core.config import leggi_config, CARTELLE_LISTE, CARTELLE_VECCHIE
 from core.playlists import (
-    categorie, categorie_m3u, leggi_lista, liste_in_cartella, nome_di, NOMI_URL
+    categorie, categorie_m3u, leggi_lista, liste_in_cartella, nome_di, NOMI_URL, CACHE_LISTE
 )
 from core.epg import leggi_epg, prendi_epg, unisci_guide
 from core.favorites import leggi_preferiti_cat, PREF_MUSICA, PREF_VIDEO
@@ -57,6 +58,10 @@ class Sessione:
     def carica_liste(self):
         percorsi, gruppi = self.tutte_le_liste()
         for percorso in percorsi:
+            if percorso.startswith(("http://", "https://")):
+                cache = os.path.join(CACHE_LISTE, hashlib.md5(percorso.encode()).hexdigest() + ".m3u")
+                if not os.path.isfile(cache):
+                    continue
             try:
                 canali = leggi_lista(percorso)
                 categorie_lista = categorie_m3u(percorso)
