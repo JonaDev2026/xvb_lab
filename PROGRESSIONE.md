@@ -254,3 +254,6 @@ Non eseguiti test grafici o prove di rendering. La dissolvenza originale dello s
 - Ripristinato l'indicatore di buffering animato nella barra di stato: usa l'icona originale `loading.png`, ruotata ogni 50 ms quando libmpv segnala `paused-for-cache`.
 
 - Ripristinata la tinta del canale nella progress e nella sfumatura della barra comandi; il cursore volume riceve la stessa sfumatura sottostante. A riproduzione ferma la barra torna al colore neutro.
+
+- La barra comandi Qt6 è ora sovrapposta al video anche nella finestra normale, come nella Stable; resta visibile con i pannelli laterali aperti e si nasconde dopo tre secondi quando entrambi sono chiusi o a schermo intero. In PiP torna al layout esterno.
+- La sfumatura colorata del canale viene mantenuta anche nella barra sovrapposta semitrasparente.
