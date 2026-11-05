@@ -18,11 +18,11 @@ from i18n import _, imposta_lingua, LINGUE
 from core.playlists import liste_in_cartella, BUFFER, LOGHI, NOMI_URL, CACHE_LISTE, CHIAVI, copia_lista_url, e_una_lista, _CACHE_PARSED_LOCK, _CACHE_PARSED_MEMORIA
 from core.colors import CACHE_LOGHI, leggi_colori, scrivi_colori, colore_di, colore_dal_logo
 from core.stream import varianti, chiave_clearkey, server_mpd, CACHE_VARIANTE
-from core.constants import (SCALA_FILE, CATEGORIE_URL, VERSIONE, DONA, FONDO, PANNELLO,
+from core.constants import (SCALA_FILE, CATEGORIE_URL, VERSIONE, DONA, REPO, UA, FONDO, PANNELLO,
                             BARRA, STATO, TASTO, SCELTO, TESTO, GRIGIO, ACCENTO,
                             CERCA, IN_ONDA, TESTO_ONDA)
 from core.discs import dischi, cd_audio, dvd_cifrato, e_dvd, titolo_da_etichetta
-from core.recordings import registrazioni
+from core.recordings import registrazioni, piu_nuova
 from core.favorites import leggi_preferiti, leggi_preferiti_cat, scrivi_preferiti
 import os
 import re
@@ -32,6 +32,7 @@ import json
 import shutil
 import hashlib
 from urllib.parse import urlparse, quote
+from urllib.request import Request, urlopen
 
 
 class _CaricaGuide(QThread):
@@ -127,6 +128,22 @@ class _AggiornaListe(QThread):
             except Exception:
                 continue
         self.completato.emit(cambiata)
+
+
+class _VerificaVersione(QThread):
+    completato = Signal(str, str)
+    errore = Signal(str)
+
+    def run(self):
+        try:
+            richiesta = Request(
+                "https://api.github.com/repos/%s/releases/latest" % REPO,
+                headers={"User-Agent": UA, "Accept": "application/vnd.github+json"})
+            dati = json.loads(urlopen(richiesta, timeout=10).read().decode("utf-8", "ignore"))
+            self.completato.emit(str(dati.get("tag_name", "")).lstrip("vV"),
+                                 str(dati.get("html_url", "")))
+        except Exception as errore:
+            self.errore.emit(str(errore))
 
 
 class MainWindow(QMainWindow):
@@ -374,6 +391,10 @@ class MainWindow(QMainWindow):
         self._worker_liste = None
         self.mpv = self.player
         self._mpris = avvia_mpris(self)
+        self.nuova = None
+        self.pagina_nuova = None
+        self._versione_worker = None
+        QTimer.singleShot(8000, lambda: self.controlla_versione(zitto=True))
         self._indice_canale = -1
         self._giro_traccia = 0
         self._eof_gestito = False
@@ -678,6 +699,11 @@ class MainWindow(QMainWindow):
             buffer_menu.addAction(self._azione(etichetta, lambda _=False, k=chiave: self.metti_buffer(k)))
         help_menu = self.menuBar().addMenu(_("Help"))
         help_menu.addAction(self._azione(_("About XVB"), self.informazioni))
+        self.azione_download = self._azione(_("Up to date"), self.apri_release)
+        self.azione_download.setEnabled(False)
+        help_menu.addAction(self.azione_download)
+        help_menu.addAction(self._azione(_("Check for updates"), self.controlla_versione))
+        help_menu.addSeparator()
         help_menu.addAction(self._azione(_("Donate"), self.dona))
 
 
@@ -2405,6 +2431,39 @@ class MainWindow(QMainWindow):
             self.sessione.config.setdefault("scala_sub", {}).pop(url, None)
             scrivi_config(self.sessione.config)
         self._messaggio_temporaneo(_("subtitle delay %+.1fs") % 0.0)
+
+    def controlla_versione(self, zitto=False):
+        worker = self._versione_worker
+        if worker is not None and worker.isRunning():
+            return
+        worker = _VerificaVersione()
+        self._versione_worker = worker
+        worker.completato.connect(
+            lambda tag, pagina, silenzioso=zitto: self._versione_pronta(tag, pagina, silenzioso))
+        worker.errore.connect(
+            lambda errore, silenzioso=zitto: self._versione_errore(errore, silenzioso))
+        worker.start()
+
+    def _versione_pronta(self, tag, pagina, zitto):
+        if tag and piu_nuova(tag, VERSIONE):
+            self.nuova, self.pagina_nuova = tag, pagina
+            self.azione_download.setText(_("Download %s") % tag)
+            self.azione_download.setEnabled(bool(pagina))
+            self.riga_stato.setText(_("new version %s available: Help > Download") % tag)
+        else:
+            self.nuova, self.pagina_nuova = None, None
+            self.azione_download.setText(_("Up to date"))
+            self.azione_download.setEnabled(False)
+            if not zitto:
+                self._messaggio_temporaneo(_("up to date (%s)") % VERSIONE)
+
+    def _versione_errore(self, errore, zitto):
+        if not zitto:
+            self._messaggio_temporaneo(_("cannot check for updates: %s") % errore)
+
+    def apri_release(self):
+        if self.pagina_nuova:
+            QDesktopServices.openUrl(QUrl(self.pagina_nuova))
 
     def dona(self):
         if not QDesktopServices.openUrl(QUrl(DONA)):
