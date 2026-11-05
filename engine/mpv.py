@@ -217,6 +217,19 @@ class MpvVideo(QOpenGLWidget):
             if not evento:
                 break
 
+
+    def comando(self, *argomenti):
+        return self._comando(*argomenti)
+
+    def imposta(self, nome, valore):
+        self._proprieta(nome, valore)
+
+    def ciclo(self, nome):
+        self._comando("cycle", nome)
+
+    def regola(self, nome, valore):
+        self._comando("add", nome, valore)
+
     def closeEvent(self, evento):
         self.chiudi()
         super().closeEvent(evento)
