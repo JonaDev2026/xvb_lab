@@ -1,4 +1,5 @@
 import json
+import os
 import re
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -6,7 +7,9 @@ from urllib.parse import parse_qs, unquote, urljoin, urlsplit
 from urllib.request import Request, urlopen
 
 from .constants import UA
-from .playlists import CHIAVI
+from .playlists import CHIAVI, CACHE_LISTE
+
+CACHE_VARIANTE = os.path.join(CACHE_LISTE, "varianti")
 
 _SERVER_MPD = None
 
