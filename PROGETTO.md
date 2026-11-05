@@ -426,6 +426,7 @@ XVB Lab potrà essere considerata equivalente alla Stable solo quando:
 - [x] Albero laterale Qt6 in `ui/sidebar.py`, collegato alle playlist, categorie, libreria locale, dischi, registrazioni e preferiti.
 - [x] Controlli player, seek, volume, repeat, shuffle, preferiti, fullscreen, PiP e split screen collegati alle funzioni presenti nel controller.
 - [x] Test di regressione presenti in `tests/` e workflow CI configurato.
+- [x] Corretto l'ordine di inizializzazione dello stato in `MainWindow`; compilazione e suite di test Qt/regressione superate dalla CI sul commit `05268c1`.
 
 ### Lavoro ancora aperto
 
