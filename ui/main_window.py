@@ -579,7 +579,7 @@ class MainWindow(QMainWindow):
                 or self.colori.get(url) or colore_di(nome))
 
     def apri_canale_guida(self, nome, url, ide=None):
-        self.apri(url)
+        self.apri(url, nome=nome, ide=ide)
 
 
     def _riempi_liste(self):
