@@ -344,3 +344,26 @@ Avvicinare l'albero Local alla struttura della Stable 4.4.4, mantenendo la confi
 
 - UI: `ff4d16472974e820b92bcce75f923ac8b1dff128`
 - Test locale: in attesa del pull e della verifica sul computer di sviluppo.
+
+
+### 2026-11-05 — Scansione progressiva della libreria Local
+
+**Modifiche**
+
+- La scansione delle cartelle ora produce blocchi di 30 elementi invece di attendere il completamento dell'intera scansione.
+- XVB Lab aggiunge i risultati all'elenco sinistro mentre la scansione è ancora in corso.
+- La stessa modalità a blocchi viene usata per i file importati.
+- Ogni scansione possiede un token progressivo: anche una nuova scansione della stessa sorgente invalida i risultati della precedente.
+- Il completamento aggiorna conteggi e sottocartelle senza ricreare l'elenco già mostrato progressivamente.
+
+**Verifica**
+
+- Modifiche pubblicate su GitHub.
+- Non ancora compilate o provate localmente dopo questo aggiornamento.
+- Da verificare la visualizzazione progressiva, la selezione rapida di sorgenti diverse e la stabilità con librerie numerose.
+
+**Commit**
+
+- Servizio scansione: `c4de7c097c6d0ade3839ef42c250d6d2174bd7a2`
+- UI: `fb12f0fe2619bde254d6d7eafa927d23a3bbc5c3`
+- Aggiornamento progressione in corso.
