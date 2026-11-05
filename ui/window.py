@@ -2,6 +2,7 @@ from pathlib import Path
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QAction, QIcon
+from PySide6.QtCore import QSize
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, QFrame, QLabel,
     QPushButton, QMenuBar, QSizePolicy
@@ -16,7 +17,7 @@ from .list import Elenco
 class FinestraXVB(QMainWindow):
     comando = Signal(str)
 
-    def __init__(self, controller=None, parent=None, directory=None):
+    def __init__(self, controller=None, parent=None, directory=None, mpv_options=None):
         super().__init__(parent)
         self.controller = controller
         self.directory = Path(directory) if directory else Path(__file__).resolve().parents[1]
@@ -95,7 +96,9 @@ class FinestraXVB(QMainWindow):
         video_layout = QVBoxLayout(self.video_area)
         video_layout.setContentsMargins(0, 0, 0, 0)
         video_layout.setSpacing(0)
-        self.video = MpvPlayer(self.video_area)
+        self.video = MpvPlayer(self.video_area, options=mpv_options)
+        for proprieta in ("time-pos", "duration", "pause", "volume", "mute", "media-title", "playlist-pos", "speed"):
+            self.video.osserva(proprieta)
         self.video.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         video_layout.addWidget(self.video, 1)
         self.barra = QFrame(self.video_area)
@@ -107,19 +110,57 @@ class FinestraXVB(QMainWindow):
         riga = QHBoxLayout()
         riga.setSpacing(8)
         self.pulsanti = {}
-        for chiave, etichetta in (
-            ("prima", "Previous"), ("play", "Play"), ("stop", "Stop"),
-            ("dopo", "Next"), ("volume", "Volume")
-        ):
-            b = QPushButton(etichetta, self.barra)
+        controlli = (
+            ("prima", "Previous", "skip_previous"),
+            ("-10", "Back 10 s", None),
+            ("play", "Play / Pause", "play"),
+            ("stop", "Stop", "stop"),
+            ("+10", "Forward 10 s", None),
+            ("dopo", "Next", "skip_next"),
+            ("rec", "Record", "radio_button_checked"),
+            ("repeat", "Repeat", "repeat"),
+            ("shuffle", "Shuffle", "shuffle"),
+        )
+        for chiave, etichetta, icona in controlli:
+            b = QPushButton(self.barra)
+            b.setToolTip(etichetta)
+            percorso = self.directory / "icone" / (chiave + ".png")
+            if percorso.is_file():
+                b.setIcon(QIcon(str(percorso)))
+                lato = 34 if chiave in ("prima", "dopo", "play") else 24
+                b.setIconSize(QSize(lato, lato))
+                b.setFixedSize(lato + 12, lato + 12)
+            else:
+                b.setText(etichetta)
             b.setCursor(Qt.PointingHandCursor)
             b.setStyleSheet(
-                "QPushButton{background:transparent;color:%s;border:0;padding:6px}"
-                "QPushButton:hover{color:%s}" % (TESTO, ACCENTO))
+                "QPushButton{background:transparent;color:%s;border:0;padding:3px}"
+                "QPushButton:hover{background:%s}" % (TESTO, ACCENTO))
             b.clicked.connect(lambda _v=False, k=chiave: self._azione(k))
             self.pulsanti[chiave] = b
             riga.addWidget(b)
         riga.addStretch(1)
+        for chiave, etichetta in (
+            ("favorite_on", "Favorite"), ("pip", "Picture in picture"),
+            ("pieno", "Fullscreen"), ("setting", "Quality"),
+            ("playlist", "Playlists"), ("volume", "Mute")
+        ):
+            b = QPushButton(self.barra)
+            b.setToolTip(etichetta)
+            percorso = self.directory / "icone" / (chiave + ".png")
+            if percorso.is_file():
+                b.setIcon(QIcon(str(percorso)))
+                b.setIconSize(QSize(24, 24))
+                b.setFixedSize(32, 32)
+            else:
+                b.setText(etichetta)
+            b.setCursor(Qt.PointingHandCursor)
+            b.setStyleSheet(
+                "QPushButton{background:transparent;color:%s;border:0;padding:3px}"
+                "QPushButton:hover{background:%s}" % (TESTO, ACCENTO))
+            b.clicked.connect(lambda _v=False, k=chiave: self._azione(k))
+            self.pulsanti[chiave] = b
+            riga.addWidget(b)
         comandi.addLayout(riga)
         self.cursore = Cursore(self.barra, self._seek, larga=170, alta=26)
         comandi.addWidget(self.cursore)
@@ -149,9 +190,20 @@ class FinestraXVB(QMainWindow):
 
     def _azione(self, chiave):
         if self.controller:
-            metodo = getattr(self.controller, chiave, None)
+            mappa = {
+                "prima": ("salta", -1), "dopo": ("salta", 1),
+                "-10": ("avanza", -10), "+10": ("avanza", 10),
+                "play": ("pausa", None), "stop": ("ferma", None),
+                "rec": ("registra", None), "repeat": ("gira_ripeti", None),
+                "shuffle": ("shuffle", None), "favorite_on": ("preferito", None),
+                "pieno": ("schermo_intero", None), "pip": ("pip_si_no", None),
+                "setting": ("apri_menu_qualita", None),
+                "playlist": ("sidebar", None), "volume": ("muto", None),
+            }
+            nome, argomento = mappa.get(chiave, (chiave, None))
+            metodo = getattr(self.controller, nome, None)
             if callable(metodo):
-                metodo()
+                metodo(argomento) if argomento is not None else metodo()
         self.comando.emit(chiave)
 
     def _filtra(self):
