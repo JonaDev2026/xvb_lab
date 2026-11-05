@@ -411,7 +411,7 @@ XVB Lab potrà essere considerata equivalente alla Stable solo quando:
 
 ## 8. Stato attuale
 
-**Stato: analisi completata; avviata la base tecnica del nuovo progetto. Il rendering Qt/libmpv non è ancora implementato né verificato.**
+**Stato: base tecnica e primo collegamento Qt/libmpv implementati nel repository; il rendering deve ancora essere provato su una macchina reale e verificato su X11 e Wayland.**
 
 - [x] Repository Stable individuato: `JonaDev2026/xvb`.
 - [x] Tag di riferimento confermato: `v4.4.4`.
@@ -424,7 +424,9 @@ XVB Lab potrà essere considerata equivalente alla Stable solo quando:
 - [x] Creato il primo controller libmpv indipendente in `engine/mpv.py`, basato sull'API C di libmpv.
 - [x] Creati i package iniziali `engine/`, `core/`, `ui/`, `features/`, `integrations/`, `translations/` e `tests/`.
 - [ ] Verificare installazione e caricamento di libmpv sul sistema di sviluppo.
-- [ ] Implementare il rendering libmpv Render API integrato in Qt.
+- [x] Prima implementazione del rendering OpenGL tramite libmpv Render API in un widget QOpenGLWidget.
+- [x] Collegati i comandi minimi Apri file e Stop al motore.
+- [ ] Verificare caricamento del widget e rendering su una macchina reale.
 - [ ] Verificare riproduzione reale in X11 e Wayland.
 - [ ] Nessuna funzione della Stable è stata ancora trasferita.
 
@@ -453,6 +455,16 @@ La finestra attuale è soltanto uno scheletro Qt per verificare l'avvio dell'app
 ---
 
 ## Registro delle decisioni e dei progressi
+
+### 2026-11-05 — Primo collegamento Qt/libmpv
+
+- Aggiunto `engine/render.py` con un widget `QOpenGLWidget` che inizializza il backend OpenGL di libmpv tramite Render API.
+- Il widget passa a libmpv il framebuffer Qt corrente e richiede il ridisegno tramite callback di aggiornamento.
+- Aggiornato `engine/mpv.py`: il motore usa `vo=libmpv`, espone handle e libreria nativa e mantiene separati i comandi di riproduzione.
+- Aggiornato `main.py`: la finestra mostra il widget video e include i comandi minimi Apri file e Stop.
+- Il codice non usa embedding tramite `wid` né Xlib.
+- Implementazione iniziale non ancora testata su macchina reale: in particolare vanno verificati il recupero dei puntatori OpenGL tramite Qt, il rendering e il rilascio del contesto.
+- Prossimo passaggio: aggiornare il clone locale, installare le dipendenze di sistema e avviare il prototipo per raccogliere il primo risultato concreto.
 
 ### 2026-11-05 — Avvio della base tecnica
 
