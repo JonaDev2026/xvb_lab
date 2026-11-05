@@ -388,3 +388,14 @@ Commit: `bad83bc`, `f2e96f0`, `7cbc8cc`, `c277eda`, `aadc7d6`.
 - Aggiunti test Qt per la selezione dei gruppi di registrazioni, la richiesta asincrona della durata e l'inizializzazione anticipata degli stati. GitHub Actions sul commit `d05273e` ha superato compilazione e suite di regressione/Qt.
 
 Commit: `e0d9104`, `dbbd49e`, `aae3fb8`, `4e2d5d3`, `e2d1ac8`, `631865e`, `6efe1ce`, `0ad0334`, `a1dff0d`, `a6b62e9`, `ecd4cf9`, `d05273e`.
+
+
+## Integrazione MPRIS — aggiornamento e metadati
+
+- Ripristinato l'aggiornamento periodico MPRIS ogni secondo, attivo soltanto quando il servizio DBus è disponibile e fermato durante la chiusura.
+- I metadati locali includono titolo/tag e fallback dal percorso; per IPTV viene esposto il programma EPG corrente.
+- L'immagine MPRIS privilegia la copertina del contenuto, poi la foto artista o il poster locale; per gli stream usa il logo in cache e infine l'icona applicazione.
+- La chiamata `OpenUri` resta collegata all'apertura del contenuto e i comandi di trasporto continuano a passare dal dispatcher Qt.
+- Aggiunto un test Qt per il timer, l'aggiornamento dello stato e l'arresto alla chiusura. GitHub Actions sul commit `aeb2978` ha superato compilazione e suite di regressione/Qt.
+
+Commit: `60f8e2a`, `b35ab4c`, `9c133bc`, `757de30`, `aeb2978`.
