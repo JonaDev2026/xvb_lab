@@ -353,6 +353,8 @@ class MainWindow(QMainWindow):
         self.playlist_tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.playlist_tree.customContextMenuRequested.connect(self.local_tree_context_menu)
         self.playlist_tree.itemClicked.connect(self.select_local_source)
+        self.playlist_tree.itemExpanded.connect(self._tree_expansion_changed)
+        self.playlist_tree.itemCollapsed.connect(self._tree_expansion_changed)
         right_layout.addWidget(self.playlist_tree, 1)
         self._populate_local_tree()
 
@@ -464,7 +466,18 @@ class MainWindow(QMainWindow):
         from PySide6.QtCore import QSize
         return QSize(width, height)
 
+    def _tree_expansion_changed(self, item):
+        key = item.data(0, Qt.ItemDataRole.UserRole + 1)
+        if key:
+            self.config.setdefault("expanded", {})[key] = item.isExpanded()
+            save_config(self.config)
+
+    def _set_tree_expanded(self, item, key, default=False):
+        item.setData(0, Qt.ItemDataRole.UserRole + 1, key)
+        item.setExpanded(bool(self.config.get("expanded", {}).get(key, default)))
+
     def _populate_local_tree(self):
+        self.playlist_tree.blockSignals(True)
         self.playlist_tree.clear()
         self._source_tree_items = {}
         root = QTreeWidgetItem(["Local"])
@@ -478,6 +491,7 @@ class MainWindow(QMainWindow):
             item.setData(0, Qt.ItemDataRole.UserRole, ("folder", str(path.resolve())))
             item.setIcon(0, self._icon("player"))
             root.addChild(item)
+            self._set_tree_expanded(item, "folder:" + str(path.resolve()))
             self._source_tree_items[("folder", str(path.resolve()))] = item
         imported = [str(Path(path).expanduser().resolve()) for path in self.config.get("imported", [])
                     if Path(path).expanduser().is_file()]
@@ -487,6 +501,7 @@ class MainWindow(QMainWindow):
             item.setIcon(0, self._icon("playlist"))
             root.addChild(item)
             self._source_tree_items[("imported", tuple(imported))] = item
+            self._set_tree_expanded(item, "imported")
             for path in imported:
                 child = QTreeWidgetItem([Path(path).stem])
                 child.setData(0, Qt.ItemDataRole.UserRole, ("imported", [path]))
@@ -497,7 +512,8 @@ class MainWindow(QMainWindow):
                 item.addChild(child)
                 self._source_tree_items[("imported", (path,))] = child
             item.setExpanded(False)
-        root.setExpanded(True)
+        self._set_tree_expanded(root, "local", True)
+        self.playlist_tree.blockSignals(False)
 
     def local_tree_context_menu(self, position):
         item = self.playlist_tree.itemAt(position)
@@ -693,8 +709,11 @@ class MainWindow(QMainWindow):
                         icon = "music" if music_count * 2 > len(children) else "player"
                         child.setIcon(0, self._icon(icon))
                     source_item.addChild(child)
+                    self._set_tree_expanded(child, "folder:" + str(child_path.resolve()))
                     self._source_tree_items[("folder", str(child_path.resolve()))] = child
-                source_item.setExpanded(True)
+                source_key = "folder:" + str(root_path)
+                source_item.setData(0, Qt.ItemDataRole.UserRole + 1, source_key)
+                source_item.setExpanded(bool(self.config.get("expanded", {}).get(source_key, False)))
         elif source == "imported":
             paths = tuple(value) if isinstance(value, (list, tuple)) else (str(value),)
             source_item = self._source_tree_items.get(("imported", paths))
