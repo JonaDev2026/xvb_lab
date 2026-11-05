@@ -484,3 +484,27 @@ Avvicinare l'albero Local alla struttura della Stable 4.4.4, mantenendo la confi
 **Commit**
 
 - UI e worker: `c4674ffb49d334da4ce56c3eefced664f9359796`
+
+
+### 2026-11-05 — Metadati musicali nella libreria Local
+
+**Modifiche**
+
+- Aggiunta la lettura facoltativa dei tag audio tramite Mutagen: titolo, artista, album e anno.
+- Cache persistente in `~/.cache/xvb-lab/tags.json`, verificata tramite data di modifica del file.
+- La lettura dei tag avviene in un worker separato, senza bloccare l'interfaccia.
+- Le righe musicali mostrano titolo e sottotitolo con artista, album e anno; la ricerca viene riapplicata anche ai dati aggiornati.
+- Dopo la lettura dei tag, la lista viene ordinata per titolo.
+- Le scansioni dei metadati vengono interrotte quando si cambia sorgente o si chiude l'applicazione.
+
+**Verifica**
+
+- Codice pubblicato su GitHub.
+- Compilazione e verifica visiva ancora da eseguire localmente.
+- Mutagen resta facoltativo: senza il pacchetto, la libreria continua a mostrare i nomi dei file.
+
+**Commit**
+
+- Cache tag: `c2d317c136a546aecbcc87993ff8a5ffce64e657`
+- Visualizzazione: `6264f52113b08f508e10172904a1679cbde5687e`
+- Correzione righe e ricerca: `7e1e492001f5d61f95186bf139f1b11fe57b80c3`
