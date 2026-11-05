@@ -70,20 +70,16 @@ class QtWidgetTests(unittest.TestCase):
             window = MainWindow()
             self.assertTrue(window.azione_hwdec.isChecked())
             self.assertFalse(window.azione_deinterlaccia.isChecked())
-            window.sessione.config.update({
-                "proporzioni": "16:9",
-                "riempi": False,
-                "deinterlaccia": True,
-                "hwdec": False,
-            })
-            window._aggiorna_menu_video()
+            window.metti_proporzioni("16:9")
             self.assertTrue(window.azioni_proporzioni["16:9"].isChecked())
-            self.assertTrue(window.azione_deinterlaccia.isChecked())
-            self.assertFalse(window.azione_hwdec.isChecked())
-            window.sessione.config["riempi"] = True
-            window._aggiorna_menu_video()
+            self.assertFalse(window.azioni_proporzioni["-1"].isChecked())
+            window.riempi()
             self.assertTrue(window.azione_riempi.isChecked())
             self.assertFalse(window.azioni_proporzioni["16:9"].isChecked())
+            window.deinterlaccia()
+            self.assertTrue(window.azione_deinterlaccia.isChecked())
+            window.decodifica_hw()
+            self.assertFalse(window.azione_hwdec.isChecked())
             window.close()
             self.app.processEvents()
 
@@ -91,10 +87,11 @@ class QtWidgetTests(unittest.TestCase):
         with patch("ui.main_window.MpvVideo", side_effect=RuntimeError("libmpv unavailable")):
             window = MainWindow()
             self.assertTrue(window.azioni_velocita[1].isChecked())
-            window.velocita = 1.5
-            window.shuffle_attivo = True
-            window.ripeti = "uno"
-            window.sessione.config.update({"boost": True, "normalizza": True})
+            window.metti_velocita(1.5)
+            window.mpris_shuffle(True)
+            window.metti_ripeti("uno")
+            window.boost()
+            window.normalizza()
             window._aggiorna_menu_playback()
             window._aggiorna_menu_audio()
             self.assertTrue(window.azioni_velocita[1.5].isChecked())
