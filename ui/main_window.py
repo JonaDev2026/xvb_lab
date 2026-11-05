@@ -2073,6 +2073,9 @@ class MainWindow(QMainWindow):
         self._timer_refresh.stop()
         if self._worker_liste and self._worker_liste.isRunning():
             self._worker_liste.wait(35000)
+        for worker in self._stream_workers:
+            if worker.isRunning():
+                worker.wait(12000)
         if self._thread_epg.isRunning():
             self._thread_epg.wait(65000)
         for worker in self._logo_threads + self._cover_threads:
