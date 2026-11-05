@@ -3002,8 +3002,13 @@ class MainWindow(QMainWindow):
             self.ferma_registrazione()
             return
         f = self.file_in_onda or ""
-        if not f.startswith(("http://", "https://")) or not self.nome_in_onda:
-            self.riga_stato.setText("Open an IPTV stream before recording")
+        if f.startswith("dvd://"):
+            if dvd_cifrato(f[len("dvd://"):]):
+                self.riga_stato.setText(_("This DVD is protected and can't be recorded"))
+                return
+        elif f and not re.match(r"https?://", f, re.I):
+            return
+        if not f or not self.nome_in_onda:
             return
         self.avvia_registrazione(self.nome_in_onda, 0.0)
 
