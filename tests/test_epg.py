@@ -6,7 +6,7 @@ import unittest
 
 from core.epg import (
     ora_xmltv, unisci_programmi, unisci_guide, piu_nuova,
-    nome_epg, nome_piatto,
+    nome_epg, nome_piatto, guide_da_aggiornare,
 )
 
 
@@ -41,6 +41,29 @@ class EpgLogicTests(unittest.TestCase):
         self.assertTrue(piu_nuova("1.10", "1.9"))
         self.assertFalse(piu_nuova("1.8", "1.9"))
 
+    def test_remote_guide_refreshes_after_six_hours(self):
+        with tempfile.TemporaryDirectory() as root:
+            with unittest.mock.patch("core.epg.CACHE_EPG", root):
+                source = "https://example.test/guide.xml"
+                import hashlib
+                cache = os.path.join(root, hashlib.md5(source.encode()).hexdigest())
+                with open(cache, "wb") as stream:
+                    stream.write(b"guide")
+                os.utime(cache, (1000, 1000))
+                self.assertTrue(guide_da_aggiornare([source], 900, 1000, ora=22600))
+                self.assertFalse(guide_da_aggiornare([source], 900, 1000, ora=19000))
+
+    def test_local_guide_refreshes_when_file_changes(self):
+        with tempfile.TemporaryDirectory() as root:
+            source = os.path.join(root, "guide.xml")
+            with open(source, "wb") as stream:
+                stream.write(b"guide")
+            os.utime(source, (2000, 2000))
+            self.assertTrue(guide_da_aggiornare([source], 1000, 1000, ora=5000))
+            self.assertFalse(guide_da_aggiornare([source], 3000, 1000, ora=5000))
+
+    def test_epg_refresh_waits_one_hour_after_attempt(self):
+        self.assertFalse(guide_da_aggiornare(["https://example.test/guide.xml"], 0, 5000, ora=8599))
 
 if __name__ == "__main__":
     unittest.main()
