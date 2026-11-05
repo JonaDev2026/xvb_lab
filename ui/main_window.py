@@ -1264,9 +1264,8 @@ class MainWindow(QMainWindow):
         self.info = info
         if fatti or not worker.zitto:
             self.riga_stato.setText(_("%d posters and covers downloaded") % fatti)
-        if nuove and percorso and self._percorso_attivo == percorso:
-            self._riempi_elenco()
-        elif fatti and percorso and self._percorso_attivo == percorso:
+        if (nuove or fatti) and (
+                percorso is None or self._percorso_attivo == percorso):
             self._riempi_elenco()
 
     def _rimuovi_worker_copertine(self, worker):
