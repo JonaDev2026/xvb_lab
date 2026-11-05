@@ -2203,6 +2203,34 @@ class MainWindow(QMainWindow):
         self.el_liste.item(epg, valore=("__epg_folder__", None))
         self.el_liste.item(m3u, valore=("__m3u__", None))
         self.el_liste.item(locale, valore=("__local__", None))
+        url_root = self.el_liste.insert("", "end", iid="url", text=" URL", open=True)
+        self.el_liste.item(url_root, valore=("__url_root__", None))
+        icone_url = {
+            "podcast": "mic", "musica": "music", "radio": "radio",
+            "cam": "cam", "film": "player", "video": "video", None: "timer",
+        }
+        for categoria, etichetta in CATEGORIE_URL + ((None, "Temporary"),):
+            urls = self.url_di(categoria)
+            if not urls:
+                continue
+            chiave = "temporary" if categoria is None else categoria
+            nome_icona = icone_url.get(categoria, "player")
+            percorso_icona = os.path.join(QUI, "icone", nome_icona + ".png")
+            immagine = QPixmap(percorso_icona) if os.path.isfile(percorso_icona) else None
+            iid_categoria = "urlcat:" + chiave
+            self.el_liste.insert(
+                url_root, "end", iid=iid_categoria,
+                text=" " + _("%s (%d)") % (_(etichetta), len(urls)),
+                image=immagine, open=False)
+            self.el_liste.item(iid_categoria, valore=("__url_cat__", categoria))
+            for indice, url in enumerate(urls):
+                iid_url = iid_categoria + ":" + str(indice)
+                self.el_liste.insert(
+                    iid_categoria, "end", iid=iid_url,
+                    text=" " + self.nome_di_url(url), image=immagine)
+                self.el_liste.item(iid_url, valore=("__url__", url))
+        if not self.el_liste.get_children(url_root):
+            self.el_liste.delete(url_root)
 
     def _scegli_voce_liste(self, item, _colonna=0):
         dati = self.el_liste.item(item, "valore") if isinstance(item, str) else item.data(0, Qt.UserRole)
