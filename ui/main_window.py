@@ -755,6 +755,15 @@ class MainWindow(QMainWindow):
             self.showFullScreen()
 
     def closeEvent(self, evento):
+        self._timer_player.stop()
+        self._timer_rec.stop()
+        if self._thread_epg.isRunning():
+            self._thread_epg.wait(65000)
+        if self.pip_window is not None:
+            self.esci_pip()
+        if self.player2:
+            self.player2.chiudi()
+            self.player2 = None
         if self.player:
             self.player.chiudi()
         super().closeEvent(evento)
