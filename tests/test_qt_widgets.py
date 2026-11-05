@@ -10,7 +10,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtWidgets import QApplication, QLabel, QVBoxLayout
 from ui.widgets import Ricerca, Cursore, Elenco, Finestrella, Tendina, Guida
-from ui.main_window import MainWindow, _AggiornaListe, _ScansionaCartelle
+from ui.main_window import MainWindow, _AggiornaListe, _ScansionaCartelle, _ScaricaCopertine
 
 
 class QtWidgetTests(unittest.TestCase):
