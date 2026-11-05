@@ -267,3 +267,5 @@ Non eseguiti test grafici o prove di rendering. La dissolvenza originale dello s
 - Ripristinato il cursore volume a comparsa: inizialmente collassato, si espande passando sul pulsante muto o sul cursore, si richiude dopo 400 ms e anima l'apertura/chiusura in cinque passi da 15 ms.
 
 - Il motore libmpv ora usa la cartella e il modello nome file per gli screenshot della Stable (`~/Pictures/xvb/xvb-...`) e scollega esplicitamente il callback di aggiornamento OpenGL prima di liberare il contesto render.
+
+- Il precaricamento delle foto artista ora interrompe anche le pause fra richieste quando si chiude il player; l'attesa di chiusura resta limitata al timeout massimo della richiesta in corso.
