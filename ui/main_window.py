@@ -406,8 +406,15 @@ class MainWindow(QMainWindow):
             self.barra, self._volume, larga=85, alta=26, barra=BARRA,
             traccia="#4a4a4a", pieno="#ffffff")
         self.volume.valore = int(self.sessione.config.get("volume", 85))
+        self.volume_largo = 0
+        self.volume.setMaximumWidth(0)
         controlli.addWidget(self.volume)
-        pulsante("mute", "volume", self._muto, 24, _("Mute"))
+        self.b_muto = pulsante("mute", "volume", self._muto, 24, _("Mute"))
+        for widget in (self.volume, self.b_muto):
+            widget.installEventFilter(self)
+        self._timer_volume = QTimer(self)
+        self._timer_volume.setSingleShot(True)
+        self._timer_volume.timeout.connect(lambda: self.anima_volume(-1))
         comandi.addLayout(controlli)
         root.addWidget(self.barra)
 
@@ -829,6 +836,24 @@ class MainWindow(QMainWindow):
         self.setWindowFlag(Qt.WindowStaysOnTopHint, attivo)
         if visibile:
             self.show()
+
+    def apri_volume(self):
+        self._timer_volume.stop()
+        self.anima_volume(1)
+
+    def chiudi_volume_tra_poco(self):
+        self._timer_volume.start(400)
+
+    def anima_volume(self, verso):
+        passo = max(1, self.volume.larga // 5)
+        largo = max(0, min(self.volume.larga, self.volume_largo + verso * passo))
+        if largo == self.volume_largo:
+            return
+        self.volume_largo = largo
+        self.volume.setMaximumWidth(largo)
+        self.volume.updateGeometry()
+        if 0 < largo < self.volume.larga:
+            QTimer.singleShot(15, lambda: self.anima_volume(verso))
 
     def _muto(self):
         self._muto_attivo = not getattr(self, "_muto_attivo", False)
@@ -3391,6 +3416,11 @@ class MainWindow(QMainWindow):
 
 
     def eventFilter(self, oggetto, evento):
+        if oggetto in (getattr(self, "volume", None), getattr(self, "b_muto", None)):
+            if evento.type() == evento.Type.Enter:
+                self.apri_volume()
+            elif evento.type() == evento.Type.Leave:
+                self.chiudi_volume_tra_poco()
         if evento.type() == evento.Type.MouseButtonPress and oggetto in (self.avviso, self.et_avviso):
             self.chiudi_avviso()
         if evento.type() == evento.Type.Resize and oggetto is self.video:
@@ -3584,6 +3614,7 @@ class MainWindow(QMainWindow):
         self.tendina.chiudi()
         self._timer_player.stop()
         self._timer_carico.stop()
+        self._timer_volume.stop()
         self._timer_rec.stop()
         self._timer_dischi.stop()
         self._timer_info.stop()
