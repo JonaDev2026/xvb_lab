@@ -1,0 +1,425 @@
+# XVB Lab — Diario di progetto
+
+## 1. Scopo
+
+Ricostruire XVB Player in un progetto indipendente, mantenendo le funzionalità e il comportamento della versione stabile **XVB 4.4.4**.
+
+- Repository di riferimento: https://github.com/JonaDev2026/xvb
+- Versione di riferimento: tag `v4.4.4`
+- Nuovo repository: https://github.com/JonaDev2026/xvb_lab
+- Stable resta separata e non deve essere modificata durante lo sviluppo di XVB Lab.
+- Il nuovo programma non deve essere una versione ridotta o una semplice interfaccia dimostrativa: l'obiettivo è ricostruire la stessa applicazione.
+
+Questo documento è il diario permanente del progetto. Va aggiornato quando si prendono decisioni, si completano moduli o si verificano differenze rispetto alla Stable.
+
+## 2. Stack tecnologico deciso
+
+Il linguaggio resta **Python**. La riscrittura riguarda soprattutto l'architettura e il framework grafico.
+
+- **Python 3** — linguaggio principale.
+- **PySide6 / Qt 6** — interfaccia grafica, finestre, menu, modelli, eventi e controlli.
+- **libmpv** — motore di riproduzione.
+- **libmpv Render API** — rendering video integrato nel ciclo grafico Qt, senza dipendere dalla finestra X11 tramite `wid`.
+- **SQLite** — da valutare per indicizzazione e librerie grandi; non sostituisce automaticamente i file di configurazione e le cache esistenti.
+- **D-Bus / MPRIS** — integrazione con tasti multimediali e desktop Linux.
+
+### Compatibilità grafica
+
+Obiettivo: una sola applicazione utilizzabile su **X11 e Wayland**.
+
+La nuova implementazione non deve basarsi su:
+- Tkinter;
+- Xlib per incorporare il video;
+- identificatori finestra X11 passati a mpv con `wid`;
+- overlay che funzionano solo grazie a coordinate o finestre X11.
+
+La superficie video deve essere gestita da Qt e dal rendering di libmpv. La scelta concreta del backend grafico (OpenGL o altro backend supportato) va verificata con un prototipo prima di costruire tutta l'interfaccia. Su Wayland devono essere usati i normali backend Qt Wayland; su X11 il backend Qt XCB.
+
+## 3. Analisi della Stable 4.4.4
+
+Analisi basata sul tag `v4.4.4` del repository ufficiale. Il file principale `xvb.py` contiene circa 11.823 righe e 474 KB; `traduzioni.py` contiene le traduzioni. La Stable è un'applicazione Tkinter con motore python-mpv/libmpv.
+
+La ricostruzione dovrà quindi separare responsabilità oggi concentrate nella classe `TV` e nel file monolitico.
+
+### 3.1 Interfaccia e organizzazione
+
+Da conservare:
+- finestra principale, tema scuro, colori, icone e proporzioni;
+- menu Media, Playback, Video, Audio, IPTV, View e Settings/Information;
+- area di riproduzione e controlli;
+- elenco ad albero delle playlist e delle categorie;
+- pannello laterale e libreria locale;
+- selezione, ricerca e filtri;
+- menu contestuali e operazioni sulle righe;
+- barra di stato, informazioni sul contenuto in riproduzione e indicatori;
+- ridimensionamento dei pannelli, fullscreen e gestione delle finestre;
+- icone e risorse grafiche originali del progetto;
+- lingua inglese predefinita e scelta della lingua, mantenendo le lingue già presenti.
+
+La nuova UI deve mantenere la logica e l'usabilità della Stable. Qt non è un motivo per cambiare arbitrariamente disposizione, colori o flussi di lavoro.
+
+### 3.2 IPTV, playlist e sorgenti
+
+Da ricostruire:
+- caricamento di playlist M3U locali e remote;
+- aggiunta, rimozione, rinomina, aggiornamento e apertura delle playlist;
+- categorie e sottocartelle delle playlist;
+- lettura di `EXTINF`, nomi, `tvg-id`, `tvg-logo`, `group-title` e metadati supportati;
+- gestione delle playlist senza estensione, riconoscendone il contenuto;
+- cache delle playlist remote, aggiornamento e uso della copia locale in caso di problemi di rete;
+- cache dei dati M3U analizzati, con verifica di data e dimensione;
+- ricerca e filtro dei canali;
+- canali preferiti, playlist preferite e categorie dei preferiti;
+- canali recenti/ultimo canale e ripristino dello stato;
+- loghi, immagini, colori e indicatori dei canali;
+- varianti/qualità degli stream;
+- supporto agli header HTTP necessari agli stream;
+- gestione ClearKey e manifest DASH dove prevista dalla Stable;
+- apertura diretta di URL e sorgenti temporanee o salvate.
+
+La gerarchia e le regole di visualizzazione già presenti nella Stable vanno rilevate dal codice e mantenute, senza inventare una nuova struttura.
+
+### 3.3 EPG e guida TV
+
+Da ricostruire:
+- caricamento di guide XMLTV locali e remote;
+- più sorgenti EPG e unione delle guide;
+- associazione dei programmi ai canali tramite identificativi e nomi;
+- parsing e normalizzazione di date e orari XMLTV;
+- ricerca dei programmi;
+- guida grafica con asse temporale, righe dei canali e scorrimento;
+- programma attuale e successivo;
+- aggiornamento manuale e automatico delle guide;
+- cache e gestione degli errori di download;
+- avvio della riproduzione e delle registrazioni dai programmi della guida.
+
+### 3.4 Registrazioni
+
+Da ricostruire:
+- registrazione immediata del flusso;
+- arresto della registrazione;
+- pianificazione basata su programma/orario;
+- controllo dell'inizio e della fine pianificati;
+- gestione delle registrazioni in corso e concluse;
+- elenco, apertura e cartella delle registrazioni;
+- indicazione dello stato di registrazione nell'interfaccia.
+
+### 3.5 Libreria locale: video e musica
+
+Da ricostruire:
+- importazione e scansione di cartelle;
+- separazione e navigazione tra Video e Music;
+- ricerca e filtri;
+- elenco dei file e ordinamento;
+- riproduzione, coda, selezione e stato del file in riproduzione;
+- durata, informazioni e metadati;
+- lettura tag musicali tramite Mutagen;
+- cache dei tag e degli artisti;
+- copertine di album e immagini degli artisti;
+- poster e anteprime video;
+- ricerca e download metadati TMDB;
+- copertine MusicBrainz e ricerca basata sui brani;
+- cache persistente delle immagini e delle informazioni;
+- azioni contestuali per rinominare, assegnare o rimuovere copertine;
+- visualizzazione musicale con disco/vinile e animazioni già presenti;
+- avanzamento/progresso e indicatori nella lista;
+- gestione efficiente di librerie grandi: non bloccare l'interfaccia e non rieseguire scansioni inutili.
+
+### 3.6 Dischi e supporti
+
+Da ricostruire e verificare sul codice:
+- rilevamento dei supporti;
+- DVD video non cifrati;
+- dischi dati;
+- immagini ISO;
+- CD audio;
+- visualizzazione e identificazione dei dischi;
+- titoli e metadati DVD tramite TMDB, dove disponibili;
+- gestione dei supporti rimossi o non leggibili.
+
+La Stable non promette la riproduzione di Blu-ray: non aggiungerla come funzionalità senza una decisione esplicita e una verifica tecnica.
+
+### 3.7 Telecamere e sorgenti di rete
+
+Da ricostruire:
+- stream RTSP;
+- telecamere IP;
+- sorgenti ONVIF, secondo quanto effettivamente implementato nella Stable;
+- categorie e salvataggio degli URL;
+- apertura temporanea o memorizzata delle sorgenti;
+- nome personalizzato e riproduzione;
+- opzioni mpv e header specifici richiesti dalle sorgenti.
+
+### 3.8 Funzioni del player
+
+Da mantenere:
+- play, pausa, stop, precedente e successivo;
+- seek e avanzamento/riavvolgimento;
+- velocità di riproduzione;
+- proporzioni, adattamento e riempimento/crop;
+- deinterlacciamento e decodifica hardware;
+- luminosità, contrasto e saturazione;
+- screenshot;
+- selezione delle tracce audio e sottotitoli;
+- caricamento sottotitoli locali e ricerca online tramite OpenSubtitles;
+- ritardo e dimensione dei sottotitoli;
+- ritardo audio;
+- dispositivi di uscita audio;
+- equalizzatore, boost e normalizzazione audio;
+- buffer configurabile;
+- ripetizione singola/tutta e shuffle;
+- timer di spegnimento;
+- loop A-B;
+- capitoli;
+- gestione dei flussi e delle varianti di qualità;
+- rilevamento fine riproduzione, errori e canali non disponibili.
+
+### 3.9 Finestre e modalità di visualizzazione
+
+Da mantenere:
+- fullscreen;
+- Picture-in-Picture;
+- split screen e secondo output mpv;
+- selezione schermo;
+- sempre in primo piano;
+- barra e controlli in overlay;
+- HUD e informazioni di riproduzione;
+- nascondere/mostrare pannelli;
+- gestione mouse e controlli che appaiono/scompaiono;
+- sfondo, poster e transizioni;
+- comportamento coerente su X11 e Wayland.
+
+Le funzioni di overlay, PiP e split screen richiedono progettazione specifica in Qt: non vanno trasposte meccanicamente dalle finestre Tkinter.
+
+### 3.10 Integrazione desktop e sistema
+
+Da mantenere:
+- MPRIS su D-Bus;
+- tasti multimediali;
+- titolo, artista, album e copertina esposti al desktop;
+- comandi Play/Pause/Stop/Next/Previous/Seek;
+- apertura file da file manager e drag & drop;
+- singola istanza dell'applicazione;
+- passaggio dei nuovi file/URL all'istanza già aperta tramite socket locale;
+- gestione pulita della chiusura e delle risorse.
+
+### 3.11 Configurazione, cache e dati
+
+Da preservare:
+- lingua;
+- playlist e sorgenti salvate;
+- EPG;
+- preferiti;
+- playlist e canale usati più di recente;
+- cartelle importate;
+- recenti;
+- URL e nomi personalizzati;
+- preferenze audio/video;
+- buffer, velocità, ripetizione e shuffle;
+- pannelli e cartelle aperte;
+- tag, copertine, colori e cache;
+- credenziali OpenSubtitles, conservate separatamente e con permessi restrittivi.
+
+Percorsi e formati esistenti sotto `~/.config/xvb`, `~/.cache/xvb` e `~/.local/share/xvb` devono essere inventariati prima di decidere eventuali migrazioni. Non cancellare né sovrascrivere i dati della Stable. La nuova app deve iniziare in modo isolato, con possibilità di importare i dati in seguito.
+
+## 4. Architettura proposta per XVB Lab
+
+Non creare un nuovo file monolitico da migliaia di righe. Separare interfaccia, logica e servizi.
+
+Struttura iniziale proposta:
+
+```
+xvb_lab/
+├── main.py
+├── app/
+│   ├── application.py
+│   ├── config/
+│   │   ├── settings.py
+│   │   └── paths.py
+│   ├── core/
+│   │   ├── events.py
+│   │   ├── models.py
+│   │   └── tasks.py
+│   ├── playback/
+│   │   ├── mpv_controller.py
+│   │   ├── mpv_render.py
+│   │   ├── video_surface.py
+│   │   └── playback_state.py
+│   ├── playlists/
+│   │   ├── m3u_parser.py
+│   │   ├── playlist_manager.py
+│   │   └── playlist_cache.py
+│   ├── epg/
+│   │   ├── xmltv_parser.py
+│   │   ├── guide_manager.py
+│   │   └── guide_window.py
+│   ├── library/
+│   │   ├── scanner.py
+│   │   ├── music.py
+│   │   ├── video.py
+│   │   └── metadata.py
+│   ├── recording/
+│   │   └── recorder.py
+│   ├── integrations/
+│   │   ├── mpris.py
+│   │   └── onvif.py
+│   └── ui/
+│       ├── main_window.py
+│       ├── player_controls.py
+│       ├── playlist_view.py
+│       ├── sidebar.py
+│       ├── menus.py
+│       ├── dialogs.py
+│       └── style.py
+├── resources/
+│   ├── icons/
+│   └── fonts/
+├── translations/
+├── tests/
+├── docs/
+└── PROGETTO.md
+```
+
+La struttura è una proposta iniziale, non un vincolo rigido. I moduli si aggiungono quando servono. Evitare di introdurre dipendenze o livelli astratti inutili.
+
+## 5. Regole di sviluppo
+
+1. La Stable 4.4.4 è il riferimento funzionale; non si modifica.
+2. XVB Lab è indipendente e può evolvere senza alterare Stable.
+3. Prima si analizza il comportamento della funzione originale, poi la si riscrive e la si prova.
+4. Una funzione non è completata solo perché esiste un pulsante: deve funzionare end-to-end.
+5. Non rimuovere funzionalità per semplificare la prima versione.
+6. Non cambiare arbitrariamente grafica, nomi, flussi o comportamento.
+7. Le operazioni lente (rete, scansione, parsing, immagini, EPG) devono stare fuori dal thread UI; aggiornare Qt tramite segnali/slot.
+8. Gli errori devono essere gestiti e registrati senza bloccare l'interfaccia.
+9. Cache e scritture devono essere sicure, coerenti e non corrompere i dati.
+10. Non leggere o migrare automaticamente i dati della Stable durante i primi test.
+11. Ogni fase deve lasciare il programma avviabile e verificabile.
+12. Prima di dichiarare supporto Wayland, provarlo realmente in una sessione Wayland; fare anche test X11.
+13. Nessun intervento sul repository Stable senza richiesta esplicita.
+14. Procedere una cosa alla volta e aggiornare questo diario a ogni decisione o completamento.
+
+## 6. Piano di lavoro
+
+### Fase 0 — Inventario e base del progetto
+- [ ] Verificare il contenuto effettivo del repository `xvb_lab`.
+- [ ] Creare la struttura iniziale.
+- [ ] Definire dipendenze e avvio in ambiente virtuale.
+- [ ] Aggiungere logging e gestione eccezioni.
+- [ ] Aggiungere test di base.
+- [ ] Registrare nel diario commit e decisioni iniziali.
+
+### Fase 1 — Prototipo Qt6 + libmpv
+- [ ] Finestra PySide6 minima.
+- [ ] Superficie video Qt.
+- [ ] Avvio/arresto libmpv.
+- [ ] Riproduzione file locale e stream di rete.
+- [ ] Play/Pause/Stop, volume e seek.
+- [ ] Verifica rendering in X11.
+- [ ] Verifica rendering nativo in Wayland.
+- [ ] Verifica chiusura, riapertura e rilascio risorse.
+
+Questa fase è il blocco tecnico più importante. Non iniziare a trasferire tutta la UI prima di avere un rendering affidabile su entrambi i sistemi.
+
+### Fase 2 — Finestra principale e player
+- [ ] Tema, icone, layout e controlli.
+- [ ] Menu principali.
+- [ ] Barra di stato e informazioni sul contenuto.
+- [ ] Fullscreen e controlli overlay.
+- [ ] Preferenze e configurazione.
+- [ ] Lingue e traduzioni.
+
+### Fase 3 — Playlist e IPTV
+- [ ] Parser M3U e cache.
+- [ ] Albero playlist/categorie.
+- [ ] Ricerca e filtri.
+- [ ] Loghi, preferiti e recenti.
+- [ ] Varianti qualità e header.
+- [ ] ClearKey/DASH secondo compatibilità verificata.
+- [ ] Apertura URL e sorgenti salvate.
+
+### Fase 4 — EPG e registrazioni
+- [ ] Parser XMLTV.
+- [ ] Unione guide e associazione canali.
+- [ ] Finestra guida.
+- [ ] Programmi attuali/successivi.
+- [ ] Registrazione immediata.
+- [ ] Programmazione e gestione registrazioni.
+
+### Fase 5 — Libreria locale
+- [ ] Scansione cartelle.
+- [ ] Video e musica.
+- [ ] Mutagen e cache tag.
+- [ ] TMDB e MusicBrainz.
+- [ ] Poster, copertine e foto artisti.
+- [ ] Ricerca, ordinamento e menu contestuali.
+- [ ] Prestazioni con librerie grandi.
+
+### Fase 6 — Dischi, telecamere e funzioni avanzate
+- [ ] DVD non cifrati, dischi dati, ISO e CD audio.
+- [ ] RTSP e ONVIF.
+- [ ] Sottotitoli locali e OpenSubtitles.
+- [ ] Tracce, capitoli, audio e filtri video.
+- [ ] Equalizzatore, normalizzazione e dispositivi audio.
+- [ ] Buffer, loop A-B, timer, shuffle e repeat.
+- [ ] PiP, split screen, selezione schermo e HUD.
+
+### Fase 7 — Integrazione desktop e robustezza
+- [ ] MPRIS e tasti multimediali.
+- [ ] Drag & drop e apertura da file manager.
+- [ ] Singola istanza e socket locale.
+- [ ] Test di stabilità, prestazioni e recupero errori.
+- [ ] Test X11 e Wayland su sessioni reali.
+
+### Fase 8 — Distribuzione
+- [ ] Avvio desktop e icone.
+- [ ] Pacchetto Debian.
+- [ ] Dipendenze e risorse.
+- [ ] Documentazione e README.
+- [ ] Test installazione, aggiornamento e disinstallazione.
+
+## 7. Criteri di completamento
+
+XVB Lab potrà essere considerata equivalente alla Stable solo quando:
+- tutte le funzioni della 4.4.4 sono state inventariate e implementate oppure una differenza è stata approvata esplicitamente;
+- i flussi principali sono testati con file locali, playlist M3U, EPG e stream;
+- la libreria locale funziona anche con raccolte grandi;
+- registrazione, sottotitoli, audio, DVD e telecamere sono verificati;
+- MPRIS e apertura da desktop funzionano;
+- la riproduzione video è verificata su X11 e Wayland;
+- non vengono persi o alterati i dati della Stable.
+
+## 8. Stato attuale
+
+**Stato: analisi iniziale completata; implementazione non ancora iniziata.**
+
+- [x] Repository Stable individuato: `JonaDev2026/xvb`.
+- [x] Tag di riferimento confermato: `v4.4.4`.
+- [x] File principale analizzato: `xvb.py` (11.823 righe circa).
+- [x] Traduzioni e risorse individuate.
+- [x] Dipendenze e packaging Debian esaminati in `crea_deb.sh`.
+- [x] Inventario iniziale delle aree funzionali ricavato da classi e metodi.
+- [ ] Repository Lab inizializzato con il codice del nuovo progetto.
+- [ ] Prototipo Qt6/libmpv.
+- [ ] Nessuna funzione della Stable è stata ancora trasferita.
+
+## 9. Riferimenti
+
+- Stable 4.4.4: https://github.com/JonaDev2026/xvb/tree/v4.4.4
+- Sorgente principale: https://github.com/JonaDev2026/xvb/blob/v4.4.4/xvb.py
+- Traduzioni: https://github.com/JonaDev2026/xvb/blob/v4.4.4/traduzioni.py
+- Script pacchetto Debian: https://github.com/JonaDev2026/xvb/blob/v4.4.4/crea_deb.sh
+- Repository nuovo: https://github.com/JonaDev2026/xvb_lab
+
+---
+
+## Registro delle decisioni e dei progressi
+
+### 2026-11-05
+- Creato il progetto XVB Lab come riscrittura indipendente della Stable.
+- Confermato Python + PySide6/Qt6 + libmpv.
+- Obiettivo esplicito: stessa applicazione e stesse funzioni della Stable 4.4.4.
+- Obiettivo di compatibilità grafica: X11 e Wayland.
+- Stabilito che Stable non deve essere modificata.
+- Preparato questo diario sulla base dell'analisi del tag `v4.4.4`.
+- Prossimo punto di lavoro: verificare la cartella locale `xvb_lab` e realizzare il prototipo Qt6/libmpv prima di trasferire le altre funzioni.
