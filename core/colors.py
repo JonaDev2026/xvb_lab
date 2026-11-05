@@ -116,3 +116,17 @@ def immagine_lista(dove):
             if os.path.isfile(percorso):
                 return percorso
     return None
+
+
+def colore_sfondo_guida(hex_colore, bg_hex="#121212", alfa=0.40):
+    try:
+        h_c = hex_colore.lstrip("#")
+        r1, g1, b1 = int(h_c[0:2], 16), int(h_c[2:4], 16), int(h_c[4:6], 16)
+        bg_c = bg_hex.lstrip("#")
+        r2, g2, b2 = int(bg_c[0:2], 16), int(bg_c[2:4], 16), int(bg_c[4:6], 16)
+        rf = int(r1 * alfa + r2 * (1.0 - alfa))
+        gf = int(g1 * alfa + g2 * (1.0 - alfa))
+        bf = int(b1 * alfa + b2 * (1.0 - alfa))
+        return "#%02x%02x%02x" % (rf, gf, bf)
+    except Exception:
+        return "#252030"
