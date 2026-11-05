@@ -328,7 +328,8 @@ class MainWindow(QMainWindow):
             if lista["percorso"].startswith(("http://", "https://")):
                 continue
             if os.path.isdir(lista["percorso"]):
-                nuovi = self._media_locale(lista["percorso"])
+                nuovi = [voce for voce in precedente.canali
+                         if voce[4] == lista["percorso"]]
                 if nuovi:
                     nuova.canali.extend(nuovi)
                     nuova.liste.append(lista)
