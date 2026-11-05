@@ -47,6 +47,8 @@ class MPVEngine:
         self._lib.mpv_terminate_destroy.argtypes = [ctypes.c_void_p]
         self._lib.mpv_error_string.restype = ctypes.c_char_p
         self._lib.mpv_error_string.argtypes = [ctypes.c_int]
+        self._lib.mpv_get_property.restype = ctypes.c_int
+        self._lib.mpv_get_property.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_int, ctypes.c_void_p]
 
     @property
     def library(self):
@@ -82,6 +84,15 @@ class MPVEngine:
 
     def stop(self):
         self.command("stop")
+
+    def get_flag(self, name):
+        if not self._handle:
+            return False
+        value = ctypes.c_int()
+        result = self._lib.mpv_get_property(self._handle, name.encode("utf-8"), 3, ctypes.byref(value))
+        if result < 0:
+            return False
+        return bool(value.value)
 
     def close(self):
         if self._handle:
