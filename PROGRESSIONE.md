@@ -460,3 +460,12 @@ Commit: `cb7ca50`, `aee97e1`, `79c21d0`, `15a08b1`, `0f4f605`, `bd31ee5`, `1fb22
 - Aggiunti test Qt per DVD non cifrati e protetti. GitHub Actions sul commit `ab1d743` ha superato compilazione e suite di regressione/Qt.
 
 Commit: `db89146`, `88fe27e`, `ab1d743`.
+
+
+## Ripristino delle informazioni EPG nella barra di stato
+
+- La barra di stato Qt6 mostra nuovamente l'orario del programma in onda, il titolo del programma successivo e il relativo orario, usando gli intervalli della guida XMLTV associata al canale effettivamente in riproduzione.
+- Ripristinata anche la categoria IPTV del canale in onda; la categoria viene ricavata dalla voce M3U associata all'URL riprodotto e non dalla selezione corrente dell'elenco. Viene nascosta per file locali e quando la riproduzione viene fermata.
+- Aggiunti test Qt per programma corrente/successivo e categoria attiva; GitHub Actions sul commit `57b66f8` ha superato compilazione e suite di regressione/Qt.
+
+Commit: `6998665`, `beb8a9f`, `572e42a`, `57b66f8`.
