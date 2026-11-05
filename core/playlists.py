@@ -8,8 +8,7 @@ from urllib.request import Request, urlopen
 
 from i18n import _
 from .config import CASA, CARTELLE_LISTE, CARTELLE_VECCHIE
-
-UA = "Mozilla/5.0 (X11; Linux x86_64)"
+from .constants import UA
 PREFERITI = "favorite"
 PREF_IPTV = "iptv"
 PREF_MUSICA = "music"
