@@ -28,6 +28,7 @@ class SingleInstanceTests(unittest.TestCase):
             server = porta_unica([], percorso)
             ricevuti = []
             server.files.connect(ricevuti.append)
+            server.start()
             file_media = os.path.join(root, "film.mkv")
             self.assertIsNone(porta_unica([file_media], percorso))
             self.assertTrue(self._attendi(lambda: bool(ricevuti)))
@@ -40,6 +41,7 @@ class SingleInstanceTests(unittest.TestCase):
             server = porta_unica([], percorso)
             richieste = []
             server.raise_window.connect(lambda: richieste.append(True))
+            server.start()
             self.assertIsNone(porta_unica([], percorso))
             self.assertTrue(self._attendi(lambda: bool(richieste)))
             server.close()
