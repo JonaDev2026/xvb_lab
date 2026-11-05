@@ -310,6 +310,7 @@ class MainWindow(QMainWindow):
             self.player = MpvVideo(self.player_area, options=self._mpv_buffer_options())
             self.player_layout.addWidget(self.player, 1)
             self.player.installEventFilter(self)
+            self.player.evento.connect(lambda evento, p=self.player: self._evento_player(p, evento))
             self.player.setMouseTracking(True)
         except Exception as errore:
             self.player = None
@@ -487,6 +488,8 @@ class MainWindow(QMainWindow):
         self._indice_canale = -1
         self._giro_traccia = 0
         self._eof_gestito = False
+        self.salti = 0
+        self._ultima_posizione = None
         self.loop_ab_a = None
         self.loop_ab_b = None
         self.loop_ab_file = None
@@ -618,6 +621,14 @@ class MainWindow(QMainWindow):
         try:
             posizione = player.leggi("time-pos")
             durata = player.leggi("duration")
+            if posizione is not None:
+                try:
+                    posizione_corrente = float(posizione)
+                    if self._ultima_posizione is None or posizione_corrente > self._ultima_posizione + 0.25:
+                        self.salti = 0
+                    self._ultima_posizione = posizione_corrente
+                except (TypeError, ValueError):
+                    pass
             if posizione and durata and not self.posizione.isSliderDown():
                 totale = float(durata)
                 if totale > 0:
@@ -2329,6 +2340,46 @@ class MainWindow(QMainWindow):
         if player:
             player.seek(secondi, assoluto=False)
 
+    def _evento_player(self, player, evento):
+        if player is not self._attivo() or not isinstance(evento, dict):
+            return
+        if evento.get("id") != MpvVideo.MPV_EVENT_END_FILE:
+            return
+        motivo = evento.get("motivo")
+        errore = evento.get("errore_file") or evento.get("errore")
+        if motivo == 4 or (isinstance(errore, int) and errore < 0):
+            self.canale_morto()
+        elif motivo == 0 and self.file_in_onda and os.path.isabs(self.file_in_onda):
+            if not self._eof_gestito:
+                self._eof_gestito = True
+                self.prossimo_file()
+
+    def dvd_bloccato(self):
+        if not (self.file_in_onda or "").startswith("dvd://"):
+            return
+        self.attesa_da = 0.0
+        player = self._attivo()
+        if player:
+            try:
+                player.ferma()
+            except Exception:
+                pass
+        self._messaggio_temporaneo(_("This DVD can't be played"))
+
+    def canale_morto(self):
+        if (self.file_in_onda or "").startswith("dvd://"):
+            self.dvd_bloccato()
+            return
+        self.attesa_da = 0.0
+        self.salti += 1
+        limite = min(10, max(1, len(self._canali_visibili)))
+        if self.salti >= limite:
+            self.salti = 0
+            self._messaggio_temporaneo(_("%s is not responding, nor are the next ones") % self.nome_in_onda)
+            return
+        self._messaggio_temporaneo(_("%s is not responding: skipping to the next") % self.nome_in_onda)
+        QTimer.singleShot(600, lambda: self.salta(1))
+
     def prossimo_file(self):
         percorso = self.file_in_onda
         indice = next((i for i, voce in enumerate(self._canali_visibili)
@@ -3276,6 +3327,7 @@ class MainWindow(QMainWindow):
             self.player2.imposta("audio-device", self.sessione.config.get("audio_device", "auto"))
             self.player2.installEventFilter(self)
             self.player_layout.addWidget(self.player2, 1)
+            self.player2.evento.connect(lambda evento, p=self.player2: self._evento_player(p, evento))
             self.split = True
             self.schermo_attivo = 0
         except Exception as errore:
