@@ -298,6 +298,7 @@ class MainWindow(QMainWindow):
         self.video_layout.setContentsMargins(0, 0, 0, 0)
         self.video_layout.setStackingMode(QStackedLayout.StackAll)
         self.sfondo = Sfondo(self.video)
+        self._sfondo_url = None
         self.video_layout.addWidget(self.sfondo)
         self.player_area = QWidget(self.video)
         self.player_area.setStyleSheet("background:transparent")
@@ -570,7 +571,9 @@ class MainWindow(QMainWindow):
             return
         percorso = self.file_in_onda
         if not percorso:
-            self.sfondo.imposta()
+            if self._sfondo_url != "__default__":
+                self.sfondo.imposta(dissolvi=True)
+                self._sfondo_url = "__default__"
             self.player.hide()
             return
         solo_audio = os.path.isabs(percorso) and os.path.splitext(percorso)[1][1:].lower() in AUDIO
@@ -586,17 +589,23 @@ class MainWindow(QMainWindow):
         if solo_audio:
             artista = self.artwork_artista.artista_del_file(percorso) if os.path.isabs(percorso) else ""
             foto = self.artwork_artista.percorso_foto(artista) if artista else ""
+            dissolvi = self._sfondo_url is not None
             if foto and os.path.isfile(foto) and os.path.getsize(foto) > 0:
-                self.sfondo.imposta(foto)
-            else:
+                if self._sfondo_url != foto:
+                    self.sfondo.imposta(foto, dissolvi=dissolvi)
+                    self._sfondo_url = foto
+            elif self._sfondo_url != percorso:
                 immagine = self.logo_di(percorso)
                 if immagine is not None:
-                    self.sfondo.imposta_pixmap(immagine)
+                    self.sfondo.imposta_pixmap(immagine, dissolvi=dissolvi)
                 else:
-                    self.sfondo.imposta()
+                    self.sfondo.imposta(dissolvi=dissolvi)
+                self._sfondo_url = percorso
             self.player.hide()
         else:
-            self.sfondo.imposta()
+            if self._sfondo_url != "__default__":
+                self.sfondo.imposta()
+                self._sfondo_url = "__default__"
             self.player.show()
 
     def _aggiorna_player(self):
@@ -1740,6 +1749,7 @@ class MainWindow(QMainWindow):
     def _copertina_pronta(self, _url):
         if hasattr(self, "elenco"):
             self._riempi_elenco()
+        self._sfondo_url = None
         self._aggiorna_sfondo()
 
     def _richiedi_foto_artisti(self, corrente):
@@ -1763,7 +1773,8 @@ class MainWindow(QMainWindow):
         if self.artwork_artista.artista_del_file(corrente).casefold() != artista.casefold():
             return
         if os.path.isfile(percorso):
-            self.sfondo.imposta(percorso)
+            self.sfondo.imposta(percorso, dissolvi=True)
+            self._sfondo_url = percorso
             if self.player:
                 self.player.hide()
 
