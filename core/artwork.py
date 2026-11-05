@@ -210,3 +210,10 @@ def vinile(colore, lato=PUNTO, dentro=None):
     cerchio(5.2, fill=colore)
     cerchio(1.9, fill=(0, 0, 0, 0))
     return nel_riquadro(immagine, lato, dentro)
+
+
+def premoltiplica(immagine):
+    from PIL import ImageChops
+    r, g, b, a = immagine.convert("RGBA").split()
+    return Image.merge("RGBA", (ImageChops.multiply(r, a), ImageChops.multiply(g, a),
+                                 ImageChops.multiply(b, a), a))
