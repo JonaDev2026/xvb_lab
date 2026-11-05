@@ -2,7 +2,7 @@ import ctypes
 import ctypes.util
 import threading
 
-from PySide6.QtCore import Qt, Signal, QTimer, QMetaObject, Q_ARG
+from PySide6.QtCore import Qt, Signal, QTimer
 from PySide6.QtWidgets import QOpenGLWidget
 
 
@@ -35,6 +35,7 @@ _UPDATE = ctypes.CFUNCTYPE(None, ctypes.c_void_p)
 
 
 class MpvPlayer(QOpenGLWidget):
+    renderUpdate = Signal()
     fileLoaded = Signal()
     endFile = Signal(int)
     playbackRestart = Signal()
@@ -80,6 +81,7 @@ class MpvPlayer(QOpenGLWidget):
         self._check(self._lib.mpv_initialize(self._handle))
         self._render = ctypes.c_void_p()
         self._render_callback = _UPDATE(self._aggiorna_da_mpv)
+        self.renderUpdate.connect(self.update, Qt.QueuedConnection)
         self._get_proc_callback = None
         self._timer = QTimer(self)
         self._timer.timeout.connect(self._eventi)
@@ -162,8 +164,10 @@ class MpvPlayer(QOpenGLWidget):
     def paintGL(self):
         if not self._render:
             return
+        scala = self.devicePixelRatioF()
         fbo = _OpenGLFBO(
-            int(self.defaultFramebufferObject()), self.width(), self.height(), 0)
+            int(self.defaultFramebufferObject()), int(self.width() * scala),
+            int(self.height() * scala), 0x8058)
         flip = ctypes.c_int(1)
         params = (_RenderParam * 3)(
             _RenderParam(self.MPV_RENDER_PARAM_OPENGL_FBO,
@@ -175,7 +179,7 @@ class MpvPlayer(QOpenGLWidget):
         self._lib.mpv_render_context_report_swap(self._render)
 
     def _aggiorna_da_mpv(self, _ctx):
-        QMetaObject.invokeMethod(self, "update", Qt.QueuedConnection)
+        self.renderUpdate.emit()
 
     def _eventi(self):
         if not self._handle or self._chiuso:
@@ -205,15 +209,13 @@ class MpvPlayer(QOpenGLWidget):
         if not dati.data:
             return None
         if dati.format == 1:
-            return ctypes.cast(dati.data, ctypes.POINTER(ctypes.c_int)).contents.value
-        if dati.format == 2:
-            return ctypes.cast(dati.data, ctypes.POINTER(ctypes.c_longlong)).contents.value
-        if dati.format == 3:
-            return ctypes.cast(dati.data, ctypes.POINTER(ctypes.c_double)).contents.value
-        if dati.format == 4:
-            return bool(ctypes.cast(dati.data, ctypes.POINTER(ctypes.c_int)).contents.value)
-        if dati.format == 5:
             return ctypes.cast(dati.data, ctypes.c_char_p).value.decode("utf-8", "replace")
+        if dati.format == 3:
+            return bool(ctypes.cast(dati.data, ctypes.POINTER(ctypes.c_int)).contents.value)
+        if dati.format == 4:
+            return ctypes.cast(dati.data, ctypes.POINTER(ctypes.c_longlong)).contents.value
+        if dati.format == 5:
+            return ctypes.cast(dati.data, ctypes.POINTER(ctypes.c_double)).contents.value
         return None
 
     def comando(self, *argomenti):
