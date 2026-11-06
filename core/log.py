@@ -5,7 +5,7 @@ import sys
 import threading
 from logging.handlers import RotatingFileHandler
 
-from .config import CASA
+from .config import CACHE_DIR
 from .constants import VERSIONE
 
 
@@ -64,32 +64,28 @@ def configura_logging():
     _XVB_LOGGER.setLevel(logging.INFO)
     _XVB_LOGGER.propagate = False
     filtro = _XVBFiltroSicurezza()
-    percorsi = (
-        os.path.join(CASA, ".local", "state", "xvb5"),
-        os.path.join(CASA, ".cache", "xvb5"),
-    )
-    for cartella in percorsi:
-        try:
-            os.makedirs(cartella, exist_ok=True)
-            percorso = os.path.join(cartella, "xvb5.log")
-            gestore = RotatingFileHandler(
-                percorso,
-                maxBytes=2 * 1024 * 1024,
-                backupCount=3,
-                encoding="utf-8"
-            )
-            gestore.setFormatter(logging.Formatter(
-                "%(asctime)s | %(levelname)s | %(threadName)s | %(message)s"
-            ))
-            gestore.addFilter(filtro)
-            _XVB_LOGGER.addHandler(gestore)
-            _XVB_LOGGER.info("XVB5 %s avviato", VERSIONE)
-            sys.excepthook = _xvb_eccezione
-            if hasattr(threading, "excepthook"):
-                threading.excepthook = _xvb_eccezione_thread
-            return
-        except OSError:
-            continue
+    cartella = os.path.join(CACHE_DIR, "logs")
+    try:
+        os.makedirs(cartella, exist_ok=True)
+        percorso = os.path.join(cartella, "xvb5.log")
+        gestore = RotatingFileHandler(
+            percorso,
+            maxBytes=2 * 1024 * 1024,
+            backupCount=3,
+            encoding="utf-8"
+        )
+        gestore.setFormatter(logging.Formatter(
+            "%(asctime)s | %(levelname)s | %(threadName)s | %(message)s"
+        ))
+        gestore.addFilter(filtro)
+        _XVB_LOGGER.addHandler(gestore)
+        _XVB_LOGGER.info("XVB Player %s avviato", VERSIONE)
+        sys.excepthook = _xvb_eccezione
+        if hasattr(threading, "excepthook"):
+            threading.excepthook = _xvb_eccezione_thread
+        return
+    except OSError:
+        pass
     gestore = logging.StreamHandler(sys.stderr)
     gestore.addFilter(filtro)
     _XVB_LOGGER.addHandler(gestore)
