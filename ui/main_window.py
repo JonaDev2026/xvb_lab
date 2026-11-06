@@ -933,6 +933,7 @@ class MainWindow(QMainWindow):
         if not hasattr(self, "sfondo") or self.player is None:
             return
         if self.split:
+            self.sfondo.hide()
             self.player.show()
             if self.player2:
                 self.player2.show()
@@ -941,6 +942,7 @@ class MainWindow(QMainWindow):
             if self._sfondo_url != "__default__":
                 self.sfondo.imposta(dissolvi=True)
                 self._sfondo_url = "__default__"
+            self.sfondo.show()
             self.player.hide()
             return
         percorso = self.file_in_onda
@@ -948,6 +950,7 @@ class MainWindow(QMainWindow):
             if self._sfondo_url != "__default__":
                 self.sfondo.imposta(dissolvi=True)
                 self._sfondo_url = "__default__"
+            self.sfondo.show()
             self.player.hide()
             return
         solo_audio = os.path.isabs(percorso) and os.path.splitext(percorso)[1][1:].lower() in AUDIO
@@ -975,11 +978,11 @@ class MainWindow(QMainWindow):
                 else:
                     self.sfondo.imposta(dissolvi=dissolvi)
                 self._sfondo_url = percorso
+            self.sfondo.show()
             self.player.hide()
         else:
-            if self._sfondo_url != "__default__":
-                self.sfondo.imposta()
-                self._sfondo_url = "__default__"
+            self.sfondo.hide()
+            self._sfondo_url = None
             self.player.show()
 
     def _mostra_carico(self, attivo):
