@@ -155,6 +155,12 @@ import tkinter.font as tkfont
 
 import mpv
 
+
+def opzioni_mpv_xwayland():
+    if os.environ.get("WAYLAND_DISPLAY") and os.environ.get("DISPLAY"):
+        return {"gpu_context": "x11egl"}
+    return {}
+
 try:
     import mutagen
     HA_TAG = True
@@ -4168,6 +4174,7 @@ class TV(object):
         self.root.update_idletasks()
 
         self.mpv = mpv.MPV(
+            **opzioni_mpv_xwayland(),
             wid=str(self.vid1.winfo_id()),
             cache="yes",
             demuxer_max_bytes="%dMiB" % self.buffer_attuale()[2],
@@ -7913,6 +7920,7 @@ class TV(object):
     def crea_mpv2(self):
         b = self.buffer_attuale()
         m = mpv.MPV(
+            **opzioni_mpv_xwayland(),
             wid=str(self.vid2.winfo_id()),
             cache="yes",
             demuxer_max_bytes="%dMiB" % b[2],
