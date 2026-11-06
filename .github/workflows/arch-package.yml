@@ -22,7 +22,7 @@ jobs:
       - name: Check out source
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.release.tag_name || inputs.tag }}
+          ref: main
           path: source
 
       - name: Validate version
@@ -52,9 +52,9 @@ jobs:
           optdepends=('tkdnd: drag and drop support' 'python-dbus: MPRIS integration' 'python-gobject: desktop integration')
           package() {
             install -d "$pkgdir/usr/lib/xvb" "$pkgdir/usr/bin" "$pkgdir/usr/share/applications" "$pkgdir/usr/share/icons/hicolor/512x512/apps"
-            install -m644 xvb.py traduzioni.py "$pkgdir/usr/lib/xvb/"
-            cp -a icone fonts "$pkgdir/usr/lib/xvb/"
-            install -m644 icon.png "$pkgdir/usr/share/icons/hicolor/512x512/apps/xvb.png"
+            install -m644 "$startdir/xvb.py" "$startdir/traduzioni.py" "$pkgdir/usr/lib/xvb/"
+            cp -a "$startdir/icone" "$startdir/fonts" "$pkgdir/usr/lib/xvb/"
+            install -m644 "$startdir/icon.png" "$pkgdir/usr/share/icons/hicolor/512x512/apps/xvb.png"
             printf '%s\\n' '#!/bin/sh' 'exec /usr/bin/python3 /usr/lib/xvb/xvb.py "$@"' > "$pkgdir/usr/bin/xvb"
             chmod 755 "$pkgdir/usr/bin/xvb"
             printf '%s\\n' '[Desktop Entry]' 'Version=1.0' 'Type=Application' 'Name=XVB Player' 'Comment=Media player for videos, music, discs and IPTV' 'Exec=xvb %F' 'Icon=xvb' 'Terminal=false' 'Categories=AudioVideo;Video;Player;TV;' 'StartupNotify=true' 'StartupWMClass=Xvb' > "$pkgdir/usr/share/applications/xvb.desktop"
