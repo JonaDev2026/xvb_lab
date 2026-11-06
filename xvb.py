@@ -3804,17 +3804,17 @@ class TV(object):
 
 
         self.menu("IPTV", lambda: [
-            (_("Playlists"), None),
+            (_("Playlists"), None, "#30d158"),
             (_("Add playlist URL"), self.chiedi_lista_url),
             (_("Open playlists folder"), self.apri_cartella_liste),
             (_("Reload playlists"), self.ricarica_liste),
             None,
-            (_("TV guide"), None),
+            (_("TV guide"), None, "#ffd60a"),
             (_("Programme guide"), self.apri_guida),
             (_("Add guide URL"), self.chiedi_epg),
             (_("Reload guide"), self.ricarica_epg if self.cfg.get("epg") else None),
             None,
-            (_("Recording"), None),
+            (_("Recording"), None, ROSSO),
             (_("Stop recording") if self.registrando else _("Record now"), self.registra),
             (_("Schedule..."), self.pianifica),
             (_("Cancel schedule"), self.annulla_piano if self.piano else None),
@@ -8838,8 +8838,12 @@ class TV(object):
                 self.voce_menu(m, v)
 
     def voce_menu(self, m, v, colonna=False):
-        testo, cosa = v
+        testo, cosa = v[:2]
+        colore = v[2] if len(v) > 2 else None
         extra = {"state": "normal" if cosa else "disabled"}
+        if colore:
+            extra["foreground"] = colore
+            extra["disabledforeground"] = colore
         if cosa:
             extra["command"] = cosa
         if colonna:
