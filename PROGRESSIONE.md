@@ -561,3 +561,6 @@ Commit: `c868b66`, `9fe7995`, `7493e57`, `94586e1`, `b55c041`.
 - Aggiunti test per versione e directory isolate.
 - Stable 4.4.4 e i suoi dati non vengono modificati né importati.
 - Verifica runtime e CI da completare.
+
+- Le copertine locali personalizzate non vengono più salvate accanto ai file multimediali: sono archiviate in `~/.local/share/xvb5/copertine`, evitando di creare o riutilizzare sidecar condivisi con la Stable.
+- Aggiornati i test Qt per verificare il nuovo percorso delle copertine locali.
