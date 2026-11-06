@@ -4,11 +4,6 @@ on:
   release:
     types: [published]
   workflow_dispatch:
-    inputs:
-      tag:
-        description: "Release tag to package"
-        required: true
-        type: string
 
 permissions:
   contents: write
@@ -16,8 +11,6 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
     steps:
       - name: Check out source
         uses: actions/checkout@v4
@@ -30,11 +23,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          VERSION="${RELEASE_TAG#v}"
-          SOURCE_VERSION="$(sed -n 's/^VERSIONE = "\(.*\)"/\1/p' source/xvb.py | head -n 1)"
-          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][A-Za-z0-9.-]+)?$ ]]
-          [[ "$VERSION" == "$SOURCE_VERSION" ]] || { echo "::error::Tag and source versions differ"; exit 1; }
+          VERSION="$(sed -n 's/^VERSIONE = "\(.*\)"/\1/p' source/xvb.py | head -n 1)"
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][A-Za-z0-9.-]+)?$ ]] || { echo "::error::Invalid version in main"; exit 1; }
+          RELEASE_TAG="${{ github.event.release.tag_name }}"
+          if [[ -z "$RELEASE_TAG" ]]; then RELEASE_TAG="v$VERSION"; fi
+          if [[ "$RELEASE_TAG" != "v$VERSION" ]]; then echo "::error::Release tag does not match version in main"; exit 1; fi
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "release_tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
 
       - name: Prepare PKGBUILD
         shell: bash
@@ -80,4 +75,4 @@ jobs:
       - name: Attach package to release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "$RELEASE_TAG" out/*.pkg.tar.zst --repo "$GITHUB_REPOSITORY" --clobber
+        run: gh release upload "${{ steps.version.outputs.release_tag }}" out/*.pkg.tar.zst --repo "$GITHUB_REPOSITORY" --clobber
