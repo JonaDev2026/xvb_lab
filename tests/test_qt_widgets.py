@@ -250,12 +250,13 @@ class QtWidgetTests(unittest.TestCase):
             window.close()
             self.app.processEvents()
 
-    def test_local_media_cover_uses_adjacent_jpeg_and_remote_cover_cache(self):
+    def test_local_media_cover_uses_xvb5_data_and_remote_cover_cache(self):
         with patch("ui.main_window.MpvVideo", side_effect=RuntimeError("libmpv unavailable")):
             window = MainWindow()
             self.assertEqual(
                 window.percorso_copertina("/media/video/Movie.mkv"),
-                "/media/video/Movie.jpg")
+                os.path.join(os.path.expanduser("~"), ".local", "share", "xvb5", "copertine",
+                             __import__("hashlib").md5("/media/video/Movie.mkv".encode("utf-8")).hexdigest() + ".jpg"))
             remoto = window.percorso_copertina("https://example.test/channel")
             self.assertTrue(remoto.endswith(".jpg"))
             self.assertNotEqual(remoto, "https://example.test/channel")
@@ -276,7 +277,8 @@ class QtWidgetTests(unittest.TestCase):
             with patch("ui.main_window.QFileDialog.getOpenFileName",
                        return_value=(sorgente, "")), patch.object(window, "_riempi_elenco"):
                 window.metti_copertina(media)
-            destinazione = os.path.join(root, "Track.jpg")
+            destinazione = window.percorso_copertina(media)
+            self.assertNotEqual(os.path.dirname(destinazione), root)
             self.assertTrue(os.path.isfile(destinazione))
             self.assertFalse(QPixmap(destinazione).isNull())
             self.assertFalse(window.logo_di(media).isNull())
