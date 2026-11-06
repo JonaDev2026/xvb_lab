@@ -2,6 +2,7 @@ import ctypes
 import ctypes.util
 import os
 from core.constants import UA
+from core.config import CACHE_DIR
 from PySide6.QtCore import Qt, QTimer, Signal, QByteArray
 from PySide6.QtGui import QOpenGLContext, QSurfaceFormat
 from PySide6.QtOpenGLWidgets import QOpenGLWidget
@@ -153,11 +154,11 @@ class MpvVideo(QOpenGLWidget):
         return lib
 
     def _crea(self):
-        cartella_screenshot = os.path.join(os.path.expanduser("~"), "Pictures", "xvb5")
+        cartella_screenshot = os.path.join(CACHE_DIR, "screenshot")
         try:
             os.makedirs(cartella_screenshot, exist_ok=True)
         except OSError:
-            cartella_screenshot = os.path.expanduser("~")
+            cartella_screenshot = CACHE_DIR
         self._mpv = self._lib.mpv_create()
         if not self._mpv:
             raise MpvError("mpv_create non riuscita")
