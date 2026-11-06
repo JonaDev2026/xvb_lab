@@ -8840,6 +8840,15 @@ class TV(object):
     def voce_menu(self, m, v, colonna=False):
         testo, cosa = v
         extra = {"state": "normal" if cosa else "disabled"}
+        colori_titoli = {
+            _("Playlists"): "#30d158",
+            _("TV guide"): "#ffd60a",
+            _("Recording"): ROSSO,
+        }
+        colore = colori_titoli.get(testo)
+        if colore:
+            extra["foreground"] = colore
+            extra["disabledforeground"] = colore
         if cosa:
             extra["command"] = cosa
         if colonna:
