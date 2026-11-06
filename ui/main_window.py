@@ -1316,6 +1316,26 @@ class MainWindow(QMainWindow):
         if self._worker_copertine is worker:
             self._worker_copertine = None
 
+    def _riempi_media(self):
+        menu = self.menu_media
+        menu.clear()
+        menu.addAction(self._azione(_("Open file..."), self.apri_file))
+        menu.addAction(self._azione(_("Open folder..."), self.apri_cartella))
+        menu.addAction(self._azione(_("Open URL..."), self.apri_url))
+        menu.addSeparator()
+        menu.addAction(self._azione(_("Download posters and covers"), self.scarica_copertine))
+        recenti = self.recenti()
+        if recenti:
+            menu.addSeparator()
+            menu.addAction(_("Recent")).setEnabled(False)
+            for percorso in recenti:
+                nome = os.path.basename(percorso)
+                if len(nome) > 48:
+                    nome = nome[:47] + "\u2026"
+                menu.addAction(self._azione(
+                    "   " + nome, lambda _=False, p=percorso: self.apri(p)))
+            menu.addAction(self._azione(_("Clear recent"), self.pulisci_recenti))
+
     def _azione(self, nome, callback, scorciatoia=None):
         azione = QAction(nome, self)
         if scorciatoia:
@@ -1324,17 +1344,9 @@ class MainWindow(QMainWindow):
         return azione
 
     def _costruisci_menu(self):
-        media = self.menuBar().addMenu(_("Media"))
-        media.addAction(self._azione(_("Open file..."), self.apri_file, "Ctrl+O"))
-        media.addAction(self._azione(_("Import files..."), self.importa_file))
-        media.addAction(self._azione(_("Open folder..."), self.apri_cartella))
-        media.addAction(self._azione(_("Add playlist file..."), self.aggiungi_lista_file))
-        media.addAction(self._azione(_("Open URL..."), self.apri_url, "Ctrl+L"))
-        media.addAction(self._azione(_("Download posters and covers"), self.scarica_copertine))
-        self.menu_recenti = media.addMenu(_("Recent"))
-        media.addAction(self._azione(_("Clear recent"), self.pulisci_recenti))
-        media.addSeparator()
-        media.addAction(self._azione(_("Quit"), self.close, "Ctrl+Q"))
+        self.menu_media = self.menuBar().addMenu(_("Media"))
+        self.menu_media.aboutToShow.connect(self._riempi_media)
+        self._riempi_media()
         playback = self.menuBar().addMenu(_("Playback"))
         playback.addAction(self._azione(_("Play / Pause"), self.pausa, "Space"))
         playback.addAction(self._azione(_("Stop"), self.ferma, "S"))
