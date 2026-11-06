@@ -25,7 +25,7 @@ from core.metadata import (
 from i18n import lingua_corrente
 from integrations.mpris import avvia_mpris
 from integrations.opensubtitles import RicercaSottotitoli, ScaricaSottotitolo
-from core.config import scrivi_config, CARTELLE_LISTE, REGISTRAZIONI, leggi_config, QUI
+from core.config import scrivi_config, CARTELLE_LISTE, REGISTRAZIONI, leggi_config, QUI, CONFIG_DIR
 from i18n import _, imposta_lingua, LINGUE
 from core.playlists import liste_in_cartella, BUFFER, LOGHI, NOMI_URL, CACHE_LISTE, CHIAVI, copia_lista_url, e_una_lista, _CACHE_PARSED_LOCK, _CACHE_PARSED_MEMORIA
 from core.colors import CACHE_LOGHI, leggi_colori, scrivi_colori, colore_di, colore_dal_logo
@@ -2775,7 +2775,7 @@ class MainWindow(QMainWindow):
         self.riga_stato.setText(_("%d media files") % len(nuovi))
 
     def informazioni(self):
-        QMessageBox.about(self, "XVB", _("XVB Player 4.4.4"))
+        QMessageBox.about(self, "XVB", _("XVB Player 5.0.0"))
 
 
 
@@ -2830,7 +2830,7 @@ class MainWindow(QMainWindow):
         if not self.file_in_onda:
             self._messaggio_temporaneo(_("nothing is playing"))
             return
-        percorso_credenziali = os.path.expanduser("~/.config/xvb/opensubtitles.json")
+        percorso_credenziali = os.path.join(CONFIG_DIR, "opensubtitles.json")
         try:
             with open(percorso_credenziali, "r", encoding="utf-8") as stream:
                 credenziali = json.load(stream)
