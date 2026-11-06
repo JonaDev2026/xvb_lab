@@ -25,7 +25,7 @@ from core.metadata import (
 from i18n import lingua_corrente
 from integrations.mpris import avvia_mpris
 from integrations.opensubtitles import RicercaSottotitoli, ScaricaSottotitolo
-from core.config import scrivi_config, CARTELLE_LISTE, REGISTRAZIONI, leggi_config, QUI, CONFIG_DIR
+from core.config import scrivi_config, CARTELLE_LISTE, REGISTRAZIONI, leggi_config, QUI, CONFIG_DIR, DATA_DIR
 from i18n import _, imposta_lingua, LINGUE
 from core.playlists import liste_in_cartella, BUFFER, LOGHI, NOMI_URL, CACHE_LISTE, CHIAVI, copia_lista_url, e_una_lista, _CACHE_PARSED_LOCK, _CACHE_PARSED_MEMORIA
 from core.colors import CACHE_LOGHI, leggi_colori, scrivi_colori, colore_di, colore_dal_logo
@@ -1906,7 +1906,8 @@ class MainWindow(QMainWindow):
 
 
     def percorso_copertina(self, dove):
-        return os.path.splitext(dove)[0] + ".jpg" if os.path.isabs(dove) else copertina_url(dove)
+        return (os.path.join(DATA_DIR, "copertine", hashlib.md5(os.path.abspath(dove).encode("utf-8")).hexdigest() + ".jpg")
+                if os.path.isabs(dove) else copertina_url(dove))
 
     def metti_copertina(self, dove):
         percorso, _ = QFileDialog.getOpenFileName(
