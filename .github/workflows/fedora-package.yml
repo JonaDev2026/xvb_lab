@@ -112,7 +112,7 @@ jobs:
           /usr/share/icons/hicolor/512x512/apps/xvb.png
 
           %changelog
-          * Thu Nov 06 2026 XVB Project - $VERSION-1
+          * Fri Nov 06 2026 XVB Project - $VERSION-1
           - Initial Fedora package
           SPEC
             rpmbuild -bb --define "_topdir $TOP" "$TOP/SPECS/xvb.spec"
