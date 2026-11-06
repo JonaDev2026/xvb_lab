@@ -1,3 +1,4 @@
+import locale
 import logging
 import os
 import sys
@@ -39,6 +40,7 @@ def main():
     configura_logging()
     logger = logging.getLogger("xvb5")
     app = QApplication([sys.argv[0]])
+    locale.setlocale(locale.LC_NUMERIC, "C")
     app.setApplicationName("XVB Player")
     argomenti, nuova_istanza = argomenti_avvio(sys.argv[1:])
     try:
