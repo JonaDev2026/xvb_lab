@@ -1,11 +1,15 @@
 import ctypes
 import ctypes.util
+import logging
 import os
 from core.constants import UA
 from core.config import CACHE_DIR
 from PySide6.QtCore import Qt, QTimer, Signal, QByteArray
-from PySide6.QtGui import QOpenGLContext, QSurfaceFormat
+from PySide6.QtGui import QGuiApplication, QOpenGLContext, QSurfaceFormat
 from PySide6.QtOpenGLWidgets import QOpenGLWidget
+
+
+_LOG = logging.getLogger("xvb5")
 
 
 class _MpvEvent(ctypes.Structure):
@@ -205,6 +209,18 @@ class MpvVideo(QOpenGLWidget):
     def initializeGL(self):
         if self._inizializzato or not self._mpv:
             return
+        try:
+            self._inizializza_render()
+        except Exception as errore:
+            _LOG.error("Render libmpv non inizializzato: %s", errore)
+
+    def _inizializza_render(self):
+        contesto = QOpenGLContext.currentContext()
+        formato = contesto.format()
+        _LOG.info("OpenGL %d.%d profilo=%s piattaforma=%s widget=%dx%d dpr=%s",
+                  formato.majorVersion(), formato.minorVersion(), formato.profile(),
+                  QGuiApplication.platformName(), self.width(), self.height(),
+                  self.devicePixelRatioF())
         def get_proc(_ctx, nome):
             ptr = QOpenGLContext.currentContext().getProcAddress(QByteArray(nome))
             if ptr is None:
@@ -220,7 +236,7 @@ class MpvVideo(QOpenGLWidget):
         api = ctypes.c_char_p(b"opengl")
         params = (self.RenderParam * 3)(
             self.RenderParam(self.MPV_RENDER_PARAM_API_TYPE,
-                             ctypes.cast(ctypes.pointer(api), ctypes.c_void_p)),
+                             ctypes.cast(api, ctypes.c_void_p)),
             self.RenderParam(self.MPV_RENDER_PARAM_OPENGL_INIT_PARAMS,
                              ctypes.cast(ctypes.pointer(init), ctypes.c_void_p)),
             self.RenderParam(self.MPV_RENDER_PARAM_INVALID, None))
@@ -258,6 +274,9 @@ class MpvVideo(QOpenGLWidget):
             self._lib.mpv_render_context_report_swap(self._render)
 
     def resizeGL(self, w, h):
+        if getattr(self, "_log_resize", 0) < 3:
+            self._log_resize = getattr(self, "_log_resize", 0) + 1
+            _LOG.info("resizeGL %dx%d", w, h)
         self.update()
 
     def _comando(self, *argomenti):
