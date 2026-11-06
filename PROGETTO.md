@@ -1,4 +1,4 @@
-# XVB Lab — Diario di progetto
+# XVB Player 5.0.0 — Diario di progetto
 
 ## 1. Scopo
 
@@ -221,6 +221,19 @@ Da preservare:
 - credenziali OpenSubtitles, conservate separatamente e con permessi restrittivi.
 
 Percorsi e formati esistenti sotto `~/.config/xvb`, `~/.cache/xvb` e `~/.local/share/xvb` devono essere inventariati prima di decidere eventuali migrazioni. Non cancellare né sovrascrivere i dati della Stable. La nuova app deve iniziare in modo isolato, con possibilità di importare i dati in seguito.
+
+## 3.12 Identità e isolamento assoluto di XVB Player 5.0.0
+
+La nuova applicazione Qt6 è **XVB Player 5.0.0**. Non è un aggiornamento installabile sopra XVB Player 4.4.4: è un'applicazione distinta, con identità, configurazione, cache, dati, socket, log, registrazioni, credenziali e integrazioni desktop indipendenti.
+
+Le sole directory persistenti dell'applicazione sono:
+- configurazione: `~/.config/xvb5`
+- cache e log: `~/.cache/xvb5`
+- dati utente: `~/.local/share/xvb5`
+
+Nessun dato applicativo deve essere scritto in `~/.config/xvb`, `~/.cache/xvb`, `~/.local/share/xvb`, `~/.local/state/xvb`, in `~/Pictures`, in `~/Videos` o nella cartella del repository. Playlist, registrazioni e credenziali devono rimanere nelle tre directory XVB5. Anche screenshot e cache delle anteprime appartengono a `~/.cache/xvb5`.
+
+Non è consentita alcuna lettura automatica, migrazione, riutilizzo o modifica dei file della Stable 4.4.4. L'eventuale importazione futura dovrà essere un'operazione esplicita, separata e autorizzata dall'utente.
 
 ## 4. Architettura proposta per XVB Lab
 
