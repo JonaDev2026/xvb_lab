@@ -108,7 +108,7 @@ def avvia_mpris(app, dispatcher=None):
             if iface == MPRIS_RADICE:
                 return dbus.Dictionary({
                     "CanQuit": True, "CanRaise": True, "HasTrackList": False,
-                    "Identity": "XVB5 Player", "DesktopEntry": "xvb5",
+                    "Identity": "XVB Player", "DesktopEntry": "xvb5",
                     "SupportedUriSchemes": dbus.Array(["file", "http", "https", "rtsp", "rtmp"], signature="s"),
                     "SupportedMimeTypes": dbus.Array([], signature="s"),
                 }, signature="sv")
