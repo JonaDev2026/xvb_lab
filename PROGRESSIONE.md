@@ -575,3 +575,12 @@ Commit: `c868b66`, `9fe7995`, `7493e57`, `94586e1`, `b55c041`.
 - Ancora aperto: il rendering libmpv sul sistema di prova si ferma con "QOpenGLFramebufferObject: Framebuffer incomplete attachment".
 
 Commit: `d2137a3`, `fdcab62`, `096a4f1`.
+
+## Render libmpv: errore -19 corretto
+
+- engine/mpv.py: il parametro MPV_RENDER_PARAM_API_TYPE veniva passato come puntatore a puntatore invece della stringa "opengl"; libmpv rispondeva -19 (not implemented) e il contesto di render non veniva creato. Corretto.
+- initializeGL non rilancia più l'eccezione: l'errore va nel log (xvb5.log) e l'app non va più in crash. Il log riporta anche versione e profilo OpenGL, piattaforma Qt, dimensioni e DPR del widget video.
+- Verifica: con libmpv reale in Xvfb (xcb, OpenGL 4.5 core software) il contesto di render si crea e un fotogramma di prova viene disegnato. Non verificato su schermo reale, su Wayland né con hwdec.
+- Ancora aperto: "Framebuffer incomplete attachment" visto sul sistema Linux di prova prima di questa correzione, da riverificare dopo di essa.
+
+Commit: `550409d`.
