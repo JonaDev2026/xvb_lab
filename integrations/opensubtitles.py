@@ -11,6 +11,7 @@ from urllib.request import Request, urlopen
 from PySide6.QtCore import QThread, Signal
 
 from core.constants import VERSIONE
+from core.config import CACHE_DIR
 
 
 class RicercaSottotitoli(QThread):
@@ -139,7 +140,7 @@ class ScaricaSottotitolo(QThread):
             estensione = os.path.splitext(nome_file)[1].lower()
             if estensione not in estensioni:
                 estensione = ".srt"
-            cartella = os.path.join(os.path.expanduser("~"), ".cache", "xvb", "subtitles")
+            cartella = os.path.join(CACHE_DIR, "subtitles")
             os.makedirs(cartella, exist_ok=True)
             base = re.sub(r"[^\w.-]+", "_", self.titolo, flags=re.UNICODE).strip("._") or "subtitle"
             codice = re.sub(r"[^a-zA-Z0-9_-]", "", str(self.lingua)) or "sub"
