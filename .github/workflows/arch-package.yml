@@ -1,0 +1,97 @@
+name: Build Arch Linux package
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to package"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name || inputs.tag }}
+          path: source
+
+      - name: Validate version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${RELEASE_TAG#v}"
+          SOURCE_VERSION="$(sed -n 's/^VERSIONE = "\(.*\)"/\1/p' source/xvb.py | head -n 1)"
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][A-Za-z0-9.-]+)?$ ]]
+          [[ "$VERSION" == "$SOURCE_VERSION" ]] || { echo "::error::Tag and source versions differ"; exit 1; }
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Prepare PKGBUILD
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > source/PKGBUILD <<'PKG'
+          pkgname=xvb
+          pkgver=${{ steps.version.outputs.version }}
+          pkgrel=1
+          pkgdesc="Media player for videos, music, discs and IPTV"
+          arch=('any')
+          url="https://github.com/JonaDev2026/xvb_lab"
+          license=('MIT')
+          depends=('python' 'tk' 'mpv' 'python-mpv' 'python-pillow' 'python-mutagen' 'librsvg' 'fontconfig' 'ffmpeg')
+          optdepends=('tkdnd: drag and drop support' 'python-dbus: MPRIS integration' 'python-gobject: desktop integration')
+          package() {
+            install -d "$pkgdir/usr/lib/xvb" "$pkgdir/usr/bin" "$pkgdir/usr/share/applications" "$pkgdir/usr/share/icons/hicolor/512x512/apps"
+            install -m644 xvb.py traduzioni.py "$pkgdir/usr/lib/xvb/"
+            cp -a icone fonts "$pkgdir/usr/lib/xvb/"
+            install -m644 icon.png "$pkgdir/usr/share/icons/hicolor/512x512/apps/xvb.png"
+            cat > "$pkgdir/usr/bin/xvb" <<'EOF'
+          #!/bin/sh
+          exec /usr/bin/python3 /usr/lib/xvb/xvb.py "$@"
+          EOF
+            chmod 755 "$pkgdir/usr/bin/xvb"
+            cat > "$pkgdir/usr/share/applications/xvb.desktop" <<'EOF'
+          [Desktop Entry]
+          Version=1.0
+          Type=Application
+          Name=XVB Player
+          Comment=Media player for videos, music, discs and IPTV
+          Exec=xvb %F
+          Icon=xvb
+          Terminal=false
+          Categories=AudioVideo;Video;Player;TV;
+          StartupNotify=true
+          StartupWMClass=Xvb
+          EOF
+          }
+          PKG
+          for f in xvb.py traduzioni.py icon.png icone fonts; do test -e "source/$f"; done
+          for f in icone/mic.png icone/cam.png icone/tv.png icone/m3u.png fonts/static/GoogleSans-Regular.ttf fonts/static/GoogleSans-Bold.ttf; do test -f "source/$f"; done
+
+      - name: Build package
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$GITHUB_WORKSPACE/out"
+          docker run --rm -v "$GITHUB_WORKSPACE/source:/build" -v "$GITHUB_WORKSPACE/out:/out" archlinux:latest bash -euc '
+            pacman -Syu --noconfirm --needed base-devel python tk mpv python-mpv python-pillow python-mutagen librsvg fontconfig ffmpeg
+            useradd -m builder
+            chown -R builder:builder /build /out
+            runuser -u builder -- bash -c "cd /build && makepkg --cleanbuild --noconfirm --packagelist >/tmp/pkglist && makepkg --cleanbuild --noconfirm"
+            cp /build/*.pkg.tar.zst /out/
+          '
+
+      - name: Attach package to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$RELEASE_TAG" out/*.pkg.tar.zst --repo "$GITHUB_REPOSITORY" --clobber
