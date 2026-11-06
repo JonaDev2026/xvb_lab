@@ -1,42 +1,42 @@
 # XVB Player — Lab
 
-Questa repository è l'ambiente di sviluppo e testing di XVB Player. Le modifiche vengono provate qui prima dell'eventuale trasferimento nella repository Stable.
+This repository is the development and testing environment for XVB Player. Changes are tested here before they are potentially transferred to the Stable repository.
 
-## Obiettivi
+## Goals
 
-- Sviluppare e verificare il supporto a X11 e Wayland.
-- Testare le modifiche senza intervenire sulla versione Stable.
-- Preparare e verificare i pacchetti per le principali distribuzioni Linux.
-- Portare su Stable soltanto le modifiche che hanno superato i test.
+- Develop and verify support for X11 and Wayland.
+- Test changes without affecting the Stable version.
+- Prepare and verify packages for the main Linux distributions.
+- Move to Stable only changes that have passed testing.
 
-Il progetto mantiene una sola applicazione: Python, Tkinter e libmpv. Non sono previste interfacce parallele o riscritture del player.
+The project maintains a single application built with Python, Tkinter, and libmpv. No parallel interfaces or player rewrites are planned.
 
-## Pacchetti
+## Packages
 
-La repository include tre workflow GitHub Actions:
+The repository includes three GitHub Actions workflows:
 
-| Distribuzione | Pacchetto |
+| Distribution | Package |
 |---|---|
-| Arch Linux e derivate | `.pkg.tar.zst` |
-| Debian e derivate | `.deb` |
-| Fedora e derivate | `.rpm` |
+| Arch Linux and derivatives | `.pkg.tar.zst` |
+| Debian and derivatives | `.deb` |
+| Fedora and derivatives | `.rpm` |
 
-Ogni workflow può essere avviato automaticamente quando viene pubblicata una GitHub Release oppure manualmente da **Actions**, indicando il tag da compilare.
+Each workflow can be started automatically when a GitHub Release is published, or manually from **Actions**.
 
-Al termine della build, il pacchetto viene allegato alla Release corrispondente. I workflow Debian e Fedora verificano anche che la versione nel tag coincida con quella dichiarata in `xvb.py`.
+Once the build is complete, the package is attached to the corresponding Release. The Debian and Fedora workflows also verify that the version in the tag matches the version declared in `xvb.py`.
 
-## Avvio da sorgente
+## Running from source
 
 ```bash
 python3 xvb.py
 ```
 
-Sono necessarie le dipendenze Python e di sistema di XVB Player, tra cui Tkinter e libmpv.
+XVB Player's Python and system dependencies are required, including Tkinter and libmpv.
 
-## Flusso di sviluppo
+## Development workflow
 
-1. Le modifiche vengono sviluppate e compilate in Lab.
-2. I pacchetti vengono installati e testati sulle distribuzioni interessate.
-3. Le modifiche verificate possono essere trasferite nella repository Stable.
+1. Changes are developed and built in Lab.
+2. Packages are installed and tested on the relevant distributions.
+3. Verified changes can be transferred to the Stable repository.
 
-Lab e Stable sono repository indipendenti. Il lavoro sperimentale non modifica automaticamente Stable.
+Lab and Stable are independent repositories. Experimental work does not automatically modify Stable.
