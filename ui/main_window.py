@@ -30,7 +30,7 @@ from i18n import _, imposta_lingua, LINGUE
 from core.playlists import liste_in_cartella, BUFFER, LOGHI, NOMI_URL, CACHE_LISTE, CHIAVI, copia_lista_url, e_una_lista, _CACHE_PARSED_LOCK, _CACHE_PARSED_MEMORIA
 from core.colors import CACHE_LOGHI, leggi_colori, scrivi_colori, colore_di, colore_dal_logo
 from core.stream import varianti, chiave_clearkey, server_mpd, CACHE_VARIANTE
-from core.constants import (SCALA_FILE, CATEGORIE_URL, VERSIONE, DONA, REPO, UA, FONDO, PANNELLO,
+from core.constants import (VELOCITA, PROPORZIONI, SCALA_FILE, CATEGORIE_URL, VERSIONE, DONA, REPO, UA, FONDO, PANNELLO,
                             BARRA, STATO, TASTO, SCELTO, TESTO, GRIGIO, ACCENTO,
                             CERCA, IN_ONDA, TESTO_ONDA)
 from core.discs import dischi, cd_audio, dvd_cifrato, e_dvd, titolo_da_etichetta
@@ -872,6 +872,8 @@ class MainWindow(QMainWindow):
 
     def _installa_scorciatoie(self):
         associazioni = (
+            (QKeySequence(Qt.Key_Space), self.pausa),
+            (QKeySequence(Qt.Key_F2), self.split_si_no),
             (QKeySequence(Qt.Key_M), self._muto),
             (QKeySequence(Qt.Key_Plus), lambda: self._regola("audio-delay", 0.1)),
             (QKeySequence(Qt.Key_Minus), lambda: self._regola("audio-delay", -0.1)),
@@ -1061,45 +1063,10 @@ class MainWindow(QMainWindow):
             "cache-pause-wait": str(voce[5]),
         }
 
-    def _aggiorna_menu_repeat(self):
-        for modalita, azione in self.azioni_repeat.items():
-            azione.setChecked(self.ripeti == modalita)
-
     def _capitoli_disponibili(self):
         player = self._attivo()
         capitoli = player.leggi_nodo("chapter-list") if player else []
         return capitoli if isinstance(capitoli, list) and len(capitoli) >= 2 else []
-
-    def _aggiorna_visibilita_capitoli(self):
-        disponibili = bool(self._capitoli_disponibili())
-        self.azione_capitolo_precedente.setVisible(disponibili)
-        self.azione_capitolo_successivo.setVisible(disponibili)
-        self.menu_capitoli.menuAction().setVisible(disponibili)
-
-    def _riempi_menu_capitoli(self):
-        menu = self.menu_capitoli
-        menu.clear()
-        player = self._attivo()
-        capitoli = self._capitoli_disponibili()
-        if not capitoli:
-            return
-        try:
-            valore = player.leggi("chapter")
-            attuale = int(float(valore)) if valore is not None else -1
-        except (TypeError, ValueError):
-            attuale = -1
-        if len(capitoli) <= 99:
-            for indice, capitolo in enumerate(capitoli):
-                titolo = (capitolo.get("title") or "").strip()
-                if not titolo or titolo == "(unnamed)":
-                    titolo = _("Chapter %d") % (indice + 1)
-                secondi = int(float(capitolo.get("time") or 0))
-                ore, resto = divmod(secondi, 3600)
-                minuti, secondi = divmod(resto, 60)
-                orario = "%02d:%02d:%02d" % (ore, minuti, secondi)
-                testo = ("✓  " if indice == attuale else "    ") + titolo + "  ·  " + orario
-                menu.addAction(self._azione(
-                    testo, lambda _=False, i=indice: self.vai_capitolo(i)))
 
     def vai_capitolo(self, numero, relativo=False):
         player = self._attivo()
@@ -1164,34 +1131,6 @@ class MainWindow(QMainWindow):
             self._disattiva_overlay()
             return
         self._attiva_overlay()
-
-    def _aggiorna_menu_playback(self):
-        self.azione_shuffle.setChecked(bool(self.shuffle_attivo))
-        self._aggiorna_azioni_ripeti()
-        for valore, azione in self.azioni_velocita.items():
-            azione.setChecked(abs(float(self.velocita) - valore) < 0.0001)
-
-    def _aggiorna_menu_video(self):
-        config = self.sessione.config
-        riempi = bool(config.get("riempi"))
-        proporzioni = str(config.get("proporzioni", "-1"))
-        for valore, azione in self.azioni_proporzioni.items():
-            azione.setChecked(not riempi and proporzioni == valore)
-        self.azione_riempi.setChecked(riempi)
-        self.azione_deinterlaccia.setChecked(bool(config.get("deinterlaccia")))
-        self.azione_hwdec.setChecked(bool(config.get("hwdec", True)))
-
-    def _aggiorna_menu_audio(self):
-        self.azione_boost.setChecked(bool(self.sessione.config.get("boost")))
-        self.azione_normalizza.setChecked(bool(self.sessione.config.get("normalizza")))
-        presente = bool(getattr(self, "file_in_onda", None))
-        self.azione_carica_sottotitoli.setEnabled(presente)
-        self.azione_sottotitoli_online.setEnabled(presente)
-
-    def _aggiorna_menu_view(self):
-        self.azione_lista.setText(_("Show list") if self.sinistra.isHidden() else _("Hide list"))
-        self.azione_sidebar.setText(_("Show sidebar") if self.destra.isHidden() else _("Hide sidebar"))
-        self.azione_top.setChecked(bool(self.sessione.config.get("in_cima")))
 
     def sempre_in_cima(self):
         attivo = not bool(self.sessione.config.get("in_cima"))
@@ -1347,164 +1286,227 @@ class MainWindow(QMainWindow):
         self.menu_media = self.menuBar().addMenu(_("Media"))
         self.menu_media.aboutToShow.connect(self._riempi_media)
         self._riempi_media()
-        playback = self.menuBar().addMenu(_("Playback"))
-        playback.addAction(self._azione(_("Play / Pause"), self.pausa, "Space"))
-        playback.addAction(self._azione(_("Stop"), self.ferma, "S"))
-        playback.addAction(self._azione(_("Back 10 s"), lambda: self._comando("seek", "-10", "relative")))
-        playback.addAction(self._azione(_("Forward 10 s"), lambda: self._comando("seek", "10", "relative")))
-        playback.addSeparator()
-        playback.addAction(self._azione(_("Set A-B loop point A"), self.loop_ab_imposta_a))
-        playback.addAction(self._azione(_("Set A-B loop point B"), self.loop_ab_imposta_b))
-        playback.addAction(self._azione(_("Clear A-B loop"), self.loop_ab_azzera))
-        playback.addSeparator()
-        playback.addAction(self._azione(_("Previous"), lambda: self.salta(-1)))
-        playback.addAction(self._azione(_("Next"), lambda: self.salta(1)))
-        self.azione_capitolo_precedente = self._azione(
-            _("Previous chapter"), lambda: self.vai_capitolo(-1, relativo=True))
-        self.azione_capitolo_successivo = self._azione(
-            _("Next chapter"), lambda: self.vai_capitolo(1, relativo=True))
-        playback.addAction(self.azione_capitolo_precedente)
-        playback.addAction(self.azione_capitolo_successivo)
-        self.menu_capitoli = playback.addMenu(_("Chapters"))
-        self.menu_capitoli.aboutToShow.connect(self._riempi_menu_capitoli)
-        self.azione_capitolo_precedente.setVisible(False)
-        self.azione_capitolo_successivo.setVisible(False)
-        self.menu_capitoli.menuAction().setVisible(False)
-        playback.addSeparator()
-        self.azioni_velocita = {}
-        for velocita in (0.5, 0.75, 1, 1.25, 1.5, 2):
-            azione = self._azione("Speed x%g" % velocita,
-                                  lambda _=False, v=velocita: self.metti_velocita(v))
-            azione.setCheckable(True)
-            self.azioni_velocita[velocita] = azione
-            playback.addAction(azione)
-        sleep = playback.addMenu(_("Sleep timer"))
-        for minuti in (15, 30, 45, 60, 90, 120):
-            sleep.addAction(self._azione(_("%d minutes") % minuti,
-                                         lambda _=False, m=minuti: self.imposta_timer_spegnimento(m)))
-        sleep.addSeparator()
-        sleep.addAction(self._azione(_("Cancel sleep timer"), self.annulla_timer_spegnimento))
-        self.azione_shuffle = QAction(_("Shuffle"), self)
-        self.azione_shuffle.setCheckable(True)
-        self.azione_shuffle.setChecked(self.shuffle_attivo)
-        self.azione_shuffle.triggered.connect(self.mpris_shuffle)
-        playback.addAction(self.azione_shuffle)
-        self.menu_ripeti = playback.addMenu(_("Repeat"))
-        self.azioni_ripeti = {}
-        for chiave, etichetta in (("", _("Off")), ("uno", _("One")), ("tutti", _("All"))):
-            azione = QAction(etichetta, self)
-            azione.setCheckable(True)
-            azione.triggered.connect(lambda _=False, k=chiave: self.metti_ripeti(k))
-            self.menu_ripeti.addAction(azione)
-            self.azioni_ripeti[chiave] = azione
-        playback.aboutToShow.connect(self._aggiorna_menu_playback)
-        self._aggiorna_menu_playback()
-        video = self.menuBar().addMenu(_("Video"))
-        self.azioni_proporzioni = {}
-        for nome, valore in (("Auto", "-1"), ("16:9", "16:9"), ("4:3", "4:3"), ("21:9", "21:9")):
-            azione = self._azione("Aspect " + nome,
-                                  lambda _=False, v=valore: self.metti_proporzioni(v))
-            azione.setCheckable(True)
-            self.azioni_proporzioni[valore] = azione
-            video.addAction(azione)
-        self.azione_riempi = self._azione(_("Fill screen (crop)"), self.riempi)
-        self.azione_riempi.setCheckable(True)
-        video.addAction(self.azione_riempi)
-        self.azione_deinterlaccia = self._azione(_("Deinterlace"), self.deinterlaccia)
-        self.azione_deinterlaccia.setCheckable(True)
-        video.addAction(self.azione_deinterlaccia)
-        self.azione_hwdec = self._azione(_("Hardware decoding"), self.decodifica_hw)
-        self.azione_hwdec.setCheckable(True)
-        video.addAction(self.azione_hwdec)
-        video.addSeparator()
-        for nome, valore in (("Brightness +", ("brightness", 10)), ("Brightness -", ("brightness", -10)),
-                             ("Contrast +", ("contrast", 10)), ("Contrast -", ("contrast", -10)),
-                             ("Saturation +", ("saturation", 10)), ("Saturation -", ("saturation", -10))):
-            video.addAction(self._azione(nome, lambda _=False, v=valore: self.regola(*v)))
-        video.addAction(self._azione(_("Reset picture"), self.azzera_immagine))
-        video.addAction(self._azione(_("Screenshot"), lambda: self._comando("screenshot")))
-        self.menu_qualita = video.addMenu(_("Quality"))
-        self.menu_qualita.setEnabled(False)
-        self.menu_qualita.aboutToShow.connect(self._riempi_menu_qualita)
-        video.aboutToShow.connect(self._aggiorna_menu_video)
-        self._aggiorna_menu_video()
-        audio = self.menuBar().addMenu(_("Audio"))
-        audio.addAction(self._azione(_("Next audio track"), lambda: self._ciclo("aid")))
-        audio.addAction(self._azione(_("Next subtitle track"), lambda: self._ciclo("sid")))
-        self.menu_tracce_audio = audio.addMenu(_("Audio tracks"))
-        self.menu_tracce_sub = audio.addMenu(_("Subtitles"))
-        self.menu_tracce_audio.aboutToShow.connect(lambda: self._riempi_menu_tracce(self.menu_tracce_audio, "audio"))
-        self.menu_tracce_sub.aboutToShow.connect(lambda: self._riempi_menu_tracce(self.menu_tracce_sub, "sub"))
-        self.azione_carica_sottotitoli = self._azione(_("Load subtitles..."), self.carica_sottotitoli)
-        audio.addAction(self.azione_carica_sottotitoli)
-        self.azione_sottotitoli_online = self._azione(
-            _("Search subtitles online..."), self.cerca_sottotitoli_online)
-        audio.addAction(self.azione_sottotitoli_online)
-        audio.addAction(self._azione(_("Audio output device..."), self.scegli_uscita_audio))
-        audio.addAction(self._azione(_("Subtitles on/off"), lambda: self._ciclo("sub-visibility")))
-        audio.addAction(self._azione(_("Subtitle delay +100 ms"), lambda: self.ritardo_sottotitoli(0.1)))
-        audio.addAction(self._azione(_("Subtitle delay -100 ms"), lambda: self.ritardo_sottotitoli(-0.1)))
-        audio.addAction(self._azione(_("Subtitles larger"), lambda: self.scala_sottotitoli(0.1)))
-        audio.addAction(self._azione(_("Subtitles smaller"), lambda: self.scala_sottotitoli(-0.1)))
-        audio.addAction(self._azione(_("Reset subtitles"), self.azzera_sottotitoli))
-        audio.addAction(self._azione(_("Delay +100 ms"), lambda: self.ritardo_audio(0.1)))
-        audio.addAction(self._azione(_("Delay -100 ms"), lambda: self.ritardo_audio(-0.1)))
-        audio.addAction(self._azione(_("Reset delay"), self.azzera_ritardo))
-        audio.addSeparator()
-        self.azione_boost = self._azione(_("Volume boost +50%"), self.boost)
-        self.azione_boost.setCheckable(True)
-        audio.addAction(self.azione_boost)
-        self.azione_normalizza = self._azione(_("Normalize loudness"), self.normalizza)
-        self.azione_normalizza.setCheckable(True)
-        audio.addAction(self.azione_normalizza)
-        audio.addAction(self._azione(_("Audio equalizer..."), self.equalizzatore_audio))
-        audio.aboutToShow.connect(self._aggiorna_menu_audio)
-        self._aggiorna_menu_audio()
-        iptv = self.menuBar().addMenu(_("IPTV"))
-        iptv.addAction(self._azione(_("Add playlist URL"), self.aggiungi_lista_url))
-        iptv.addAction(self._azione(_("Open playlists folder"), self.apri_cartella_liste))
-        iptv.addAction(self._azione(_("Reload playlists"), self.ricarica_liste))
-        iptv.addAction(self._azione(_("Remove selected playlist"), self.rimuovi_lista_selezionata))
-        iptv.addSeparator()
-        iptv.addAction(self._azione(_("Programme guide"), self.apri_guida))
-        iptv.addAction(self._azione(_("Add guide URL"), self.aggiungi_epg_url))
-        iptv.addAction(self._azione(_("Reload guide"), self.ricarica_epg_manuale))
-        iptv.addAction(self._azione(_("Remove selected guide"), self.togli_epg_selezionata))
-        iptv.addSeparator()
-        iptv.addAction(self._azione(_("Record now / Stop recording"), self.registra))
-        iptv.addAction(self._azione(_("Schedule..."), self.pianifica))
-        iptv.addAction(self._azione(_("Cancel schedule"), self.annulla_piano))
-        iptv.addAction(self._azione(_("Open recordings folder"), self.apri_registrazioni))
-        view = self.menuBar().addMenu(_("View"))
-        view.addAction(self._azione(_("Fullscreen"), self.schermo_intero, "F"))
-        view.addAction(self._azione(_("Picture in picture"), self.pip_si_no))
-        view.addAction(self._azione(_("Split screen"), self.split_si_no, "F2"))
-        self.azione_top = self._azione(_("Always on top"), self.sempre_in_cima)
-        self.azione_top.setCheckable(True)
-        view.addAction(self.azione_top)
-        view.addSeparator()
-        self.azione_lista = self._azione(_("Hide list"), lambda: self._nascondi_pannello(self.sinistra))
-        self.azione_sidebar = self._azione(_("Hide sidebar"), lambda: self._nascondi_pannello(self.destra))
-        view.addAction(self.azione_lista)
-        view.addAction(self.azione_sidebar)
-        view.aboutToShow.connect(self._aggiorna_menu_view)
-        lingua = view.addMenu(_("Language"))
-        for codice, nome in LINGUE:
-            lingua.addAction(self._azione(nome, lambda _=False, c=codice: self.cambia_lingua(c)))
-        buffer_menu = view.addMenu(_("Buffer"))
-        for chiave, etichetta, *_resto in BUFFER:
-            buffer_menu.addAction(self._azione(etichetta, lambda _=False, k=chiave: self.metti_buffer(k)))
-        help_menu = self.menuBar().addMenu(_("Help"))
-        help_menu.addAction(self._azione(_("About XVB Player"), self.informazioni))
-        self.azione_download = self._azione(_("Up to date"), self.apri_release)
-        self.azione_download.setEnabled(False)
-        help_menu.addAction(self.azione_download)
-        help_menu.addAction(self._azione(_("Check for updates"), self.controlla_versione))
-        help_menu.addSeparator()
-        help_menu.addAction(self._azione(_("Donate"), self.dona))
+        self._menu("Playback", self._voci_playback)
+        self._menu("Video", self._voci_video)
+        self._menu("Audio", self._voci_audio)
+        self._menu("IPTV", self._voci_iptv)
+        self._menu("View", self._voci_view)
+        self._menu("Help", self._voci_help)
+        if not hasattr(self, "menu_qualita"):
+            self.menu_qualita = QMenu(self)
+            self.menu_qualita.setEnabled(False)
+            self.menu_qualita.aboutToShow.connect(self._riempi_menu_qualita)
 
+    def _menu(self, titolo, voci):
+        menu = self.menuBar().addMenu(_(titolo))
+        menu.aboutToShow.connect(lambda m=menu, v=voci: self._riempi_menu(m, v()))
+        return menu
 
+    def _riempi_menu(self, menu, righe):
+        for vecchia in menu.actions():
+            vecchia.deleteLater()
+        menu.clear()
+        for riga in righe:
+            if riga is None:
+                menu.addSeparator()
+                continue
+            testo, callback = riga
+            azione = QAction(testo, menu)
+            if callback is None:
+                azione.setEnabled(False)
+            else:
+                azione.triggered.connect(lambda _=False, f=callback: f())
+            menu.addAction(azione)
 
+    @staticmethod
+    def _marca(attivo):
+        return "*  " if attivo else "   "
+
+    def _voci_capitoli(self):
+        capitoli = self._capitoli_disponibili()
+        if not capitoli:
+            return []
+        player = self._attivo()
+        try:
+            attuale = int(float(player.leggi("chapter")))
+        except (TypeError, ValueError):
+            attuale = -1
+        voci = [(_("Previous chapter"), lambda: self.vai_capitolo(-1, relativo=True)),
+                (_("Next chapter"), lambda: self.vai_capitolo(1, relativo=True))]
+        lista = []
+        if len(capitoli) <= 99:
+            for indice, capitolo in enumerate(capitoli):
+                titolo = (capitolo.get("title") or "").strip()
+                if not titolo or titolo == "(unnamed)":
+                    titolo = _("Chapter %d") % (indice + 1)
+                ore, resto = divmod(int(float(capitolo.get("time") or 0)), 3600)
+                minuti, secondi = divmod(resto, 60)
+                lista.append((self._marca(indice == attuale) + titolo + "  \u00b7  "
+                              + "%02d:%02d:%02d" % (ore, minuti, secondi),
+                              lambda i=indice: self.vai_capitolo(i)))
+        if lista:
+            voci += [None] + lista
+        return voci + [None]
+
+    def _voci_playback(self):
+        marca = self._marca
+        voci = [
+            (_("Play / Pause"), self.pausa),
+            (_("Stop"), self.ferma),
+            None,
+            (_("Sleep timer"), None),
+            (_("15 minutes"), lambda: self.imposta_timer_spegnimento(15)),
+            (_("30 minutes"), lambda: self.imposta_timer_spegnimento(30)),
+            (_("45 minutes"), lambda: self.imposta_timer_spegnimento(45)),
+            (_("60 minutes"), lambda: self.imposta_timer_spegnimento(60)),
+            (_("90 minutes"), lambda: self.imposta_timer_spegnimento(90)),
+            (_("Cancel sleep timer"), self.annulla_timer_spegnimento),
+            None,
+            (_("Back 10 s"), lambda: self.avanza(-10)),
+            (_("Forward 10 s"), lambda: self.avanza(10)),
+            None,
+            (_("Set A (loop start)"), self.loop_ab_imposta_a),
+            (_("Set B (loop end)"), self.loop_ab_imposta_b),
+            (_("Clear A-B loop"), self.loop_ab_azzera),
+            None,
+            (_("Previous"), lambda: self.salta(-1)),
+            (_("Next"), lambda: self.salta(1)),
+            None,
+            (marca(self.shuffle_attivo) + _("Shuffle"),
+             lambda: self.mpris_shuffle(not self.shuffle_attivo)),
+            None]
+        voci += [(marca(self.ripeti == k) + _(n), lambda k=k: self.metti_ripeti(k))
+                 for k, n in (("", "No repeat"), ("uno", "Repeat one"), ("tutti", "Repeat all"))]
+        voci += [None] + self._voci_capitoli()
+        voci += [(marca(abs(float(self.velocita) - v) < 0.0001) + _("Speed x%g") % v,
+                  lambda v=v: self.metti_velocita(v)) for v in sorted(VELOCITA)]
+        return voci
+
+    def _voci_video(self):
+        marca = self._marca
+        config = self.sessione.config
+        riempi = bool(config.get("riempi"))
+        proporzioni = str(config.get("proporzioni", "-1"))
+        voci = [(marca(proporzioni == valore and not riempi) + _("Aspect %s") % nome,
+                 lambda v=valore: self.metti_proporzioni(v)) for nome, valore in PROPORZIONI]
+        voci += [
+            (marca(riempi) + _("Fill screen (crop)"), self.riempi),
+            None,
+            (marca(config.get("deinterlaccia")) + _("Deinterlace"), self.deinterlaccia),
+            (marca(config.get("hwdec", True)) + _("Hardware decoding"), self.decodifica_hw),
+            None,
+            (_("Brightness +"), lambda: self.regola("brightness", 10)),
+            (_("Brightness -"), lambda: self.regola("brightness", -10)),
+            (_("Contrast +"), lambda: self.regola("contrast", 10)),
+            (_("Contrast -"), lambda: self.regola("contrast", -10)),
+            (_("Saturation +"), lambda: self.regola("saturation", 10)),
+            (_("Saturation -"), lambda: self.regola("saturation", -10)),
+            (_("Reset picture"), self.azzera_immagine),
+            None,
+            (_("Screenshot"), lambda: self._comando("screenshot"))]
+        return voci
+
+    def _voci_audio(self):
+        marca = self._marca
+        config = self.sessione.config
+        audio = self.tracce("audio")
+        sub = self.tracce("sub")
+
+        def corto(testo, n):
+            return testo if len(testo) <= n else testo[:n - 1] + "\u2026"
+        voci = [(marca(t.get("selected")) + _("Track: %s") % corto(self.nome_traccia(t), 30),
+                 lambda i=t.get("id"): self.metti_traccia("aid", i)) for t in audio]
+        voci += [None] if audio else []
+        voci += [(marca(not any(t.get("selected") for t in sub)) + _("Subtitles off"),
+                  lambda: self.metti_traccia("sid", "no"))]
+        voci += [(marca(t.get("selected")) + _("Subtitles: %s") % self.nome_traccia(t),
+                  lambda i=t.get("id"): self.metti_traccia("sid", i)) for t in sub]
+        presente = bool(getattr(self, "file_in_onda", None))
+        voci += [
+            (_("Load subtitles..."), self.carica_sottotitoli if presente else None),
+            (_("Search subtitles online..."), self.cerca_sottotitoli_online if presente else None),
+            (_("Subtitle delay +100 ms"), lambda: self.ritardo_sottotitoli(0.1)),
+            (_("Subtitle delay -100 ms"), lambda: self.ritardo_sottotitoli(-0.1)),
+            (_("Subtitles larger"), lambda: self.scala_sottotitoli(0.1)),
+            (_("Subtitles smaller"), lambda: self.scala_sottotitoli(-0.1)),
+            (_("Reset subtitles"), self.azzera_sottotitoli),
+            None,
+            (marca(config.get("boost")) + _("Volume boost +50%"), self.boost),
+            (marca(config.get("normalizza")) + _("Normalize loudness"), self.normalizza),
+            (_("Audio output device..."), self.scegli_uscita_audio),
+            (_("Audio equalizer..."), self.equalizzatore_audio),
+            None,
+            (_("Delay +100 ms"), lambda: self.ritardo_audio(0.1)),
+            (_("Delay -100 ms"), lambda: self.ritardo_audio(-0.1)),
+            (_("Reset delay"), self.azzera_ritardo)]
+        return voci
+
+    def _voci_iptv(self):
+        return [
+            (_("Playlists"), None),
+            (_("Add playlist URL"), self.aggiungi_lista_url),
+            (_("Open playlists folder"), self.apri_cartella_liste),
+            (_("Reload playlists"), self.ricarica_liste),
+            None,
+            (_("TV guide"), None),
+            (_("Programme guide"), self.apri_guida),
+            (_("Add guide URL"), self.aggiungi_epg_url),
+            (_("Reload guide"),
+             self.ricarica_epg_manuale if self.sessione.config.get("epg") else None),
+            None,
+            (_("Recording"), None),
+            (_("Stop recording") if self.registrando else _("Record now"), self.registra),
+            (_("Schedule..."), self.pianifica),
+            (_("Cancel schedule"), self.annulla_piano if self.piano else None),
+            (_("Open recordings folder"), self.apri_registrazioni)]
+
+    def _voci_view(self):
+        marca = self._marca
+        voci = [
+            (_("Fullscreen"), self.schermo_intero),
+            (_("Picture in picture"), self.pip_si_no),
+            (_("Split screen") + "  F2", self.split_si_no),
+            (marca(self.sessione.config.get("in_cima")) + _("Always on top"), self.sempre_in_cima),
+            None,
+            (_("Show list") if self.sinistra.isHidden() else _("Hide list"),
+             lambda: self._nascondi_pannello(self.sinistra)),
+            (_("Show sidebar") if self.destra.isHidden() else _("Hide sidebar"),
+             lambda: self._nascondi_pannello(self.destra)),
+            None,
+            (_("Language"), None)]
+        voci += [(marca(codice == lingua_corrente()) + nome,
+                  lambda c=codice: self.cambia_lingua(c)) for codice, nome in LINGUE]
+        voci += [None, (_("Buffer"), None)]
+        voci += [(marca(chiave == self.buffer_attuale()[0]) + "%s  (%s)" % (
+                    _(nome), "%d MiB" % massimo if massimo < 1024 else "%d GiB" % (massimo // 1024)),
+                  lambda k=chiave: self.metti_buffer(k))
+                 for chiave, nome, massimo, _b, _a, _w in BUFFER]
+        return voci
+
+    def _voci_help(self):
+        return [
+            (_("About XVB..."), self.informazioni),
+            None,
+            (_("Check for updates"), self.controlla_versione),
+            (_("Download %s") % self.nuova if self.nuova else _("Up to date"),
+             self.apri_release if self.nuova else None),
+            None,
+            (_("Donate"), self.dona)]
+
+    def _aggiorna_menu_playback(self):
+        pass
+
+    def _aggiorna_menu_video(self):
+        pass
+
+    def _aggiorna_menu_audio(self):
+        pass
+
+    def _aggiorna_menu_view(self):
+        pass
+
+    def _aggiorna_visibilita_capitoli(self):
+        pass
 
     def _attivo(self):
         return self.player2 if self.split and self.schermo_attivo == 1 and self.player2 else self.player
@@ -4292,15 +4294,11 @@ class MainWindow(QMainWindow):
     def _versione_pronta(self, tag, pagina, zitto):
         if tag and piu_nuova(tag, VERSIONE):
             self.nuova, self.pagina_nuova = tag, pagina
-            self.azione_download.setText(_("Download %s") % tag)
-            self.azione_download.setEnabled(bool(pagina))
             self.mostra_avviso(
                 _("new version %s available: Help > Download") % tag, 0,
                 ("new version %s available: Help > Download", (tag,)))
         else:
             self.nuova, self.pagina_nuova = None, None
-            self.azione_download.setText(_("Up to date"))
-            self.azione_download.setEnabled(False)
             if not zitto:
                 self._messaggio_temporaneo(_("up to date (%s)") % VERSIONE)
 

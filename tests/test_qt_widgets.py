@@ -79,47 +79,56 @@ class QtWidgetTests(unittest.TestCase):
             window.close()
             self.app.processEvents()
 
-    def test_video_menu_checkmarks_follow_saved_settings(self):
+    @staticmethod
+    def _testi(righe):
+        return [riga[0] for riga in righe if riga]
+
+    @staticmethod
+    def _callback(righe, testo):
+        return next(riga[1] for riga in righe if riga and riga[0] == testo)
+
+    def test_video_menu_marks_follow_saved_settings(self):
         with patch("ui.main_window.MpvVideo", side_effect=RuntimeError("libmpv unavailable")):
             window = MainWindow()
-            self.assertTrue(window.azione_hwdec.isChecked())
-            self.assertFalse(window.azione_deinterlaccia.isChecked())
+            testi = self._testi(window._voci_video())
+            self.assertIn("*  Hardware decoding", testi)
+            self.assertIn("   Deinterlace", testi)
             window.metti_proporzioni("16:9")
-            self.assertTrue(window.azioni_proporzioni["16:9"].isChecked())
-            self.assertFalse(window.azioni_proporzioni["-1"].isChecked())
+            testi = self._testi(window._voci_video())
+            self.assertIn("*  Aspect 16:9", testi)
+            self.assertIn("   Aspect Auto", testi)
             window.riempi()
-            self.assertTrue(window.azione_riempi.isChecked())
-            self.assertFalse(window.azioni_proporzioni["16:9"].isChecked())
+            testi = self._testi(window._voci_video())
+            self.assertIn("*  Fill screen (crop)", testi)
+            self.assertIn("   Aspect 16:9", testi)
             window.deinterlaccia()
-            self.assertTrue(window.azione_deinterlaccia.isChecked())
+            self.assertIn("*  Deinterlace", self._testi(window._voci_video()))
             window.decodifica_hw()
-            self.assertFalse(window.azione_hwdec.isChecked())
+            self.assertIn("   Hardware decoding", self._testi(window._voci_video()))
             window.close()
             self.app.processEvents()
 
     def test_playback_and_audio_menu_states_follow_current_settings(self):
         with patch("ui.main_window.MpvVideo", side_effect=RuntimeError("libmpv unavailable")):
             window = MainWindow()
-            self.assertTrue(window.azioni_velocita[1].isChecked())
-            self.assertFalse(window.azione_carica_sottotitoli.isEnabled())
-            self.assertFalse(window.azione_sottotitoli_online.isEnabled())
+            self.assertIn("*  Speed x1", self._testi(window._voci_playback()))
+            self.assertIsNone(self._callback(window._voci_audio(), "Load subtitles..."))
+            self.assertIsNone(self._callback(window._voci_audio(), "Search subtitles online..."))
             window.metti_velocita(1.5)
             window.mpris_shuffle(True)
             window.metti_ripeti("uno")
             window.boost()
             window.normalizza()
-            window._aggiorna_menu_playback()
-            window._aggiorna_menu_audio()
-            self.assertTrue(window.azioni_velocita[1.5].isChecked())
-            self.assertTrue(window.azione_shuffle.isChecked())
-            self.assertTrue(window.azioni_ripeti["uno"].isChecked())
-            self.assertTrue(window.azione_boost.isChecked())
-            self.assertTrue(window.azione_normalizza.isChecked())
-            self.assertFalse(window.azione_carica_sottotitoli.isEnabled())
+            playback = self._testi(window._voci_playback())
+            audio = self._testi(window._voci_audio())
+            self.assertIn("*  Speed x1.5", playback)
+            self.assertIn("*  Shuffle", playback)
+            self.assertIn("*  Repeat one", playback)
+            self.assertIn("*  Volume boost +50%", audio)
+            self.assertIn("*  Normalize loudness", audio)
             window.file_in_onda = "/tmp/movie.mkv"
-            window._aggiorna_menu_audio()
-            self.assertTrue(window.azione_carica_sottotitoli.isEnabled())
-            self.assertTrue(window.azione_sottotitoli_online.isEnabled())
+            self.assertIsNotNone(self._callback(window._voci_audio(), "Load subtitles..."))
+            self.assertIsNotNone(self._callback(window._voci_audio(), "Search subtitles online..."))
             window.close()
             self.app.processEvents()
 
@@ -539,9 +548,9 @@ class QtWidgetTests(unittest.TestCase):
     def test_playback_menu_restores_track_and_chapter_navigation(self):
         with patch("ui.main_window.MpvVideo", side_effect=RuntimeError("libmpv unavailable")):
             window = MainWindow()
-            self.assertFalse(window.azione_capitolo_precedente.isVisible())
-            self.assertFalse(window.azione_capitolo_successivo.isVisible())
-            self.assertFalse(window.menu_capitoli.menuAction().isVisible())
+            testi = self._testi(window._voci_playback())
+            self.assertNotIn("Previous chapter", testi)
+            self.assertNotIn("Next chapter", testi)
 
             class Player:
                 def leggi_nodo(self, nome):
@@ -551,15 +560,11 @@ class QtWidgetTests(unittest.TestCase):
                     return 0
 
             window.player = Player()
-            window._aggiorna_visibilita_capitoli()
-            self.assertTrue(window.azione_capitolo_precedente.isVisible())
-            self.assertTrue(window.azione_capitolo_successivo.isVisible())
-            self.assertTrue(window.menu_capitoli.menuAction().isVisible())
-            window._riempi_menu_capitoli()
-            self.assertEqual(window.menu_capitoli.actions()[0].text(),
-                             "✓  Opening  ·  00:00:00")
-            self.assertEqual(window.menu_capitoli.actions()[1].text(),
-                             "    Main  ·  00:01:00")
+            testi = self._testi(window._voci_playback())
+            self.assertIn("Previous chapter", testi)
+            self.assertIn("Next chapter", testi)
+            self.assertIn("*  Opening  ·  00:00:00", testi)
+            self.assertIn("   Main  ·  00:01:00", testi)
             window.player = None
             window.close()
             self.app.processEvents()
