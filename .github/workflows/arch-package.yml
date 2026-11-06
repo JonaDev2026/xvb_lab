@@ -55,28 +55,14 @@ jobs:
             install -m644 xvb.py traduzioni.py "$pkgdir/usr/lib/xvb/"
             cp -a icone fonts "$pkgdir/usr/lib/xvb/"
             install -m644 icon.png "$pkgdir/usr/share/icons/hicolor/512x512/apps/xvb.png"
-            cat > "$pkgdir/usr/bin/xvb" <<'EOF'
-          #!/bin/sh
-          exec /usr/bin/python3 /usr/lib/xvb/xvb.py "$@"
-          EOF
+            printf '%s\\n' '#!/bin/sh' 'exec /usr/bin/python3 /usr/lib/xvb/xvb.py "$@"' > "$pkgdir/usr/bin/xvb"
             chmod 755 "$pkgdir/usr/bin/xvb"
-            cat > "$pkgdir/usr/share/applications/xvb.desktop" <<'EOF'
-          [Desktop Entry]
-          Version=1.0
-          Type=Application
-          Name=XVB Player
-          Comment=Media player for videos, music, discs and IPTV
-          Exec=xvb %F
-          Icon=xvb
-          Terminal=false
-          Categories=AudioVideo;Video;Player;TV;
-          StartupNotify=true
-          StartupWMClass=Xvb
-          EOF
+            printf '%s\\n' '[Desktop Entry]' 'Version=1.0' 'Type=Application' 'Name=XVB Player' 'Comment=Media player for videos, music, discs and IPTV' 'Exec=xvb %F' 'Icon=xvb' 'Terminal=false' 'Categories=AudioVideo;Video;Player;TV;' 'StartupNotify=true' 'StartupWMClass=Xvb' > "$pkgdir/usr/share/applications/xvb.desktop"
           }
           PKG
-          for f in xvb.py traduzioni.py icon.png icone fonts; do test -e "source/$f"; done
-          for f in icone/mic.png icone/cam.png icone/tv.png icone/m3u.png fonts/static/GoogleSans-Regular.ttf fonts/static/GoogleSans-Bold.ttf; do test -f "source/$f"; done
+          cd source
+          for f in xvb.py traduzioni.py icon.png icone fonts; do test -e "$f"; done
+          for f in icone/mic.png icone/cam.png icone/tv.png icone/m3u.png fonts/static/GoogleSans-Regular.ttf fonts/static/GoogleSans-Bold.ttf; do test -f "$f"; done
 
       - name: Build package
         shell: bash
