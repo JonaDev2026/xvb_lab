@@ -6,6 +6,12 @@ from core.config import (
     PORTA, REGISTRAZIONI,
 )
 from core.constants import VERSIONE
+from core.artist_artwork import CACHE_ARTISTI
+from core.epg import CACHE_EPG, CACHE_POSTER
+from core.metadata import COPERTINE_URL, FILE_INFO, FILE_PROVATI
+from core.playlists import CACHE_LISTE
+from core.tags import FILE_TAG
+from core.thumbnails import CACHE_ANTEPRIME
 
 
 class XVB5PathsTests(unittest.TestCase):
@@ -23,6 +29,12 @@ class XVB5PathsTests(unittest.TestCase):
         self.assertEqual(os.path.dirname(PORTA), CACHE_DIR)
         self.assertEqual(os.path.dirname(REGISTRAZIONI), DATA_DIR)
         self.assertEqual(CARTELLE_LISTE, (os.path.join(DATA_DIR, "playlists"),))
+        for percorso in (
+            CACHE_ARTISTI, CACHE_EPG, CACHE_POSTER, FILE_INFO, FILE_PROVATI,
+            CACHE_LISTE, FILE_TAG, CACHE_ANTEPRIME,
+        ):
+            self.assertEqual(os.path.commonpath((CACHE_DIR, percorso)), CACHE_DIR)
+        self.assertEqual(os.path.commonpath((CONFIG_DIR, COPERTINE_URL)), CONFIG_DIR)
 
 
 if __name__ == "__main__":
