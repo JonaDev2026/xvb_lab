@@ -564,3 +564,14 @@ Commit: `c868b66`, `9fe7995`, `7493e57`, `94586e1`, `b55c041`.
 
 - Le copertine locali personalizzate non vengono più salvate accanto ai file multimediali: sono archiviate in `~/.local/share/xvb5/copertine`, evitando di creare o riutilizzare sidecar condivisi con la Stable.
 - Aggiornati i test Qt per verificare il nuovo percorso delle copertine locali.
+
+
+## Avvio libmpv, menu come la Stable
+
+- main.py: dopo la creazione di QApplication viene impostato LC_NUMERIC a "C". Qt imposta il locale di sistema e libmpv rifiuta mpv_create con un locale non C ("Non-C locale detected"); sul sistema Linux di prova l'errore non compare più.
+- Menu Media come nella Stable: Open file, Open folder, Open URL, Download posters and covers, poi Recent con l'elenco e Clear recent solo se ci sono file recenti. Rimossi Import files, Add playlist file, Quit e le scorciatoie di menu che la Stable non ha.
+- Menu Playback, Video, Audio, IPTV, View e Help ricostruiti con le stesse voci, lo stesso ordine, le intestazioni di sezione e i segni "*" della Stable (xvb.py righe 3715-3845). Le tendine si riempiono a ogni apertura; Quality resta sul pulsante della barra, come nella Stable. Aggiunti i tasti Space e F2 della Stable.
+- Test dei menu aggiornati alle nuove voci. Eseguiti solo i tre test di menu; la suite completa non è stata eseguita.
+- Ancora aperto: il rendering libmpv sul sistema di prova si ferma con "QOpenGLFramebufferObject: Framebuffer incomplete attachment".
+
+Commit: `d2137a3`, `fdcab62`, `096a4f1`.
