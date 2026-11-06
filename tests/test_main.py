@@ -25,7 +25,7 @@ class MainStartupTests(unittest.TestCase):
             percorso = percorso_istanza(True)
         self.assertEqual(
             percorso,
-            os.path.join(os.path.dirname(PORTA), "xvb-lab-12345.sock"))
+            os.path.join(os.path.dirname(PORTA), "xvb5-12345.sock"))
         self.assertNotEqual(percorso, PORTA)
 
 
