@@ -548,3 +548,16 @@ Commit: `c868b66`, `9fe7995`, `7493e57`, `94586e1`, `b55c041`.
 - Il punto di avvio inizializza ora il logging rotante già presente in `core/log.py`; gli errori durante la costruzione della finestra vengono registrati e mostrati in un dialogo, invece di lasciare un'uscita senza indicazioni. Commit: `1be2dc9`.
 
 - Anche gli errori di creazione del socket/istanza vengono ora registrati e mostrati in un dialogo; il processo non termina più senza un'indicazione grafica in caso di errore di bind. Commit: `86f2792`.
+
+
+## 2026-11-06 — Identità XVB Player 5.0.0 e isolamento dei dati
+
+- Definita la nuova applicazione Qt6 come XVB Player 5.0.0, distinta dalla Stable 4.4.4.
+- Configurazione esclusiva in `~/.config/xvb5`.
+- Cache, log, anteprime, screenshot, socket e cache tag esclusivamente in `~/.cache/xvb5`.
+- Dati utente, playlist e registrazioni esclusivamente in `~/.local/share/xvb5`.
+- Credenziali OpenSubtitles spostate in `~/.config/xvb5`.
+- Eliminati i riferimenti applicativi alle directory `xvb` della Stable nei percorsi individuati.
+- Aggiunti test per versione e directory isolate.
+- Stable 4.4.4 e i suoi dati non vengono modificati né importati.
+- Verifica runtime e CI da completare.
