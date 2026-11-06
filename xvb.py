@@ -8840,15 +8840,6 @@ class TV(object):
     def voce_menu(self, m, v, colonna=False):
         testo, cosa = v
         extra = {"state": "normal" if cosa else "disabled"}
-        colori_titoli = {
-            _("Playlists"): "#30d158",
-            _("TV guide"): "#ffd60a",
-            _("Recording"): ROSSO,
-        }
-        colore = colori_titoli.get(testo)
-        if colore:
-            extra["foreground"] = colore
-            extra["disabledforeground"] = colore
         if cosa:
             extra["command"] = cosa
         if colonna:
@@ -8861,7 +8852,6 @@ class TV(object):
             m.add_checkbutton(label=testo[3:], variable=var, **extra)
         else:
             m.add_command(label=testo, **extra)
-
     def cambia_lingua(self, codice):
         """La lingua nuova subito, senza riavviare: si riscrive quello che
         e' a vista, i menu si rifanno da soli quando si aprono."""
