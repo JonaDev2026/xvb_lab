@@ -1,9 +1,9 @@
 import json
 import os
 
-from .config import CASA
+from .config import CACHE_DIR
 
-FILE_TAG = os.path.join(CASA, ".cache", "xvb", "tag.json")
+FILE_TAG = os.path.join(CACHE_DIR, "tag.json")
 
 try:
     import mutagen
