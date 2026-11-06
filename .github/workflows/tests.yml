@@ -1,5 +1,9 @@
 name: Core regression tests
 
+concurrency:
+  group: xvb5-regression-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches: [main]
