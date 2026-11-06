@@ -24,31 +24,31 @@ def percorso_istanza(nuova_istanza):
         return PORTA
     return os.path.join(
         os.path.dirname(PORTA),
-        "xvb-lab-%d.sock" % os.getpid())
+        "xvb5-%d.sock" % os.getpid())
 
 
 def _errore_avvio(logger, titolo, errore):
     logger.exception(titolo)
     QMessageBox.critical(
-        None, "XVB - Errore di avvio",
-        "%s\n\n%s\n\nDettagli: ~/.local/state/xvb/xvb.log" %
+        None, "XVB Player - Errore di avvio",
+        "%s\n\n%s\n\nDettagli: ~/.cache/xvb5/logs/xvb5.log" %
         (titolo, errore))
 
 
 def main():
     configura_logging()
-    logger = logging.getLogger("xvb")
+    logger = logging.getLogger("xvb5")
     app = QApplication([sys.argv[0]])
-    app.setApplicationName("XVB")
+    app.setApplicationName("XVB Player")
     argomenti, nuova_istanza = argomenti_avvio(sys.argv[1:])
     try:
         server = porta_unica(argomenti, percorso_istanza(nuova_istanza))
     except Exception as errore:
-        _errore_avvio(logger, "Impossibile inizializzare l'istanza XVB.", errore)
+        _errore_avvio(logger, "Impossibile inizializzare l'istanza XVB Player.", errore)
         return 1
     if server is None:
-        logger.info("Richiesta inoltrata a un'istanza XVB già attiva")
-        print("XVB è già in esecuzione: richiesta di attivazione inviata.", flush=True)
+        logger.info("Richiesta inoltrata a un'istanza XVB Player già attiva")
+        print("XVB Player è già in esecuzione: richiesta di attivazione inviata.", flush=True)
         return 0
     try:
         finestra = MainWindow()
