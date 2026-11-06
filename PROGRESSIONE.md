@@ -584,3 +584,15 @@ Commit: `d2137a3`, `fdcab62`, `096a4f1`.
 - Ancora aperto: "Framebuffer incomplete attachment" visto sul sistema Linux di prova prima di questa correzione, da riverificare dopo di essa.
 
 Commit: `550409d`.
+
+## Barra comandi e font come la Stable
+
+- Confronto con la Stable fatto a schermo: xvb.py avviato in Xvfb accanto alla versione Qt, stesse dimensioni.
+- main.py: caricato Google Sans da fonts/static e impostato come font dell'applicazione (corpo 10, peso normale), come i font Tk della Stable.
+- Barra comandi: pulsanti senza fondo, con le misure della Stable (34x30 normali, 48x40 per -10/+10, play 34x36), icone prima/dopo/play scalate a 34, stop a 24, -10/+10 disegnati come testo Google Sans Bold. Spaziature (padx) uguali a quelle di tasto() della Stable.
+- Ordine dei pulsanti a destra come nella Stable: volume, qualità e velocità (nascosti), PiP, schermo intero, preferito, sidebar.
+- Sidebar: tolta la barra di scorrimento orizzontale che la Stable non ha.
+- Non verificato: suite di test completa (nel mio ambiente un test non termina), aspetto su schermo reale.
+- Ancora diverso dalla Stable: albero playlist (frecce, icone cartella, riga selezionata), barra di stato (la Stable mostra solo l'ora a destra), barra sovrapposta al video, poster/screen.png sopra il video durante la riproduzione.
+
+Commit: `7ac8ad4`.
