@@ -256,7 +256,7 @@ class QtWidgetTests(unittest.TestCase):
             self.assertEqual(
                 window.percorso_copertina("/media/video/Movie.mkv"),
                 os.path.join(os.path.expanduser("~"), ".local", "share", "xvb5", "copertine",
-                             __import__("hashlib").md5("/media/video/Movie.mkv".encode("utf-8")).hexdigest() + ".jpg"))
+                             hashlib.md5("/media/video/Movie.mkv".encode("utf-8")).hexdigest() + ".jpg"))
             remoto = window.percorso_copertina("https://example.test/channel")
             self.assertTrue(remoto.endswith(".jpg"))
             self.assertNotEqual(remoto, "https://example.test/channel")
