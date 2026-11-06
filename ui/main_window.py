@@ -1,5 +1,5 @@
 from PySide6.QtCore import Qt, QUrl, QThread, Signal, QTimer, QSize
-from PySide6.QtGui import QAction, QKeySequence, QIcon, QDesktopServices, QPixmap, QShortcut, QCursor, QTransform, QColor
+from PySide6.QtGui import QAction, QKeySequence, QIcon, QDesktopServices, QPixmap, QShortcut, QCursor, QTransform, QColor, QPainter, QFont
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QFrame, QVBoxLayout, QHBoxLayout, QLabel, QDialog, QMenu,
     QPushButton, QFileDialog, QInputDialog, QMessageBox, QSlider, QTreeWidget, QTreeWidgetItem,
@@ -448,6 +448,8 @@ class _VerificaVersione(QThread):
 
 
 class MainWindow(QMainWindow):
+    _famiglia_ui = "Google Sans"
+
     def __init__(self):
         super().__init__()
         imposta_lingua(leggi_config().get("lingua", "en"))
@@ -593,7 +595,7 @@ class MainWindow(QMainWindow):
         self._timer_hud.timeout.connect(self._aggiorna_hud)
         self._fase_hud = 0
         comandi = QVBoxLayout(self.barra)
-        comandi.setContentsMargins(12, 38, 12, 0)
+        comandi.setContentsMargins(0, 40, 0, 0)
         comandi.setSpacing(0)
         self.posizione = QSlider(Qt.Horizontal, self.barra)
         self.posizione.setRange(0, 1000)
@@ -605,47 +607,63 @@ class MainWindow(QMainWindow):
             "QSlider::handle:horizontal{width:0;height:0;border:0}")
         self.posizione.sliderReleased.connect(self._seek)
         controlli = QHBoxLayout()
-        controlli.setSpacing(4)
+        controlli.setSpacing(0)
         self._pulsanti = {}
         self.tendina = Tendina(self)
 
-        def pulsante(chiave, nome, callback, lato=24, etichetta=None):
+        def icona_testo(testo, larghezza, altezza, corpo):
+            pixmap = QPixmap(larghezza, altezza)
+            pixmap.fill(Qt.transparent)
+            pittore = QPainter(pixmap)
+            pittore.setRenderHint(QPainter.TextAntialiasing)
+            carattere = QFont(self._famiglia_ui, 10, QFont.Bold)
+            carattere.setPixelSize(corpo)
+            pittore.setFont(carattere)
+            pittore.setPen(QColor("#e8e8ef"))
+            pittore.drawText(pixmap.rect(), Qt.AlignCenter, testo)
+            pittore.end()
+            return QIcon(pixmap)
+
+        def pulsante(chiave, nome, callback, misure=(34, 30), icona=None,
+                     pad=(2, 2), etichetta=None):
             b = QPushButton(self.barra)
             percorso = os.path.join(QUI, "icone", nome + ".png")
-            if os.path.isfile(percorso):
-                b.setIcon(QIcon(percorso))
-                b.setIconSize(QSize(lato, lato))
-                b.setFixedSize(lato + 10, lato + 10)
+            b.setFlat(True)
+            b.setStyleSheet("QPushButton{background:transparent;border:0;padding:0}")
+            if nome in ("-10", "+10"):
+                b.setIcon(icona_testo(nome, 48, 34, 15))
+                b.setIconSize(QSize(48, 34))
+            elif os.path.isfile(percorso):
+                dim = icona or (24, 24)
+                b.setIcon(QIcon(QPixmap(percorso).scaled(
+                    dim[0], dim[1], Qt.IgnoreAspectRatio, Qt.SmoothTransformation)))
+                b.setIconSize(QSize(*dim))
             else:
                 b.setText(etichetta or nome)
-                b.setFixedSize(max(34, lato + 10), lato + 10)
+            b.setFixedSize(*misure)
             b.setToolTip(etichetta or nome)
             b.setCursor(Qt.PointingHandCursor)
             b.clicked.connect(callback)
             self._pulsanti[chiave] = b
+            if pad[0]:
+                controlli.addSpacing(pad[0])
             controlli.addWidget(b)
+            if pad[1]:
+                controlli.addSpacing(pad[1])
             return b
 
-        pulsante("precedente", "prima", lambda: self.salta(-1), 34, _("Previous"))
-        pulsante("indietro", "-10", lambda: self.avanza(-10), 24, "-10")
-        self.play_button = pulsante("play", "play", self.pausa, 48, _("Play"))
-        pulsante("stop", "stop", self.ferma, 34, _("Stop"))
-        pulsante("avanti", "+10", lambda: self.avanza(10), 24, "+10")
-        pulsante("successivo", "dopo", lambda: self.salta(1), 34, _("Next"))
-        pulsante("rec", "rec", self.registra, 24, _("Record"))
-        pulsante("repeat", "repeat", self._menu_ripeti, 24, _("Repeat"))
-        self.shuffle_button = pulsante("shuffle", "shuffle", lambda: self.mpris_shuffle(not self.shuffle_attivo), 24, _("Shuffle"))
+        pulsante("precedente", "prima", lambda: self.salta(-1), (34, 30), (34, 34), (24, 0), _("Previous"))
+        pulsante("indietro", "-10", lambda: self.avanza(-10), (48, 40), None, (0, 0), "-10")
+        self.play_button = pulsante("play", "play", self.pausa, (34, 36), (34, 34), (5, 5), _("Play"))
+        pulsante("stop", "stop", self.ferma, (24, 30), (24, 24), (0, 5), _("Stop"))
+        pulsante("avanti", "+10", lambda: self.avanza(10), (48, 40), None, (0, 0), "+10")
+        pulsante("successivo", "dopo", lambda: self.salta(1), (34, 30), (34, 34), (0, 0), _("Next"))
+        pulsante("rec", "rec", self.registra, (34, 30), None, (24, 2), _("Record"))
+        pulsante("repeat", "repeat", self._menu_ripeti, (34, 30), None, (2, 2), _("Repeat"))
+        self.shuffle_button = pulsante("shuffle", "shuffle", lambda: self.mpris_shuffle(not self.shuffle_attivo), (34, 30), None, (2, 2), _("Shuffle"))
         self.shuffle_button.setCheckable(True)
-        self.shuffle_button.setStyleSheet("QPushButton:checked{background:%s;border-radius:8px}" % SCELTO)
+        self.shuffle_button.setStyleSheet("QPushButton{background:transparent;border:0;padding:0}QPushButton:checked{background:%s;border-radius:8px}" % SCELTO)
         controlli.addStretch(1)
-        pulsante("favorite", "favorite_off", self._preferito_in_onda, 24, _("Favorite"))
-        pulsante("fullscreen", "pieno", self.schermo_intero, 24, _("Fullscreen"))
-        pulsante("pip", "pip", self.pip_si_no, 24, "PiP")
-        self.speed_button = pulsante("speed", "x1", self.gira_velocita, 24, _("Playback speed"))
-        self.speed_button.hide()
-        self.b_qualita = pulsante("quality", "setting", self._apri_menu_qualita, 24, _("Quality"))
-        self.b_qualita.hide()
-        pulsante("sidebar", "playlist", self._sidebar, 24, _("Playlists"))
         self.colore_barra = None
         self.volume = Cursore(
             self.barra, self._volume, larga=85, alta=26, barra=BARRA,
@@ -654,7 +672,15 @@ class MainWindow(QMainWindow):
         self.volume_largo = 0
         self.volume.setMaximumWidth(0)
         controlli.addWidget(self.volume)
-        self.b_muto = pulsante("mute", "volume", self._muto, 24, _("Mute"))
+        self.b_muto = pulsante("mute", "volume", self._muto, (34, 30), None, (0, 2), _("Mute"))
+        self.b_qualita = pulsante("quality", "setting", self._apri_menu_qualita, (34, 30), None, (2, 2), _("Quality"))
+        self.b_qualita.hide()
+        self.speed_button = pulsante("speed", "x1", self.gira_velocita, (34, 30), None, (6, 2), _("Playback speed"))
+        self.speed_button.hide()
+        pulsante("pip", "pip", self.pip_si_no, (34, 30), None, (2, 2), "PiP")
+        pulsante("fullscreen", "pieno", self.schermo_intero, (34, 30), None, (2, 2), _("Fullscreen"))
+        pulsante("favorite", "favorite_off", self._preferito_in_onda, (34, 30), None, (2, 2), _("Favorite"))
+        pulsante("sidebar", "playlist", self._sidebar, (34, 30), None, (2, 2), _("Playlists"))
         for widget in (self.volume, self.b_muto):
             widget.installEventFilter(self)
         self._timer_volume = QTimer(self)

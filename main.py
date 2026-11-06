@@ -4,6 +4,7 @@ import os
 import sys
 
 from PySide6.QtCore import QTimer
+from PySide6.QtGui import QFont, QFontDatabase
 from PySide6.QtWidgets import QApplication, QMessageBox
 
 from core.config import scrivi_config
@@ -42,6 +43,15 @@ def main():
     app = QApplication([sys.argv[0]])
     locale.setlocale(locale.LC_NUMERIC, "C")
     app.setApplicationName("XVB Player")
+    cartella_font = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts", "static")
+    if os.path.isdir(cartella_font):
+        for nome_font in sorted(os.listdir(cartella_font)):
+            if nome_font.lower().endswith(".ttf"):
+                QFontDatabase.addApplicationFont(os.path.join(cartella_font, nome_font))
+    if "Google Sans" in QFontDatabase.families():
+        carattere = QFont("Google Sans", 10)
+        carattere.setWeight(QFont.Normal)
+        app.setFont(carattere)
     argomenti, nuova_istanza = argomenti_avvio(sys.argv[1:])
     try:
         server = porta_unica(argomenti, percorso_istanza(nuova_istanza))

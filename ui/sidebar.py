@@ -24,6 +24,7 @@ class Sidebar(QTreeWidget):
         self.scelto = c.get("scelto", "#0071e3")
         self.zebra = c.get("zebra", "#2b2a33")
         self.setHeaderHidden(True)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setColumnCount(2)
         self.setColumnWidth(0, 170)
         self.setColumnWidth(1, 26)
