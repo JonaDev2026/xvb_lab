@@ -231,7 +231,7 @@ Le sole directory persistenti dell'applicazione sono:
 - cache e log: `~/.cache/xvb5`
 - dati utente: `~/.local/share/xvb5`
 
-Nessun dato applicativo deve essere scritto in `~/.config/xvb`, `~/.cache/xvb`, `~/.local/share/xvb`, `~/.local/state/xvb`, in `~/Pictures`, in `~/Videos` o nella cartella del repository. Playlist, registrazioni e credenziali devono rimanere nelle tre directory XVB5. Anche screenshot e cache delle anteprime appartengono a `~/.cache/xvb5`.
+Nessun dato applicativo deve essere scritto in `~/.config/xvb`, `~/.cache/xvb`, `~/.local/share/xvb`, `~/.local/state/xvb`, in `~/Pictures`, in `~/Videos` o nella cartella del repository. Playlist, registrazioni e credenziali devono rimanere nelle tre directory XVB5. Anche screenshot, cache delle anteprime, copertine locali selezionate dall'utente e copertine scaricate appartengono esclusivamente alle directory XVB5: cache in `~/.cache/xvb5`, copertine locali persistenti in `~/.local/share/xvb5/copertine` e copertine URL in `~/.config/xvb5/copertine`. XVB5 non crea file `.jpg` accanto ai media e non modifica le cartelle originali dei contenuti.
 
 Non è consentita alcuna lettura automatica, migrazione, riutilizzo o modifica dei file della Stable 4.4.4. L'eventuale importazione futura dovrà essere un'operazione esplicita, separata e autorizzata dall'utente.
 
