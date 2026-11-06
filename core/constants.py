@@ -1,4 +1,4 @@
-VERSIONE = "4.4.4"
+VERSIONE = "5.0.0"
 AUTORE = "Jonathan Sanfilippo"
 ANNO = "2026"
 REPO = "JonaDev2026/xvb_lab"
