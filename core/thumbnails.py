@@ -3,10 +3,10 @@ import io
 import os
 import subprocess
 
-from .config import CASA
+from .config import CACHE_DIR
 from .media import AUDIO
 
-CACHE_ANTEPRIME = os.path.join(CASA, ".cache", "xvb", "anteprime")
+CACHE_ANTEPRIME = os.path.join(CACHE_DIR, "anteprime")
 LOGO_L, LOGO_A = 72, 56
 
 try:
