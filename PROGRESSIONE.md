@@ -596,3 +596,11 @@ Commit: `550409d`.
 - Ancora diverso dalla Stable: albero playlist (frecce, icone cartella, riga selezionata), barra di stato (la Stable mostra solo l'ora a destra), barra sovrapposta al video, poster/screen.png sopra il video durante la riproduzione.
 
 Commit: `7ac8ad4`.
+
+## Video coperto dall'immagine XVB Player
+
+- ui/main_window.py, _aggiorna_sfondo: nel layout a pila lo sfondo (XVB Player / copertina) resta in cima e non veniva mai nascosto quando parte un video, quindi il video restava sotto l'immagine. Ora lo sfondo si nasconde durante il video (anche in split) e si mostra per nessun file, solo audio e sfondo forzato.
+- Verifica: finestra completa in Xvfb (xcb, OpenGL software) con un video di prova lavfi: prima dell'intervento la finestra mostrava solo XVB Player, dopo mostra il video. Non verificato su schermo reale, con canali IPTV reali, né con hwdec.
+- Nota: in quell'ambiente apri() resta bloccata in attesa di rete (nessuna connessione); da riverificare sulla macchina con rete.
+
+Commit: `f5b3bac`.
