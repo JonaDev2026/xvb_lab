@@ -451,7 +451,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         imposta_lingua(leggi_config().get("lingua", "en"))
-        self.setWindowTitle("XVB v" + VERSIONE)
+        self.setWindowTitle("XVB Player v" + VERSIONE)
         self.resize(1280, 720)
         self.setMinimumSize(800, 480)
         self.setAcceptDrops(True)
@@ -1483,7 +1483,7 @@ class MainWindow(QMainWindow):
         for chiave, etichetta, *_resto in BUFFER:
             buffer_menu.addAction(self._azione(etichetta, lambda _=False, k=chiave: self.metti_buffer(k)))
         help_menu = self.menuBar().addMenu(_("Help"))
-        help_menu.addAction(self._azione(_("About XVB"), self.informazioni))
+        help_menu.addAction(self._azione(_("About XVB Player"), self.informazioni))
         self.azione_download = self._azione(_("Up to date"), self.apri_release)
         self.azione_download.setEnabled(False)
         help_menu.addAction(self.azione_download)
@@ -2775,7 +2775,7 @@ class MainWindow(QMainWindow):
         self.riga_stato.setText(_("%d media files") % len(nuovi))
 
     def informazioni(self):
-        QMessageBox.about(self, "XVB", _("XVB Player 5.0.0"))
+        QMessageBox.about(self, "XVB Player", _("XVB Player 5.0.0"))
 
 
 
