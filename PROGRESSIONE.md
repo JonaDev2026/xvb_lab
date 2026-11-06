@@ -49,3 +49,12 @@ Una sola applicazione e un solo codice sorgente. Niente ricostruzioni, fork inte
 3. Provare split screen e chiuderlo.
 4. Ripetere l'avvio in X11 per confermare che il comportamento Stable non sia cambiato.
 5. Se il video resta separato o compare un errore di contesto, inviare il log `~/.cache/xvb/xvb.log`.
+
+
+### 2026-11-06 — Verifica Wayland su Debian GNOME
+
+- Test reale eseguito dall'utente in sessione Wayland.
+- XVB Lab si avvia e funziona regolarmente.
+- Nessuna differenza grafica o funzionale rilevata rispetto a X11.
+- L'avvio dei canali IPTV risulta apparentemente più rapido.
+- Test complessivo positivo; versione del Lab aggiornata a 4.4.5.
