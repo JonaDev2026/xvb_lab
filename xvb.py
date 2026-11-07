@@ -2464,7 +2464,7 @@ class Guida(tk.Toplevel):
             k = ide if ide and ide in app.epg else app.epg_nomi.get(nome_piatto(nome))
             if not k:
                 continue
-            prog = [(a, b, t) for a, b, t in app.epg.get(k, [])
+            prog = [(a, b, t, d) for a, b, t, d in app.epg.get(k, [])
                     if b > self.da and a < self.fino]
             if prog:
                 self.righe.append((nome, url, ide, prog))
@@ -2502,7 +2502,7 @@ class Guida(tk.Toplevel):
             fondo = PANNELLO if i % 2 else FONDO
             c.create_rectangle(0, y0, largo, y1, fill=fondo, outline="")
             colore = self.app.colore_canale(nome, url)
-            for a, b, titolo in prog:
+            for a, b, titolo, _descrizione in prog:
                 xa, xb = max(self.x_di(a), 0), self.x_di(b)
                 in_onda = a <= adesso < b
 
@@ -7454,7 +7454,7 @@ class TV(object):
 
             return (self.nome_canale(), "", _("not in the guide") if self.epg and self.nome
                     else "")
-        inizio, fine, titolo = p
+        inizio, fine, titolo = p[:3]
         mancanti = max(0, int((fine - time.time()) / 60))
 
         restano = {
@@ -10043,7 +10043,7 @@ class TV(object):
             if p:
 
 
-                inizio, fine, _t = p
+                inizio, fine, _t = p[:3]
                 senza_ora = True
                 parte = (time.time() - inizio) / max(1.0, fine - inizio)
                 parte = max(0.0, min(1.0, parte))
