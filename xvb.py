@@ -2848,6 +2848,7 @@ class Elenco(tk.Text):
         self.bindtags((str(self), str(self.winfo_toplevel()), "all"))
         self.voci = []
         self.posto = {}
+        self.righe = {}
         self.dati = {}
         self.scelta = None
         self.tag_configure("scelto", background=SCELTO, foreground="#ffffff")
@@ -2895,6 +2896,7 @@ class Elenco(tk.Text):
                               logo=logo, img=None)
         self.posto[iid] = len(self.voci)
         self.voci.append(iid)
+        self._aggiorna_righe()
         self.disegna(iid)
         return iid
 
@@ -2902,19 +2904,17 @@ class Elenco(tk.Text):
         if not iids:
             return
         if set(iids) >= set(self.voci):
-            tk.Text.delete(self, "1.0", "end")
             self.voci, self.dati, self.scelta, self.posto = [], {}, None, {}
-            self.ridisegna_colonna()
+            self.righe = {}
         else:
             for iid in iids:
                 if iid in self.dati:
-                    r = self.riga(iid)
-                    tk.Text.delete(self, "%d.0" % r, "%d.0" % (r + 3))
                     self.voci.remove(iid)
                     del self.dati[iid]
                     if self.scelta == iid:
                         self.scelta = None
             self.posto = {v: k for k, v in enumerate(self.voci)}
+        self.ridisegna_tutte()
 
     def item(self, iid, option=None, **kw):
         d = self.dati[iid]
@@ -2924,7 +2924,7 @@ class Elenco(tk.Text):
             return dict(d)
         for k, v in kw.items():
             d[k] = tuple(v) if k == "tags" else v
-        self.disegna(iid)
+        self.ridisegna_tutte()
         return None
 
     def selection(self):
@@ -2949,16 +2949,45 @@ class Elenco(tk.Text):
 
     def see(self, iid):
         if iid in self.dati:
-            tk.Text.see(self, "%d.0" % (self.riga(iid) + 1))
             tk.Text.see(self, "%d.0" % self.riga(iid))
 
 
+    def _ha_descrizione(self, iid):
+        resto = (self.dati[iid].get("text") or "").partition("\n")[2]
+        return bool(resto.partition("\n")[2])
+
+    def _righe_voce(self, iid):
+        return 4 if self._ha_descrizione(iid) else 3
+
+    def _aggiorna_righe(self):
+        r = 1
+        self.righe = {}
+        for iid in self.voci:
+            self.righe[iid] = r
+            r += self._righe_voce(iid)
+
+    def _indice_riga(self, riga):
+        for i, iid in enumerate(self.voci):
+            inizio = self.righe[iid]
+            if inizio <= riga < inizio + self._righe_voce(iid):
+                return i
+        return -1
+
+    def ridisegna_tutte(self):
+        tk.Text.delete(self, "1.0", "end")
+        self._aggiorna_righe()
+        for iid in self.voci:
+            self.dati[iid]["img"] = None
+            self.disegna(iid)
+
     def riga(self, iid):
-        return 3 * self.posto[iid] + 1
+        return self.righe[iid]
 
     def spanne(self, iid):
         r = self.riga(iid)
-        return ("%d.0" % r, "%d.0" % (r + 3))
+        return ("%d.0" % r, "%d.0" % (r + self._righe_voce(iid)))
+
+
 
     def corto(self, img):
         """Il pallino senza la trasparenza sopra e sotto (alto 14 px invece
@@ -2980,11 +3009,6 @@ class Elenco(tk.Text):
         testo = d["text"] or ""
         nome, _sep, resto = testo.partition("\n")
         sotto, _sep, descrizione = resto.partition("\n")
-        if d["img"] is not None:
-
-            tk.Text.delete(self, "%d.0" % r, "%d.0" % (r + 3))
-
-
         colore = d["colore"] or GRIGIO
         tinta = "c" + colore
         if tinta not in self.tinte:
@@ -2996,7 +3020,7 @@ class Elenco(tk.Text):
                                    lmargincolor=colore)
             elif self.segno == "logo":
                 self.tag_configure(tinta, foreground=colore, lmargin1=COLONNA,
-                                   lmargin2=COLONNA, lmargincolor=PANNELLO)
+                                   lmargin2=COLONNA, lmargincolor=ZEBRA)
             else:
                 self.tag_configure(tinta, foreground=colore, lmargin1=0, lmargin2=0)
             self.tag_lower(tinta, "zebra")
@@ -3030,13 +3054,16 @@ class Elenco(tk.Text):
         self.tag_add(tinta, "%d.0" % (r + 1)); self.tag_add("sotto", "%d.0" % (r + 1))
         if descrizione:
             tk.Text.insert(self, "%d.0" % (r + 2), descrizione + "\n", ("descrizione",) + zebra + extra)
-            self.image_create("%d.0" % (r + 2), image=sotto_img)
+            self.image_create("%d.0" % (r + 3), image=self.stacco)
+            self.tag_add("stacco", "%d.0" % (r + 3))
         else:
             self.image_create("%d.0" % (r + 2), image=self.stacco)
             self.tag_add("stacco", "%d.0" % (r + 2))
         for t in zebra + extra:
             self.tag_add(t, "%d.0" % r); self.tag_add(t, "%d.0" % (r + 1))
             self.tag_add(t, "%d.0" % (r + 2))
+            if descrizione:
+                self.tag_add(t, "%d.0" % (r + 3))
         d["img"] = True
         self.ridisegna_colonna()
 
@@ -3091,14 +3118,17 @@ class Elenco(tk.Text):
             except (tk.TclError, ValueError):
                 su = giu = 0
             larg = self.winfo_width()
-            for i in range(max(0, (su - 1) // 3), min(len(self.voci), (giu - 1) // 3 + 1)):
-                hh = h or (self.poster_onda_h if "onda" in self.dati[self.voci[i]]["tags"] else 0)
+            for i, iid in enumerate(self.voci):
+                r = self.riga(iid)
+                if r > giu or r + self._righe_voce(iid) < su:
+                    continue
+                hh = h or (self.poster_onda_h if "onda" in self.dati[iid]["tags"] else 0)
                 if not hh:
                     continue
-                img, titolo = self.poster_di(self.voci[i], larg - 8, hh)
+                img, titolo = self.poster_di(iid, larg - 8, hh)
                 if img is None and not titolo:
                     continue
-                riga = self.dlineinfo("%d.0" % (3 * i + 1))
+                riga = self.dlineinfo("%d.0" % r)
                 if riga is None:
                     continue
                 if usati >= len(self.poster_lbl):
@@ -3135,12 +3165,14 @@ class Elenco(tk.Text):
             except (tk.TclError, ValueError):
                 su = giu = 0
             adesso, larg = time.time(), self.winfo_width()
-            for i in range(max(0, (su - 1) // 3), min(len(self.voci), (giu - 1) // 3 + 1)):
-                iid = self.voci[i]
+            for i, iid in enumerate(self.voci):
+                r = self.riga(iid)
+                if r > giu or r + self._righe_voce(iid) < su:
+                    continue
                 parte = self.prog_di(iid)
                 if parte is None:
                     continue
-                riga = self.dlineinfo("%d.0" % (3 * i + 3))
+                riga = self.dlineinfo("%d.0" % (r + self._righe_voce(iid) - 1))
                 if riga is None:
                     continue
                 if usate >= len(self.barre):
@@ -3171,9 +3203,10 @@ class Elenco(tk.Text):
             giu = int(self.index("@0,%d" % self.winfo_height()).split(".")[0])
         except (tk.TclError, ValueError):
             return
-        for i in range(max(0, (su - 1) // 3), min(len(self.voci), (giu - 1) // 3 + 1)):
-            iid = self.voci[i]
-            r = 3 * i + 1
+        for i, iid in enumerate(self.voci):
+            r = self.riga(iid)
+            if r > giu or r + self._righe_voce(iid) < su:
+                continue
             a, b = self.dlineinfo("%d.0" % r), self.dlineinfo("%d.0" % (r + 1))
             if a is None and b is None:
                 continue
@@ -3214,7 +3247,7 @@ class Elenco(tk.Text):
             r = int(self.index("@%d,%d" % (COLONNA + 5, y)).split(".")[0])
         except (tk.TclError, ValueError):
             return "break"
-        i = (r - 1) // 3
+        i = self._indice_riga(r)
         if 0 <= i < len(self.voci):
             self.selection_set(self.voci[i])
             if attiva and self.singolo:
