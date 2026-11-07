@@ -2860,7 +2860,7 @@ class Elenco(tk.Text):
         self.tag_configure("nome", foreground="#ffffff", spacing1=self.nome_sopra, spacing3=4,
                            font=(CARATTERE, -NOME_PX, "bold"))
         self.tag_configure("sotto", spacing1=0, spacing3=14, font=(CARATTERE, -SOTTO_PX))
-        self.tag_configure("descrizione", foreground=GRIGIO, spacing1=0, spacing3=14,
+        self.tag_configure("descrizione", foreground=GRIGIO, spacing1=0, spacing3=0,
                            font=(CARATTERE, -SOTTO_PX))
         self.tag_configure("sotto_descrizione", spacing1=0, spacing3=0,
                            font=(CARATTERE, -SOTTO_PX))
@@ -3187,6 +3187,13 @@ class Elenco(tk.Text):
             y0 = (a[1] if a else b[1] - 20) - 1
             y1 = ((b[1] + b[3]) if b else a[1] + a[3]) - 1
             d = self.dati[iid]
+            testo = d.get("text") or ""
+            _nome, _sep, resto = testo.partition("\\n")
+            _sotto, _sep, descrizione = resto.partition("\\n")
+            if descrizione:
+                desc_info = self.dlineinfo("%d.0" % (r + 2))
+                if desc_info is not None:
+                    y1 = desc_info[1] + desc_info[3] - 1
             img = d.get("logo") or (self.corto(d["image"]) if d.get("image") is not None else None)
 
             nomi = self.tag_names("%d.0" % r)
