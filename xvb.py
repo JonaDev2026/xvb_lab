@@ -2597,7 +2597,7 @@ class Guida(tk.Toplevel):
 SCORRE = object()
 
 
-class Tendina(object):
+def _azione_informativa_audio():\n    pass\n\n\n_AZIONE_INFORMATIVA_AUDIO = _azione_informativa_audio\n\n\nclass Tendina(object):
     """Il menu a tendina disegnato noi, nello stile delle finestrelle:
     scuro, bordo sottile, voci con aria, spunta lilla su quella attiva,
     separatori fra i gruppi. Si chiude scegliendo, cliccando fuori o con
@@ -2651,8 +2651,8 @@ class Tendina(object):
             riga = tk.Frame(dove, bg=PANNELLO, height=self.ALTA, width=larga)
             riga.pack(fill="x")
             riga.pack_propagate(False)
-            colore = TESTO if cosa else GRIGIO
-            segno = tk.Label(riga, text="✓" if spunta else "", bg=PANNELLO,
+            informativa = cosa is _AZIONE_INFORMATIVA_AUDIO\n            colore = TESTO if cosa or informativa else GRIGIO
+            segno = tk.Label(riga, text="●" if spunta else "", bg=PANNELLO,
                              fg=ACCENTO, width=2, anchor="center")
             segno.pack(side="left", padx=(8, 0))
             et = tk.Label(riga, text=testo, bg=PANNELLO, fg=colore, anchor="w")
@@ -8881,7 +8881,7 @@ class TV(object):
             yy = 4 + i * R
             scelta = t.startswith("*  ")
             t = t[3:] if t[:3] in ("*  ", "   ") else t
-            if i == getattr(self, "ov_menu_sopra", None) and cosa:
+            if (i == getattr(self, "ov_menu_sopra", None) and cosa\n                    and cosa is not _AZIONE_INFORMATIVA_AUDIO):
 
                 luce = Image.new("RGBA", (mw, mh), (0, 0, 0, 0))
                 ImageDraw.Draw(luce).rounded_rectangle([4, yy + 1, mw - 5, yy + R - 2], radius=6,
@@ -8906,7 +8906,7 @@ class TV(object):
             try:
                 b = d.textbbox((0, 0), t, font=font_usato)
                 d.text((30, yy + (R - (b[3] - b[1])) // 2 - b[1]), t,
-                       fill=TESTO if cosa else GRIGIO, font=font_usato)
+                       fill=TESTO if cosa or cosa is _AZIONE_INFORMATIVA_AUDIO else GRIGIO, font=font_usato)
             except Exception:
                 pass
         k = getattr(self, "ov_k", 1.0)
@@ -9013,7 +9013,7 @@ class TV(object):
         self.ov_sopra = sopra
 
 
-        su_qualcosa = bool(z) or (getattr(self, "ov_menu", None) and self.riga_menu_ov() is not None)
+        riga_menu = self.riga_menu_ov() if getattr(self, "ov_menu", None) else None\n        voce_menu_attiva = (riga_menu is not None and riga_menu >= 0\n                            and self.ov_menu[riga_menu][1] is not _AZIONE_INFORMATIVA_AUDIO)\n        su_qualcosa = bool(z) or voce_menu_attiva
         mano = "hand2" if su_qualcosa else ""
         if self.video.cget("cursor") != mano:
             self.video.config(cursor=mano)
@@ -9264,15 +9264,13 @@ class TV(object):
 
 
     def dispositivi_uscita_audio(self):
-        """Elenco delle uscite audio pubblicate dal sistema."""
+        """Elenco delle uscite audio con nomi leggibili e uscita predefinita."""
         risultati = []
+        predefinito = self.nome_uscita_predefinita()
         try:
             risposta = subprocess.run(
                 ["pactl", "-f", "json", "list", "sinks"],
-                capture_output=True,
-                text=True,
-                timeout=3,
-                check=True
+                capture_output=True, text=True, timeout=3, check=True
             )
             for uscita in json.loads(risposta.stdout):
                 nome = str(uscita.get("name") or "").strip()
@@ -9282,35 +9280,18 @@ class TV(object):
                 descrizione = str(
                     uscita.get("description")
                     or proprieta.get("device.description")
-                    or nome
+                    or proprieta.get("device.nick")
+                    or proprieta.get("device.product.name")
+                    or ""
                 ).strip()
-                risultati.append(("pulse/" + nome, descrizione))
+                if not descrizione:
+                    descrizione = "Audio output %d" % (len(risultati) + 1)
+                risultati.append(("pulse/" + nome, descrizione, nome == predefinito))
         except Exception:
             try:
                 risposta = subprocess.run(
-                    ["pactl", "list", "short", "sinks"],
-                    capture_output=True,
-                    text=True,
-                    timeout=3,
-                    check=True
-                )
-                for riga in risposta.stdout.splitlines():
-                    campi = riga.split()
-                    if len(campi) >= 2:
-                        nome = campi[1].strip()
-                        if nome:
-                            risultati.append(("pulse/" + nome, nome))
-            except Exception:
-                pass
-
-        if not risultati:
-            try:
-                risposta = subprocess.run(
-                    ["wpctl", "status", "-n"],
-                    capture_output=True,
-                    text=True,
-                    timeout=4,
-                    check=True
+                    ["wpctl", "status", "-n"], capture_output=True,
+                    text=True, timeout=4, check=True
                 )
                 in_uscite = False
                 nodi = []
@@ -9320,81 +9301,74 @@ class TV(object):
                         in_uscite = True
                         continue
                     if in_uscite and any(testo.endswith(voce) for voce in (
-                            "Sources:", "Filters:", "Streams:",
-                            "Video:", "Settings")):
+                            "Sources:", "Filters:", "Streams:", "Video:", "Settings")):
                         break
                     if not in_uscite:
                         continue
                     voce = re.search(r"^(\*)?\s*(\d+)\.\s+(\S+)", testo)
                     if voce:
-                        nodi.append((voce.group(2), voce.group(3)))
-
-                for identificativo, nome in nodi:
-                    descrizione = nome
+                        nodi.append((voce.group(2), voce.group(3), bool(voce.group(1))))
+                for indice, (identificativo, nome_tecnico, attiva) in enumerate(nodi, 1):
+                    dettagli = ""
+                    proprieta = {}
                     try:
-                        dettagli = subprocess.run(
+                        info = subprocess.run(
                             ["wpctl", "inspect", identificativo],
-                            capture_output=True,
-                            text=True,
-                            timeout=3,
-                            check=True
-                        )
+                            capture_output=True, text=True, timeout=3, check=True
+                        ).stdout
+                        for chiave in (
+                            "node.description", "device.description", "device.nick",
+                            "device.product.name", "api.bluez5.alias"
+                        ):
+                            voce = re.search(
+                                r'^\s*' + re.escape(chiave) + r'\s*=\s*"([^"]+)"',
+                                info, re.MULTILINE
+                            )
+                            if voce and voce.group(1).strip():
+                                dettagli = voce.group(1).strip()
+                                break
                         voce = re.search(
-                            r'^\s*node\.description\s*=\s*"([^"]+)"',
-                            dettagli.stdout,
-                            re.MULTILINE
+                            r'^\s*node.name\s*=\s*"([^"]+)"',
+                            info, re.MULTILINE
                         )
-                        if voce:
-                            descrizione = voce.group(1).strip()
-                        voce_nome = re.search(
-                            r'^\s*node\.name\s*=\s*"([^"]+)"',
-                            dettagli.stdout,
-                            re.MULTILINE
-                        )
-                        if voce_nome:
-                            nome = voce_nome.group(1).strip()
+                        nome_pipewire = voce.group(1).strip() if voce else nome_tecnico
                     except Exception:
-                        pass
-                    if nome:
-                        risultati.append(("pulse/" + nome, descrizione))
+                        nome_pipewire = nome_tecnico
+                    if not dettagli:
+                        dettagli = "Audio output %d" % indice
+                    risultati.append((
+                        "pulse/" + nome_pipewire, dettagli,
+                        attiva or nome_pipewire == predefinito
+                    ))
             except Exception:
                 pass
-
-        visti = set()
         unici = []
-        for nome, descrizione in risultati:
+        visti = set()
+        for nome, descrizione, attiva in risultati:
             if nome not in visti:
                 visti.add(nome)
-                unici.append((nome, descrizione))
+                unici.append((nome, descrizione, attiva))
         return unici
 
     def nome_uscita_predefinita(self):
         try:
             risposta = subprocess.run(
-                ["pactl", "get-default-sink"],
-                capture_output=True,
-                text=True,
-                timeout=2,
-                check=True
+                ["pactl", "get-default-sink"], capture_output=True,
+                text=True, timeout=2, check=True
             )
             nome = risposta.stdout.strip()
             if nome:
                 return nome
         except Exception:
             pass
-
         try:
             risposta = subprocess.run(
                 ["wpctl", "inspect", "@DEFAULT_AUDIO_SINK@"],
-                capture_output=True,
-                text=True,
-                timeout=3,
-                check=True
+                capture_output=True, text=True, timeout=3, check=True
             )
             voce = re.search(
-                r'^\s*node\.name\s*=\s*"([^"]+)"',
-                risposta.stdout,
-                re.MULTILINE
+                r'^\s*node.name\s*=\s*"([^"]+)"',
+                risposta.stdout, re.MULTILINE
             )
             if voce:
                 return voce.group(1).strip()
@@ -9420,14 +9394,15 @@ class TV(object):
             return False
 
     def voci_uscita_audio(self):
-        """Mostra tutte le uscite audio pubblicate dal sistema."""
-        uscite = self.dispositivi_uscita_audio()
-        return [(descrizione, lambda: None)
-                for _nome, descrizione in uscite if descrizione]
+        """Voci informative: non selezionabili, con pallino sull'uscita attiva."""
+        return [
+            (("*  " if attiva else "   ") + descrizione, _VOCE_INFORMATIVA)
+            for _nome, descrizione, attiva in self.dispositivi_uscita_audio()
+        ]
 
     def scegli_uscita_audio(self):
-        """Finestra informativa delle uscite audio pubblicate dal sistema."""
-        voci = self.voci_uscita_audio()
+        """Mostra le uscite senza permettere di selezionarle."""
+        uscite = self.dispositivi_uscita_audio()
         finestra = tk.Toplevel(self.root)
         finestra.title(_("System audio outputs"))
         finestra.configure(bg=PANNELLO)
@@ -9436,32 +9411,29 @@ class TV(object):
         finestra.grab_set()
         tk.Label(
             finestra,
-            text=_("*  System default output") + "\n" + _("GNOME manages audio routing."),
-            bg=PANNELLO,
-            fg=TESTO,
-            justify="left",
+            text=_("GNOME manages audio routing."),
+            bg=PANNELLO, fg="#ffffff", justify="left",
             font=(CARATTERE, 10, STILE_CARATTERE)
         ).pack(anchor="w", padx=16, pady=(14, 8))
-        lista = tk.Listbox(
-            finestra,
-            height=min(10, max(2, len(voci))),
-            width=58,
-            bg=IN_ONDA,
-            fg=TESTO,
-            activestyle="none",
-            relief="flat",
-            highlightthickness=0,
-            exportselection=False
-        )
+        lista = tk.Frame(finestra, bg=PANNELLO)
         lista.pack(fill="both", expand=True, padx=14, pady=4)
-        for testo, _azione in voci:
-            lista.insert("end", testo.strip())
-        for i, (testo, _azione) in enumerate(voci):
-            if testo.startswith("*  "):
-                lista.selection_set(i)
-                lista.activate(i)
-                lista.see(i)
-                break
+        for _nome, descrizione, attiva in uscite:
+            riga = tk.Frame(lista, bg=PANNELLO, height=30)
+            riga.pack(fill="x")
+            riga.pack_propagate(False)
+            tk.Label(
+                riga, text="●" if attiva else "", width=3,
+                bg=PANNELLO, fg=ACCENTO, anchor="center"
+            ).pack(side="left")
+            tk.Label(
+                riga, text=descrizione, bg=PANNELLO, fg="#ffffff",
+                anchor="w", font=(CARATTERE, 10)
+            ).pack(side="left", fill="both", expand=True)
+        tk.Button(
+            finestra, text=_("Close"), command=finestra.destroy,
+            relief="flat", bg=ACCENTO, fg="#17121f",
+            padx=16, pady=6
+        ).pack(anchor="e", padx=14, pady=14)
         tk.Button(
             finestra,
             text=_("Close"),
