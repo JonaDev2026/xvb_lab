@@ -3054,8 +3054,7 @@ class Elenco(tk.Text):
         self.tag_add(tinta, "%d.0" % (r + 1)); self.tag_add("sotto", "%d.0" % (r + 1))
         if descrizione:
             tk.Text.insert(self, "%d.0" % (r + 2), descrizione + "\n", ("descrizione",) + zebra + extra)
-            self.image_create("%d.0" % (r + 3), image=self.stacco)
-            self.tag_add("stacco", "%d.0" % (r + 3))
+            tk.Text.insert(self, "%d.0" % (r + 3), "\n", ("descrizione",) + zebra + extra)
         else:
             self.image_create("%d.0" % (r + 2), image=self.stacco)
             self.tag_add("stacco", "%d.0" % (r + 2))
@@ -3221,7 +3220,7 @@ class Elenco(tk.Text):
             y1 = ((b[1] + b[3]) if b else a[1] + a[3]) - 1
             d = self.dati[iid]
             if self._ha_descrizione(iid):
-                desc_info = self.dlineinfo("%d.0" % (r + 2))
+                desc_info = self.dlineinfo("%d.0" % (r + 3))
                 if desc_info is not None:
                     y1 = desc_info[1] + desc_info[3] - 1
             img = d.get("logo") or (self.corto(d["image"]) if d.get("image") is not None else None)
