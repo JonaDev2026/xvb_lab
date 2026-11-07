@@ -9141,7 +9141,7 @@ class TV(object):
                         check=True
                     )
                     for riga in risposta.stdout.splitlines():
-                        campi = riga.split("\\t")
+                        campi = riga.split("\t")
                         if len(campi) >= 2 and campi[1]:
                             nome = campi[1].strip()
                             risultati.append(
