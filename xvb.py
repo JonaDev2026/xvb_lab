@@ -9409,13 +9409,13 @@ class TV(object):
     def voci_uscita_audio(self):
         """Voci informative: non selezionabili, con pallino sull'uscita attiva."""
         return [
-            (("*  " if attiva else "   ") + descrizione, _VOCE_INFORMATIVA)
+            (("*  " if attiva else "   ") + descrizione, _AZIONE_INFORMATIVA_AUDIO)
             for _nome, descrizione, attiva in self.dispositivi_uscita_audio()
         ]
 
     def scegli_uscita_audio(self):
-        """Mostra le uscite senza permettere di selezionarle."""
-        uscite = self.dispositivi_uscita_audio()
+        """Finestra informativa delle uscite audio pubblicate dal sistema."""
+        voci = self.voci_uscita_audio()
         finestra = tk.Toplevel(self.root)
         finestra.title(_("System audio outputs"))
         finestra.configure(bg=PANNELLO)
@@ -9424,28 +9424,41 @@ class TV(object):
         finestra.grab_set()
         tk.Label(
             finestra,
-            text=_("GNOME manages audio routing."),
-            bg=PANNELLO, fg="#ffffff", justify="left",
+            text=_("*  System default output") + "\n" + _("GNOME manages audio routing."),
+            bg=PANNELLO,
+            fg=TESTO,
+            justify="left",
             font=(CARATTERE, 10, STILE_CARATTERE)
         ).pack(anchor="w", padx=16, pady=(14, 8))
-        lista = tk.Frame(finestra, bg=PANNELLO)
+        lista = tk.Listbox(
+            finestra,
+            height=min(10, max(2, len(voci))),
+            width=58,
+            bg=IN_ONDA,
+            fg=TESTO,
+            activestyle="none",
+            relief="flat",
+            highlightthickness=0,
+            exportselection=False
+        )
         lista.pack(fill="both", expand=True, padx=14, pady=4)
-        for _nome, descrizione, attiva in uscite:
-            riga = tk.Frame(lista, bg=PANNELLO, height=30)
-            riga.pack(fill="x")
-            riga.pack_propagate(False)
-            tk.Label(
-                riga, text="●" if attiva else "", width=3,
-                bg=PANNELLO, fg=ACCENTO, anchor="center"
-            ).pack(side="left")
-            tk.Label(
-                riga, text=descrizione, bg=PANNELLO, fg="#ffffff",
-                anchor="w", font=(CARATTERE, 10)
-            ).pack(side="left", fill="both", expand=True)
+        for testo, _azione in voci:
+            lista.insert("end", testo.strip())
+        for i, (testo, _azione) in enumerate(voci):
+            if testo.startswith("*  "):
+                lista.selection_set(i)
+                lista.activate(i)
+                lista.see(i)
+                break
         tk.Button(
-            finestra, text=_("Close"), command=finestra.destroy,
-            relief="flat", bg=ACCENTO, fg="#17121f",
-            padx=16, pady=6
+            finestra,
+            text=_("Close"),
+            command=finestra.destroy,
+            relief="flat",
+            bg=ACCENTO,
+            fg="#17121f",
+            padx=16,
+            pady=6
         ).pack(anchor="e", padx=14, pady=14)
 
     def sincronizza_uscita_audio_sistema(self):
