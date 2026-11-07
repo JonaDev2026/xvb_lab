@@ -8981,7 +8981,7 @@ class TV(object):
         z = self.zona_ov()
         sopra = z[0][5] if z else None
         if sopra in (self.b_muto, self.volume, self.b_audio_menu):
-            if getattr(self, "ov_sopra", None) not in (self.b_muto, self.volume):
+            if getattr(self, "ov_sopra", None) not in (self.b_muto, self.volume, self.b_audio_menu):
                 self.apri_volume()
         elif (getattr(self, "ov_sopra", None) in (self.b_muto, self.volume, self.b_audio_menu)
               and not getattr(self, "ov_menu", None)):
