@@ -4260,7 +4260,6 @@ class TV(object):
         self.b_audio_menu.bind("<Enter>", lambda e: self.hover_tk(self.b_audio_menu, True), add="+")
         self.b_audio_menu.bind("<Leave>", lambda e: self.hover_tk(self.b_audio_menu, False), add="+")
         self.b_audio_menu.pack(side="right", padx=0, pady=6, before=self.volume)
-        self.b_audio_menu.pack_forget()
         self.b_muto = self.tasto("volume", _("Mute"), self.muto, lato="right")
 
 
@@ -7987,17 +7986,9 @@ class TV(object):
         passo = self.volume.larga // 5
         largo = max(0, min(self.volume.larga, self.volume_largo + verso * passo))
         if largo == self.volume_largo:
-            if largo == 0 and self.b_audio_menu.winfo_ismapped():
-                self.b_audio_menu.pack_forget()
-                if self.barra_in_overlay():
-                    self.disegna_ov()
             return
         self.volume_largo = largo
         self.volume.config(width=largo)
-        if largo > 0 and not self.b_audio_menu.winfo_ismapped():
-            self.b_audio_menu.pack(side="right", padx=0, pady=6, before=self.volume)
-        elif largo == 0 and self.b_audio_menu.winfo_ismapped():
-            self.b_audio_menu.pack_forget()
         if self.barra_in_overlay():
             self.disegna_ov()
         if 0 < largo < self.volume.larga:
