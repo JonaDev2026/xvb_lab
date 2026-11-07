@@ -7889,7 +7889,7 @@ class TV(object):
             pass
 
         nome_sink = ""
-        if dispositivo == "auto":
+        if dispositivo in ("auto", "pipewire", "pulse", "alsa", "jack", "sdl", "sndio"):
             try:
                 risposta = subprocess.run(
                     ["pactl", "get-default-sink"],
