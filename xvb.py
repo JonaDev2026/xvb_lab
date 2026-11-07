@@ -9447,16 +9447,6 @@ class TV(object):
             relief="flat", bg=ACCENTO, fg="#17121f",
             padx=16, pady=6
         ).pack(anchor="e", padx=14, pady=14)
-        tk.Button(
-            finestra,
-            text=_("Close"),
-            command=finestra.destroy,
-            relief="flat",
-            bg=ACCENTO,
-            fg="#17121f",
-            padx=16,
-            pady=6
-        ).pack(anchor="e", padx=14, pady=14)
 
     def sincronizza_uscita_audio_sistema(self):
         predefinito = self.nome_uscita_predefinita()
