@@ -3760,7 +3760,8 @@ class TV(object):
                   "rec", "rec_stop",
                   "volume", "volume_high",
                   "volume_low", "volume_off", "muto", "pieno", "prima", "dopo",
-                  "aperto", "chiuso", "setting", "epg", "shuffle", "stop", "pip", "timer"):
+                  "aperto", "chiuso", "setting", "epg", "shuffle", "stop", "pip", "timer",
+                  "cuffie", "cuffie_bluetooth"):
             p = os.path.join(QUI, "icone", n + ".png")
             if os.path.isfile(p):
                 if HA_PIL:
@@ -3793,8 +3794,6 @@ class TV(object):
                     self.icone_pil[n] = im
                     self.icone[n] = ImageTk.PhotoImage(im)
 
-
-        self.crea_icone_audio()
 
         if "epg" not in self.icone:
             self.icona_testo("epg", "EPG")
@@ -4350,7 +4349,8 @@ class TV(object):
         self.applica_uscita_audio(silenzioso=True)
         self.tipo_uscita_corrente = self.rileva_tipo_uscita_audio()
         self.icona_volume()
-        self.root.after(2000, self.controlla_uscita_audio)
+        self.root.after(10000, self.controlla_uscita_audio)
+        threading.Thread(target=self.ascolta_eventi_uscita_audio, daemon=True).start()
         if self.cfg.get("in_cima"):
             self.root.attributes("-topmost", True)
         if self.icone_mancanti:
@@ -7798,79 +7798,6 @@ class TV(object):
             return
         self.icona_volume()
 
-    def crea_icone_audio(self):
-        colore = "#ffffff"
-
-        def disegna(bluetooth):
-            if HA_PIL:
-                from PIL import ImageDraw
-                immagine = Image.new("RGBA", (24, 24), (0, 0, 0, 0))
-                disegno = ImageDraw.Draw(immagine)
-                disegno.arc((4, 3, 20, 20), 205, 335, fill=colore, width=2)
-                disegno.line((4, 10, 4, 19), fill=colore, width=3)
-                disegno.line((20, 10, 20, 19), fill=colore, width=3)
-                disegno.line((15, 8, 15, 20), fill=colore, width=2)
-                if bluetooth:
-                    disegno.line((15, 8, 20, 12, 15, 15, 20, 18, 15, 20),
-                                 fill=colore, width=2)
-                    disegno.line((15, 15, 20, 10), fill=colore, width=2)
-                    disegno.line((15, 15, 20, 20), fill=colore, width=2)
-                return immagine
-
-            immagine = tk.PhotoImage(width=24, height=24)
-
-            def punto(x, y, r=1):
-                for dx in range(-r, r + 1):
-                    for dy in range(-r, r + 1):
-                        xx, yy = x + dx, y + dy
-                        if 0 <= xx < 24 and 0 <= yy < 24:
-                            immagine.put(colore, (xx, yy))
-
-            def linea(x0, y0, x1, y1, r=1):
-                x0, y0, x1, y1 = map(int, (x0, y0, x1, y1))
-                dx, dy = abs(x1 - x0), abs(y1 - y0)
-                sx = 1 if x0 < x1 else -1
-                sy = 1 if y0 < y1 else -1
-                errore = dx - dy
-                while True:
-                    punto(x0, y0, r)
-                    if x0 == x1 and y0 == y1:
-                        break
-                    doppio = 2 * errore
-                    if doppio > -dy:
-                        errore -= dy
-                        x0 += sx
-                    if doppio < dx:
-                        errore += dx
-                        y0 += sy
-
-            punti = []
-            for angolo in range(205, 336, 5):
-                radiante = math.radians(angolo)
-                punti.append((round(12 + 8 * math.cos(radiante)),
-                              round(13 + 8 * math.sin(radiante))))
-            for a, b in zip(punti, punti[1:]):
-                linea(a[0], a[1], b[0], b[1])
-            linea(4, 10, 4, 19, 2)
-            linea(20, 10, 20, 19, 2)
-            if bluetooth:
-                linea(15, 8, 15, 20)
-                linea(15, 8, 20, 12)
-                linea(20, 12, 15, 15)
-                linea(15, 15, 20, 18)
-                linea(20, 18, 15, 20)
-                linea(15, 15, 20, 10)
-                linea(15, 15, 20, 20)
-            return immagine
-
-        for nome, bluetooth in (("cuffie", False), ("cuffie_bluetooth", True)):
-            immagine = disegna(bluetooth)
-            if HA_PIL:
-                self.icone_pil[nome] = immagine
-                self.icone[nome] = ImageTk.PhotoImage(immagine)
-            else:
-                self.icone[nome] = immagine
-
     def rileva_tipo_uscita_audio(self):
         dispositivo = "auto"
         try:
@@ -7958,13 +7885,44 @@ class TV(object):
 
         return "altoparlanti"
 
+    def applica_tipo_uscita_audio(self, tipo):
+        if tipo != self.tipo_uscita_corrente:
+            self.tipo_uscita_corrente = tipo
+            self.icona_volume()
+
+    def ascolta_eventi_uscita_audio(self):
+        while True:
+            processo = None
+            try:
+                processo = subprocess.Popen(
+                    ["pactl", "subscribe"],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.DEVNULL,
+                    text=True,
+                    bufsize=1
+                )
+                for evento in processo.stdout:
+                    if "on sink" in evento or "on server" in evento:
+                        tipo = self.rileva_tipo_uscita_audio()
+                        try:
+                            self.root.after(
+                                0, lambda t=tipo: self.applica_tipo_uscita_audio(t)
+                            )
+                        except tk.TclError:
+                            return
+                processo.wait()
+            except Exception:
+                pass
+            finally:
+                if processo and processo.poll() is None:
+                    processo.terminate()
+            time.sleep(3)
+
     def controlla_uscita_audio(self):
         try:
             tipo = self.rileva_tipo_uscita_audio()
-            if tipo != self.tipo_uscita_corrente:
-                self.tipo_uscita_corrente = tipo
-                self.icona_volume()
-            self.root.after(2000, self.controlla_uscita_audio)
+            self.applica_tipo_uscita_audio(tipo)
+            self.root.after(10000, self.controlla_uscita_audio)
         except tk.TclError:
             pass
 
