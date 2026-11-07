@@ -7940,7 +7940,8 @@ class TV(object):
                        ("headset", "headphone", "cuffie", "auricolari", "earbuds"))):
             return "cuffie"
 
-        if not proprieta and dispositivo == "auto":
+        if not proprieta and dispositivo in (
+                "auto", "pipewire", "pulse", "alsa", "jack", "sdl", "sndio"):
             try:
                 risposta = subprocess.run(
                     ["wpctl", "inspect", "@DEFAULT_AUDIO_SINK@"],
