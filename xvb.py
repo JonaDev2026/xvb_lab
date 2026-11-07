@@ -9423,27 +9423,46 @@ class TV(object):
         """Mostra soltanto il nome leggibile dell'uscita predefinita."""
         descrizione = ""
         try:
-            dettagli = subprocess.run(
-                ["wpctl", "inspect", "@DEFAULT_AUDIO_SINK@"],
+            risposta = subprocess.run(
+                ["wpctl", "status", "-n"],
                 capture_output=True,
                 text=True,
-                timeout=3,
+                timeout=4,
                 check=True
             )
-            voce = re.search(
-                r'^\s*node\.(?:description|nick)\s*=\s*"?([^"\n]+)"?\s*$',
-                dettagli.stdout,
-                re.MULTILINE
-            )
-            if voce:
-                descrizione = voce.group(1).strip()
+            in_uscite = False
+            identificativo = ""
+            for riga in risposta.stdout.splitlines():
+                testo = re.sub(r"^[│├└─\s]+", "", riga)
+                if testo.endswith("Sinks:"):
+                    in_uscite = True
+                    continue
+                if in_uscite and any(testo.endswith(voce) for voce in (
+                        "Sources:", "Filters:", "Streams:",
+                        "Video:", "Settings")):
+                    break
+                if in_uscite:
+                    voce = re.search(r"^\*\s*(\d+)\.\s+", testo)
+                    if voce:
+                        identificativo = voce.group(1)
+                        break
+            if identificativo:
+                dettagli = subprocess.run(
+                    ["wpctl", "inspect", identificativo],
+                    capture_output=True,
+                    text=True,
+                    timeout=3,
+                    check=True
+                )
+                voce = re.search(
+                    r'^\s*node\.(?:description|nick)\s*=\s*"([^"]+)"',
+                    dettagli.stdout,
+                    re.MULTILINE
+                )
+                if voce:
+                    descrizione = voce.group(1).strip()
         except Exception:
             pass
-        if not descrizione:
-            dispositivi = dict(self.dispositivi_uscita_audio())
-            predefinito = self.nome_uscita_predefinita()
-            nome = "pulse/" + predefinito if predefinito else ""
-            descrizione = dispositivi.get(nome, "")
         if not descrizione:
             descrizione = _("System default output")
         return [("*  " + descrizione, lambda: None)]
