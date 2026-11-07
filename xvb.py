@@ -3779,6 +3779,10 @@ class TV(object):
                     except Exception:
                         pass
 
+        if HA_PIL and "aperto" in self.icone_pil:
+            self.icone_pil["aperto_su"] = self.icone_pil["aperto"].rotate(180, resample=Image.BICUBIC)
+            self.icone["aperto_su"] = ImageTk.PhotoImage(self.icone_pil["aperto_su"])
+
         if HA_PIL:
             dimensioni_icone = {
                 "play": (34, 34),
@@ -4246,7 +4250,7 @@ class TV(object):
 
         self.b_sidebar.pack_forget()
         self.b_sidebar.pack(side="right", padx=2, pady=6, before=self.b_pieno)
-        self.b_audio_menu = self.tasto(None, "⌄", self.apri_menu_uscita_audio,
+        self.b_audio_menu = self.tasto("aperto_su", "", self.apri_menu_uscita_audio,
                                        largo=2, lato="right", padx=0)
         self.b_audio_menu.pack_forget()
         self.volume = Cursore(self.barra, self.alza_volume, larga=85)
