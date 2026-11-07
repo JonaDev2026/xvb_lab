@@ -3904,7 +3904,6 @@ class TV(object):
             (_("Reset subtitles"), self.azzera_sottotitoli)] + [None] + [
             (("*  " if self.cfg.get("boost") else "   ") + _("Volume boost +50%"), self.boost),
             (("*  " if self.cfg.get("normalizza") else "   ") + _("Normalize loudness"), self.normalizza),
-            (_("Audio output device..."), self.scegli_uscita_audio),
             (_("Audio equalizer..."), self.equalizzatore_audio),
             None,
             (_("Delay +100 ms"), lambda: self.ritardo_audio(+0.1)),
@@ -4247,6 +4246,9 @@ class TV(object):
 
         self.b_sidebar.pack_forget()
         self.b_sidebar.pack(side="right", padx=2, pady=6, before=self.b_pieno)
+        self.b_audio_menu = self.tasto(None, "⌄", self.apri_menu_uscita_audio,
+                                       largo=2, lato="right", padx=0)
+        self.b_audio_menu.pack_forget()
         self.volume = Cursore(self.barra, self.alza_volume, larga=85)
         self.volume.pack(side="right", padx=0)
         self.b_muto = self.tasto("volume", _("Mute"), self.muto, lato="right")
@@ -4254,7 +4256,7 @@ class TV(object):
 
         self.volume_largo, self.volume_dopo = 0, None
         self.volume.config(width=0)
-        for w in (self.b_muto, self.volume):
+        for w in (self.b_muto, self.volume, self.b_audio_menu):
             w.bind("<Enter>", lambda e: self.apri_volume(), add="+")
             w.bind("<Leave>", lambda e: self.chiudi_volume_tra_poco(), add="+")
 
@@ -7495,6 +7497,7 @@ class TV(object):
             if getattr(self, "ov_menu", None):
                 self.chiudi_menu_ov()
             else:
+                self.ov_menu_bottone = self.b_qualita
                 self.ov_menu, self.ov_menu_sopra = self.voci_qualita(), None
                 self.gira_ingranaggio(+1)
                 self.disegna_menu_ov()
@@ -7956,6 +7959,8 @@ class TV(object):
         self.anima_volume(+1)
 
     def chiudi_volume_tra_poco(self):
+        if self.tendina.aperta() and self.tendina.chi is self.b_audio_menu:
+            return
         if self.volume_dopo:
             self.root.after_cancel(self.volume_dopo)
         self.volume_dopo = self.root.after(400, lambda: self.anima_volume(-1))
@@ -7969,6 +7974,10 @@ class TV(object):
             return
         self.volume_largo = largo
         self.volume.config(width=largo)
+        if largo > 0 and not self.b_audio_menu.winfo_ismapped():
+            self.b_audio_menu.pack(side="right", padx=0, pady=6, before=self.volume)
+        elif largo == 0 and self.b_audio_menu.winfo_ismapped():
+            self.b_audio_menu.pack_forget()
         if self.barra_in_overlay():
             self.disegna_ov()
         if 0 < largo < self.volume.larga:
@@ -8811,7 +8820,8 @@ class TV(object):
 
     def disegna_menu_ov(self):
         voci = getattr(self, "ov_menu", None)
-        if not voci or getattr(self, "ov", None) is None or self.b_qualita not in getattr(self, "ov_posti", {}):
+        ancora = getattr(self, "ov_menu_bottone", None)
+        if not voci or getattr(self, "ov", None) is None or ancora not in getattr(self, "ov_posti", {}):
             self.togli_menu_ov()
             return
         from PIL import ImageDraw
@@ -8827,7 +8837,7 @@ class TV(object):
                 larghe.append(len(t) * 7)
         mw = max(larghe + [60]) + 44
         mh = len(voci) * R + 8
-        gx, gl = self.ov_posti[self.b_qualita]
+        gx, gl = self.ov_posti[ancora]
         x = max(0, min(gx + gl - mw, self.video.winfo_width() - mw))
         # il menu poggia sulla riga dei bottoni (come in Tk: 4 px sopra al bottone),
         # non sul bordo alto della barra, che e' piu' su di OV_ALTA - OV_RIGA px
@@ -8898,8 +8908,11 @@ class TV(object):
     def chiudi_menu_ov(self):
         self.ov_menu_fuori = None
         if getattr(self, "ov_menu", None):
+            ancora = getattr(self, "ov_menu_bottone", None)
             self.ov_menu = None
-            self.gira_ingranaggio(-1)
+            self.ov_menu_bottone = None
+            if ancora is self.b_qualita:
+                self.gira_ingranaggio(-1)
         self.togli_menu_ov()
 
     def riga_menu_ov(self):
@@ -8967,10 +8980,11 @@ class TV(object):
             return
         z = self.zona_ov()
         sopra = z[0][5] if z else None
-        if sopra in (self.b_muto, self.volume):
+        if sopra in (self.b_muto, self.volume, self.b_audio_menu):
             if getattr(self, "ov_sopra", None) not in (self.b_muto, self.volume):
                 self.apri_volume()
-        elif getattr(self, "ov_sopra", None) in (self.b_muto, self.volume):
+        elif (getattr(self, "ov_sopra", None) in (self.b_muto, self.volume, self.b_audio_menu)
+              and not getattr(self, "ov_menu", None)):
             self.chiudi_volume_tra_poco()
         self.ov_sopra = sopra
 
@@ -8985,7 +8999,7 @@ class TV(object):
                 self.ov_menu_sopra = r
                 self.disegna_menu_ov()
 
-            if r is None and sopra is not self.b_qualita:
+            if r is None and sopra is not getattr(self, "ov_menu_bottone", None):
                 if not getattr(self, "ov_menu_fuori", None):
                     self.ov_menu_fuori = time.time()
                 elif time.time() - self.ov_menu_fuori > 2.0:
@@ -9040,7 +9054,7 @@ class TV(object):
 
             z = self.zona_ov()
             self.chiudi_menu_ov()
-            if z and z[0][5] is self.b_qualita:
+            if z and z[0][5] is getattr(self, "ov_menu_bottone", None):
                 return True
         z = self.zona_ov()
         if z is None:
@@ -9225,72 +9239,47 @@ class TV(object):
 
 
     def dispositivi_uscita_audio(self):
-        """Elenco dei dispositivi audio disponibili."""
-        try:
-            elenco = self.mpv._get_property("audio-device-list") or []
-        except Exception:
-            elenco = []
-
         risultati = []
-
-        for voce in elenco:
-            if not isinstance(voce, dict):
-                continue
-
-            nome = voce.get("name")
-            descrizione = voce.get("description") or nome
-
-            if nome and str(nome) != "auto":
-                risultati.append((str(nome), str(descrizione)))
-
-        if not risultati:
+        try:
+            risposta = subprocess.run(
+                ["pactl", "-f", "json", "list", "sinks"],
+                capture_output=True,
+                text=True,
+                timeout=3,
+                check=True
+            )
+            for uscita in json.loads(risposta.stdout):
+                nome = uscita.get("name")
+                proprieta = uscita.get("properties") or {}
+                descrizione = (
+                    uscita.get("description")
+                    or proprieta.get("device.description")
+                    or nome
+                )
+                if nome:
+                    risultati.append(("pulse/" + str(nome), str(descrizione)))
+        except Exception:
             try:
                 risposta = subprocess.run(
-                    ["pactl", "-f", "json", "list", "sinks"],
+                    ["pactl", "list", "short", "sinks"],
                     capture_output=True,
                     text=True,
                     timeout=3,
                     check=True
                 )
-                uscite = json.loads(risposta.stdout)
-                for uscita in uscite:
-                    nome = uscita.get("name")
-                    proprieta = uscita.get("properties") or {}
-                    descrizione = (
-                        uscita.get("description")
-                        or proprieta.get("device.description")
-                        or nome
-                    )
-                    if nome:
-                        risultati.append(
-                            ("pulse/" + str(nome), str(descrizione))
-                        )
+                for riga in risposta.stdout.splitlines():
+                    campi = riga.split("\t")
+                    if len(campi) >= 2 and campi[1]:
+                        nome = campi[1].strip()
+                        risultati.append(("pulse/" + nome, nome))
             except Exception:
-                try:
-                    risposta = subprocess.run(
-                        ["pactl", "list", "short", "sinks"],
-                        capture_output=True,
-                        text=True,
-                        timeout=3,
-                        check=True
-                    )
-                    for riga in risposta.stdout.splitlines():
-                        campi = riga.split("\t")
-                        if len(campi) >= 2 and campi[1]:
-                            nome = campi[1].strip()
-                            risultati.append(
-                                ("pulse/" + nome, nome)
-                            )
-                except Exception:
-                    pass
-
+                pass
         visti = set()
         unici = []
         for nome, descrizione in risultati:
             if nome not in visti:
                 visti.add(nome)
                 unici.append((nome, descrizione))
-
         return unici
 
     def applica_uscita_audio(self, nome=None, silenzioso=False):
@@ -9324,154 +9313,49 @@ class TV(object):
 
             return False
 
-    def scegli_uscita_audio(self):
-        """Finestra per scegliere l'uscita audio di mpv."""
-        dispositivi = [
-            ("auto", _("Auto (system default)"))
-        ]
+    def voci_uscita_audio(self):
+        dispositivi = [("auto", _("Auto (system default)"))]
         dispositivi.extend(self.dispositivi_uscita_audio())
-
-        finestra = tk.Toplevel(self.root)
-        finestra.title(_("Audio output device"))
-        finestra.configure(bg=PANNELLO)
-        finestra.transient(self.root)
-        finestra.resizable(True, True)
-        finestra.grab_set()
-
-        tk.Label(
-            finestra,
-            text=_("Choose the audio output device:"),
-            bg=PANNELLO,
-            fg=TESTO,
-            font=(CARATTERE, 10, STILE_CARATTERE)
-        ).pack(anchor="w", padx=16, pady=(14, 8))
-
-        corpo = tk.Frame(finestra, bg=PANNELLO)
-        corpo.pack(fill="both", expand=True, padx=14, pady=4)
-
-        lista = tk.Listbox(
-            corpo,
-            height=min(10, max(4, len(dispositivi))),
-            width=58,
-            bg=IN_ONDA,
-            fg=TESTO,
-            selectbackground=ACCENTO,
-            selectforeground="#17121f",
-            activestyle="none",
-            relief="flat",
-            highlightthickness=0,
-            exportselection=False
-        )
-
-        barra = ttk.Scrollbar(
-            corpo,
-            orient="vertical",
-            command=lista.yview
-        )
-
-        lista.configure(yscrollcommand=barra.set)
-        lista.pack(side="left", fill="both", expand=True)
-        barra.pack(side="right", fill="y")
-
-        for _nome, descrizione in dispositivi:
-            lista.insert("end", descrizione)
-
         corrente = str(self.cfg.get("audio_device", "auto"))
+        voci = []
+        for nome, descrizione in dispositivi:
+            segno = "*  " if nome == corrente else "   "
+            voci.append((segno + descrizione, lambda nome=nome: self.seleziona_uscita_audio(nome)))
+        if len(voci) == 1:
+            voci.append((_("No audio outputs found"), None))
+        return voci
 
-        indice = next(
-            (
-                i for i, (nome, _desc) in enumerate(dispositivi)
-                if nome == corrente
-            ),
-            0
-        )
+    def seleziona_uscita_audio(self, nome):
+        if not self.applica_uscita_audio(nome):
+            return
+        self.cfg["audio_device"] = nome
+        scrivi_config(self.cfg)
+        descrizione = dict(self.dispositivi_uscita_audio()).get(nome, _("Auto (system default)"))
+        if nome == "auto":
+            descrizione = _("Auto (system default)")
+        self.scrivi(_("audio output: %s") % descrizione)
 
-        lista.selection_set(indice)
-        lista.activate(indice)
-        lista.see(indice)
-
-        def chiudi():
-            try:
-                finestra.grab_release()
-                finestra.destroy()
-            except Exception:
-                pass
-
-        def applica():
-            selezione = lista.curselection()
-
-            if not selezione:
-                return
-
-            nome = dispositivi[selezione[0]][0]
-
-            if not self.applica_uscita_audio(nome):
-                return
-
-            self.cfg["audio_device"] = nome
-            scrivi_config(self.cfg)
-
-            self.scrivi(
-                _("audio output: %s")
-                % dispositivi[selezione[0]][1]
-            )
-
-            chiudi()
-
-        tk.Label(
-            finestra,
-            text=(
-                _("No audio devices were reported by mpv.")
-                if len(dispositivi) == 1 else ""
-            ),
-            bg=PANNELLO,
-            fg=GRIGIO,
-            font=(CARATTERE, 9, STILE_CARATTERE)
-        ).pack(anchor="w", padx=16, pady=(4, 0))
-
-        pulsanti = tk.Frame(finestra, bg=PANNELLO)
-        pulsanti.pack(fill="x", padx=14, pady=14)
-
-        tk.Button(
-            pulsanti,
-            text=_("Cancel"),
-            command=chiudi,
-            relief="flat",
-            bg=IN_ONDA,
-            fg=TESTO_ONDA,
-            padx=14,
-            pady=6
-        ).pack(side="right", padx=(6, 0))
-
-        tk.Button(
-            pulsanti,
-            text=_("Apply"),
-            command=applica,
-            relief="flat",
-            bg=ACCENTO,
-            fg="#17121f",
-            padx=16,
-            pady=6
-        ).pack(side="right")
-
-        lista.bind(
-            "<Double-Button-1>",
-            lambda _e: applica()
-        )
-
-        finestra.protocol("WM_DELETE_WINDOW", chiudi)
-        finestra.update_idletasks()
-
-        x = self.root.winfo_rootx() + (
-            self.root.winfo_width() - finestra.winfo_width()
-        ) // 2
-
-        y = self.root.winfo_rooty() + (
-            self.root.winfo_height() - finestra.winfo_height()
-        ) // 2
-
-        finestra.geometry(
-            "+%d+%d" % (max(0, x), max(0, y))
+    def apri_menu_uscita_audio(self):
+        voci = self.voci_uscita_audio()
+        if self.barra_in_overlay():
+            if getattr(self, "ov_menu", None):
+                self.chiudi_menu_ov()
+            else:
+                self.ov_menu_bottone = self.b_audio_menu
+                self.ov_menu, self.ov_menu_sopra = voci, None
+                self.disegna_menu_ov()
+            return
+        if self.tendina.aperta() and self.tendina.chi is self.b_audio_menu:
+            self.tendina.chiudi()
+            return
+        b = self.b_audio_menu
+        self.tendina.apri(
+            b.winfo_rootx() + b.winfo_width(),
+            b.winfo_rooty() - 4,
+            voci,
+            sopra=True,
+            destra=True,
+            chi=b
         )
 
     def applica_video(self):
