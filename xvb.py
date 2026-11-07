@@ -1977,8 +1977,7 @@ def prendi_epg(dove):
 
 
 def unisci_programmi(base, altri):
-    """base e altri: liste ordinate (inizio, fine, titolo). Si tiene tutta la
-    base e di altri si aggiungono solo i programmi che non si sovrappongono."""
+    """Unisce programmi XMLTV mantenendo titolo e descrizione."""
     import bisect
     if not altri:
         return base
@@ -1986,11 +1985,12 @@ def unisci_programmi(base, altri):
         return list(altri)
     res = list(base)
     inizi = [b_[0] for b_ in res]
-    for s_, e_, t_ in altri:
+    for programma in altri:
+        s_, e_ = programma[:2]
         i = bisect.bisect_left(inizi, e_)
         if i > 0 and res[i - 1][1] > s_:
             continue
-        res.insert(i, (s_, e_, t_))
+        res.insert(i, programma)
         inizi.insert(i, s_)
     return res
 
