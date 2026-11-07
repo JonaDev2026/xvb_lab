@@ -9315,7 +9315,7 @@ class TV(object):
                 in_uscite = False
                 nodi = []
                 for riga in risposta.stdout.splitlines():
-                    testo = re.sub(r"^[│├└─\\s]+", "", riga)
+                    testo = re.sub(r"^[│├└─\s]+", "", riga)
                     if testo.endswith("Sinks:"):
                         in_uscite = True
                         continue
