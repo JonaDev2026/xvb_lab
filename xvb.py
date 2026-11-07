@@ -3220,10 +3220,7 @@ class Elenco(tk.Text):
             y0 = (a[1] if a else b[1] - 20) - 1
             y1 = ((b[1] + b[3]) if b else a[1] + a[3]) - 1
             d = self.dati[iid]
-            testo = d.get("text") or ""
-            _nome, _sep, resto = testo.partition("\\n")
-            _sotto, _sep, descrizione = resto.partition("\\n")
-            if descrizione:
+            if self._ha_descrizione(iid):
                 desc_info = self.dlineinfo("%d.0" % (r + 2))
                 if desc_info is not None:
                     y1 = desc_info[1] + desc_info[3] - 1
