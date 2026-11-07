@@ -2,3 +2,4 @@ crea_deb.sh
 __pycache__/
 .git/
 playlists/
+.gitignore
