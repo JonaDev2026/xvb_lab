@@ -4361,7 +4361,7 @@ class TV(object):
         self.applica_uscita_audio(silenzioso=True)
         self.tipo_uscita_corrente = self.rileva_tipo_uscita_audio()
         self.icona_volume()
-        self.root.after(10000, self.controlla_uscita_audio)
+        self.root.after(1000, self.controlla_uscita_audio)
         threading.Thread(target=self.ascolta_eventi_uscita_audio, daemon=True).start()
         if self.cfg.get("in_cima"):
             self.root.attributes("-topmost", True)
@@ -9403,196 +9403,87 @@ class TV(object):
         return ""
 
     def applica_uscita_audio(self, nome=None, silenzioso=False):
-        """Imposta l'uscita scelta o quella predefinita del sistema."""
-        if nome is None:
-            nome = self.cfg.get("audio_device", "system")
-
-        nome = str(nome or "system")
-        dispositivo = nome
-        if nome in ("system", "auto"):
-            predefinito = self.nome_uscita_predefinita()
-            dispositivo = "pulse/" + predefinito if predefinito else "auto"
-
+        """Usa esclusivamente l'uscita predefinita scelta dal sistema."""
+        predefinito = self.nome_uscita_predefinita()
+        if not predefinito:
+            return False
+        dispositivo = "pulse/" + predefinito
         try:
             self.mpv["audio-device"] = dispositivo
-            attuale = self.mpv["audio-device"]
-
-            if dispositivo != "auto" and attuale and str(attuale) != dispositivo:
-                raise RuntimeError(str(attuale))
-
+            attuale = str(self.mpv["audio-device"] or "")
+            if attuale and attuale != dispositivo:
+                raise RuntimeError(attuale)
             return True
-
         except Exception as errore:
             if not silenzioso:
-                self.scrivi(
-                    _("cannot set audio output: %s") % errore,
-                    errore=True
-                )
-
+                self.scrivi(_("cannot follow system audio output: %s") % errore, errore=True)
             return False
 
     def voci_uscita_audio(self):
+        """Mostra le uscite reali del sistema senza consentirne la selezione."""
         dispositivi = self.dispositivi_uscita_audio()
-        mappa = dict(dispositivi)
         predefinito = self.nome_uscita_predefinita()
         nome_predefinito = "pulse/" + predefinito if predefinito else ""
-        descrizione_predefinita = mappa.get(
-            nome_predefinito, predefinito or _("System output unavailable")
-        )
-        corrente = str(self.cfg.get("audio_device", "system"))
-        if corrente == "auto":
-            corrente = "system"
-
-        voci = [(
-            ("*  " if corrente == "system" else "   ")
-            + _("System: %s") % descrizione_predefinita,
-            lambda: self.seleziona_uscita_audio("system")
-        )]
-
+        voci = []
         for nome, descrizione in dispositivi:
-            if nome == nome_predefinito:
-                continue
-            segno = "*  " if nome == corrente else "   "
-            voci.append((
-                segno + descrizione,
-                lambda nome=nome: self.seleziona_uscita_audio(nome)
-            ))
-
-        if not dispositivi:
+            prefisso = "*  " if nome == nome_predefinito else "   "
+            voci.append((prefisso + descrizione, None))
+        if not voci:
             voci.append((_("No audio outputs found"), None))
         return voci
 
     def seleziona_uscita_audio(self, nome):
-        if not self.applica_uscita_audio(nome):
-            return
-        self.cfg["audio_device"] = nome
-        scrivi_config(self.cfg)
-        if nome == "system":
-            descrizione = dict(self.dispositivi_uscita_audio()).get(
-                "pulse/" + self.nome_uscita_predefinita(),
-                _("System output unavailable")
-            )
-        else:
-            descrizione = dict(self.dispositivi_uscita_audio()).get(nome, nome)
-        self.scrivi(_("audio output: %s") % descrizione)
+        return False
 
     def scegli_uscita_audio(self):
+        """Finestra informativa delle uscite audio pubblicate dal sistema."""
         voci = self.voci_uscita_audio()
-
         finestra = tk.Toplevel(self.root)
-        finestra.title(_("Audio output device"))
+        finestra.title(_("System audio outputs"))
         finestra.configure(bg=PANNELLO)
         finestra.transient(self.root)
         finestra.resizable(True, True)
         finestra.grab_set()
-
         tk.Label(
             finestra,
-            text=_("Choose the audio output device:"),
+            text=_("*  System default output") + "\n" + _("GNOME manages audio routing."),
             bg=PANNELLO,
             fg=TESTO,
+            justify="left",
             font=(CARATTERE, 10, STILE_CARATTERE)
         ).pack(anchor="w", padx=16, pady=(14, 8))
-
-        corpo = tk.Frame(finestra, bg=PANNELLO)
-        corpo.pack(fill="both", expand=True, padx=14, pady=4)
-
         lista = tk.Listbox(
-            corpo,
-            height=min(10, max(4, len(voci))),
+            finestra,
+            height=min(10, max(2, len(voci))),
             width=58,
             bg=IN_ONDA,
             fg=TESTO,
-            selectbackground=ACCENTO,
-            selectforeground="#17121f",
             activestyle="none",
             relief="flat",
             highlightthickness=0,
             exportselection=False
         )
-
-        barra = ttk.Scrollbar(
-            corpo,
-            orient="vertical",
-            command=lista.yview
-        )
-
-        lista.configure(yscrollcommand=barra.set)
-        lista.pack(side="left", fill="both", expand=True)
-        barra.pack(side="right", fill="y")
-
+        lista.pack(fill="both", expand=True, padx=14, pady=4)
         for testo, _azione in voci:
             lista.insert("end", testo.strip())
-
-        corrente = str(self.cfg.get("audio_device", "system"))
-        if corrente == "auto":
-            corrente = "system"
-        indice = 0
         for i, (testo, _azione) in enumerate(voci):
-            if (corrente == "system" and testo.lstrip().startswith("*  System:")):
-                indice = i
+            if testo.startswith("*  "):
+                lista.selection_set(i)
+                lista.activate(i)
+                lista.see(i)
                 break
-            if corrente != "system" and testo.lstrip().startswith("*  "):
-                indice = i
-                break
-
-        lista.selection_set(indice)
-        lista.activate(indice)
-        lista.see(indice)
-
-        def chiudi():
-            try:
-                finestra.grab_release()
-                finestra.destroy()
-            except Exception:
-                pass
-
-        def applica():
-            selezione = lista.curselection()
-            if not selezione:
-                return
-            azione = voci[selezione[0]][1]
-            if azione is None:
-                return
-            azione()
-            chiudi()
-
-        tk.Label(
+        tk.Button(
             finestra,
-            text=_("No audio outputs found") if not self.dispositivi_uscita_audio() else "",
-            bg=PANNELLO,
-            fg=GRIGIO,
-            font=(CARATTERE, 9, STILE_CARATTERE)
-        ).pack(anchor="w", padx=16, pady=(4, 0))
-
-        pulsanti = tk.Frame(finestra, bg=PANNELLO)
-        pulsanti.pack(fill="x", padx=14, pady=14)
-
-        tk.Button(
-            pulsanti,
-            text=_("Cancel"),
-            command=chiudi,
-            relief="flat",
-            bg=IN_ONDA,
-            fg=TESTO_ONDA,
-            padx=14,
-            pady=6
-        ).pack(side="right", padx=(6, 0))
-
-        tk.Button(
-            pulsanti,
-            text=_("Apply"),
-            command=applica,
+            text=_("Close"),
+            command=finestra.destroy,
             relief="flat",
             bg=ACCENTO,
             fg="#17121f",
             padx=16,
             pady=6
-        ).pack(side="right")
+        ).pack(anchor="e", padx=14, pady=14)
 
     def sincronizza_uscita_audio_sistema(self):
-        if self.cfg.get("audio_device", "system") not in ("system", "auto"):
-            return
         predefinito = self.nome_uscita_predefinita()
         if not predefinito:
             return
@@ -9602,7 +9493,7 @@ class TV(object):
         except Exception:
             attuale = ""
         if attuale != dispositivo:
-            self.applica_uscita_audio("system", silenzioso=True)
+            self.applica_uscita_audio(silenzioso=True)
 
     def freccia_audio(self, su):
         icona = "aperto_su" if su else "aperto"
