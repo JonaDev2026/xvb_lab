@@ -9095,7 +9095,7 @@ class TV(object):
         try:
             elenco = self.mpv._get_property("audio-device-list") or []
         except Exception:
-
+            elenco = []
 
         risultati = []
 
