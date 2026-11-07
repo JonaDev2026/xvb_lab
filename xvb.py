@@ -8856,11 +8856,17 @@ class TV(object):
         from PIL import ImageDraw
         R = self.OV_MENU_RIGA
         d0 = ImageDraw.Draw(Image.new("RGBA", (1, 1)))
+        try:
+            from PIL import ImageFont
+            _pf = percorso_google_sans("Regular")
+            font_m = ImageFont.truetype(_pf, 12) if _pf else None
+        except Exception:
+            font_m = None
         larghe = []
         for t, _c in voci:
             t = t[3:] if t[:3] in ("*  ", "   ") else t
             try:
-                b = d0.textbbox((0, 0), t)
+                b = d0.textbbox((0, 0), t, font=font_m)
                 larghe.append(b[2] - b[0])
             except Exception:
                 larghe.append(len(t) * 7)
@@ -9314,7 +9320,7 @@ class TV(object):
                                "device.nick", "device.product.name",
                                "api.bluez5.alias", "node.nick"):
                     voce = re.search(
-                        r'^\s*' + re.escape(chiave) + r'\s*=\s*"([^"]+)"',
+                        r'^[\s*]*' + re.escape(chiave) + r'\s*=\s*"([^"]+)"',
                         info, re.MULTILINE
                     )
                     if voce and voce.group(1).strip():
@@ -9322,7 +9328,7 @@ class TV(object):
                         if chiave in ("node.description", "device.description"):
                             break
                 voce = re.search(
-                    r'^\s*node.name\s*=\s*"([^"]+)"',
+                    r'^[\s*]*node.name\s*=\s*"([^"]+)"',
                     info, re.MULTILINE
                 )
                 nome_pipewire = voce.group(1).strip() if voce else nome_tecnico
@@ -9381,7 +9387,7 @@ class TV(object):
                 capture_output=True, text=True, timeout=3, check=True
             )
             voce = re.search(
-                r'^\s*node.name\s*=\s*"([^"]+)"',
+                r'^[\s*]*node.name\s*=\s*"([^"]+)"',
                 risposta.stdout, re.MULTILINE
             )
             if voce:
@@ -9410,9 +9416,43 @@ class TV(object):
     def voci_uscita_audio(self):
         """Voci informative: non selezionabili, con pallino sull'uscita attiva."""
         return [
-            (("*  " if attiva else "   ") + descrizione, _AZIONE_INFORMATIVA_AUDIO)
-            for _nome, descrizione, attiva in self.dispositivi_uscita_audio()
+            (("*  " if attiva else "   ") + descrizione,
+             (lambda n=nome.split("/", 1)[-1]: self.imposta_uscita_audio(n)))
+            for nome, descrizione, attiva in self.dispositivi_uscita_audio()
         ]
+
+    def imposta_uscita_audio(self, nome):
+        """Imposta l'uscita predefinita del sistema e porta mpv sulla stessa."""
+        try:
+            ident = None
+            stato = subprocess.run(
+                ["wpctl", "status", "-n"], capture_output=True,
+                text=True, timeout=4, check=True
+            ).stdout
+            in_uscite = False
+            for riga in stato.splitlines():
+                testo = re.sub(r"^[│├└─\s]+", "", riga).strip()
+                if testo == "Sinks:":
+                    in_uscite = True
+                    continue
+                if in_uscite and testo.endswith(":"):
+                    break
+                if in_uscite:
+                    voce = re.match(r"^\*?\s*(\d+)\.?\s+(\S+)", testo)
+                    if voce and voce.group(2) == nome:
+                        ident = voce.group(1)
+                        break
+            if not ident:
+                raise RuntimeError(nome)
+            subprocess.run(
+                ["wpctl", "set-default", ident],
+                capture_output=True, timeout=3, check=True
+            )
+        except Exception as errore:
+            self.scrivi(_("cannot follow system audio output: %s") % errore, errore=True)
+            return
+        self.sincronizza_uscita_audio_sistema()
+        self.applica_tipo_uscita_audio(self.rileva_tipo_uscita_audio())
 
     def scegli_uscita_audio(self):
         """Finestra informativa delle uscite audio pubblicate dal sistema."""
@@ -9443,6 +9483,14 @@ class TV(object):
             exportselection=False
         )
         lista.pack(fill="both", expand=True, padx=14, pady=4)
+
+        def scelto(e):
+            i = lista.nearest(e.y)
+            bb = lista.bbox(i)
+            if bb and bb[1] <= e.y <= bb[1] + bb[3]:
+                finestra.destroy()
+                voci[i][1]()
+        lista.bind("<ButtonRelease-1>", scelto)
         for testo, _azione in voci:
             lista.insert("end", testo.strip())
         for i, (testo, _azione) in enumerate(voci):
