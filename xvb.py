@@ -3908,6 +3908,7 @@ class TV(object):
             (_("Reset subtitles"), self.azzera_sottotitoli)] + [None] + [
             (("*  " if self.cfg.get("boost") else "   ") + _("Volume boost +50%"), self.boost),
             (("*  " if self.cfg.get("normalizza") else "   ") + _("Normalize loudness"), self.normalizza),
+            (_("Audio output device..."), self.scegli_uscita_audio),
             (_("Audio equalizer..."), self.equalizzatore_audio),
             None,
             (_("Delay +100 ms"), lambda: self.ritardo_audio(+0.1)),
@@ -9405,6 +9406,120 @@ class TV(object):
         else:
             descrizione = dict(self.dispositivi_uscita_audio()).get(nome, nome)
         self.scrivi(_("audio output: %s") % descrizione)
+
+    def scegli_uscita_audio(self):
+        voci = self.voci_uscita_audio()
+
+        finestra = tk.Toplevel(self.root)
+        finestra.title(_("Audio output device"))
+        finestra.configure(bg=PANNELLO)
+        finestra.transient(self.root)
+        finestra.resizable(True, True)
+        finestra.grab_set()
+
+        tk.Label(
+            finestra,
+            text=_("Choose the audio output device:"),
+            bg=PANNELLO,
+            fg=TESTO,
+            font=(CARATTERE, 10, STILE_CARATTERE)
+        ).pack(anchor="w", padx=16, pady=(14, 8))
+
+        corpo = tk.Frame(finestra, bg=PANNELLO)
+        corpo.pack(fill="both", expand=True, padx=14, pady=4)
+
+        lista = tk.Listbox(
+            corpo,
+            height=min(10, max(4, len(voci))),
+            width=58,
+            bg=IN_ONDA,
+            fg=TESTO,
+            selectbackground=ACCENTO,
+            selectforeground="#17121f",
+            activestyle="none",
+            relief="flat",
+            highlightthickness=0,
+            exportselection=False
+        )
+
+        barra = ttk.Scrollbar(
+            corpo,
+            orient="vertical",
+            command=lista.yview
+        )
+
+        lista.configure(yscrollcommand=barra.set)
+        lista.pack(side="left", fill="both", expand=True)
+        barra.pack(side="right", fill="y")
+
+        for testo, _azione in voci:
+            lista.insert("end", testo.strip())
+
+        corrente = str(self.cfg.get("audio_device", "system"))
+        if corrente == "auto":
+            corrente = "system"
+        indice = 0
+        for i, (testo, _azione) in enumerate(voci):
+            if (corrente == "system" and testo.lstrip().startswith("*  System:")):
+                indice = i
+                break
+            if corrente != "system" and testo.lstrip().startswith("*  "):
+                indice = i
+                break
+
+        lista.selection_set(indice)
+        lista.activate(indice)
+        lista.see(indice)
+
+        def chiudi():
+            try:
+                finestra.grab_release()
+                finestra.destroy()
+            except Exception:
+                pass
+
+        def applica():
+            selezione = lista.curselection()
+            if not selezione:
+                return
+            azione = voci[selezione[0]][1]
+            if azione is None:
+                return
+            azione()
+            chiudi()
+
+        tk.Label(
+            finestra,
+            text=_("No audio outputs found") if not self.dispositivi_uscita_audio() else "",
+            bg=PANNELLO,
+            fg=GRIGIO,
+            font=(CARATTERE, 9, STILE_CARATTERE)
+        ).pack(anchor="w", padx=16, pady=(4, 0))
+
+        pulsanti = tk.Frame(finestra, bg=PANNELLO)
+        pulsanti.pack(fill="x", padx=14, pady=14)
+
+        tk.Button(
+            pulsanti,
+            text=_("Cancel"),
+            command=chiudi,
+            relief="flat",
+            bg=IN_ONDA,
+            fg=TESTO_ONDA,
+            padx=14,
+            pady=6
+        ).pack(side="right", padx=(6, 0))
+
+        tk.Button(
+            pulsanti,
+            text=_("Apply"),
+            command=applica,
+            relief="flat",
+            bg=ACCENTO,
+            fg="#17121f",
+            padx=16,
+            pady=6
+        ).pack(side="right")
 
     def sincronizza_uscita_audio_sistema(self):
         if self.cfg.get("audio_device", "system") not in ("system", "auto"):
