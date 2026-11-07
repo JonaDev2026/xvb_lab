@@ -4250,11 +4250,19 @@ class TV(object):
 
         self.b_sidebar.pack_forget()
         self.b_sidebar.pack(side="right", padx=2, pady=6, before=self.b_pieno)
-        self.b_audio_menu = self.tasto("aperto_su", "", self.apri_menu_uscita_audio,
-                                       largo=2, lato="right", padx=0)
-        self.b_audio_menu.pack_forget()
-        self.volume = Cursore(self.barra, self.alza_volume, larga=85)
+        self.gruppo_volume = tk.Frame(self.barra, bg=BARRA)
+        self.volume = Cursore(self.gruppo_volume, self.alza_volume, larga=85)
         self.volume.pack(side="right", padx=0)
+        self.b_audio_menu = self.bottone(self.gruppo_volume, "", self.apri_menu_uscita_audio)
+        self.b_audio_menu.config(image=self.icone.get("aperto"), width=34, height=30,
+                                 bg=BARRA, activebackground=BARRA)
+        self.b_audio_menu.icona = "aperto"
+        self.b_audio_menu.sopra = False
+        self.b_audio_menu.bind("<Enter>", lambda e: self.hover_tk(self.b_audio_menu, True), add="+")
+        self.b_audio_menu.bind("<Leave>", lambda e: self.hover_tk(self.b_audio_menu, False), add="+")
+        self.b_audio_menu.pack(side="right", padx=0, pady=6, before=self.volume)
+        self.b_audio_menu.pack_forget()
+        self.gruppo_volume.pack(side="right", padx=0)
         self.b_muto = self.tasto("volume", _("Mute"), self.muto, lato="right")
 
 
@@ -8932,6 +8940,9 @@ class TV(object):
             self.ov_menu_bottone = None
             if ancora is self.b_qualita:
                 self.gira_ingranaggio(-1)
+            elif ancora is self.b_audio_menu:
+                self.freccia_audio(False)
+                self.chiudi_volume_tra_poco()
         self.togli_menu_ov()
 
     def riga_menu_ov(self):
@@ -9355,12 +9366,25 @@ class TV(object):
             descrizione = _("Auto (system default)")
         self.scrivi(_("audio output: %s") % descrizione)
 
+    def freccia_audio(self, su):
+        icona = "aperto_su" if su else "aperto"
+        if icona in self.icone:
+            self.b_audio_menu.icona = icona
+            self.vesti(self.b_audio_menu)
+        if self.barra_in_overlay():
+            self.disegna_ov()
+
+    def chiudi_menu_uscita_audio(self):
+        self.freccia_audio(False)
+        self.chiudi_volume_tra_poco()
+
     def apri_menu_uscita_audio(self):
         voci = self.voci_uscita_audio()
         if self.barra_in_overlay():
             if getattr(self, "ov_menu", None):
                 self.chiudi_menu_ov()
             else:
+                self.freccia_audio(True)
                 self.ov_menu_bottone = self.b_audio_menu
                 self.ov_menu, self.ov_menu_sopra = voci, None
                 self.disegna_menu_ov()
@@ -9368,6 +9392,7 @@ class TV(object):
         if self.tendina.aperta() and self.tendina.chi is self.b_audio_menu:
             self.tendina.chiudi()
             return
+        self.freccia_audio(True)
         b = self.b_audio_menu
         self.tendina.apri(
             b.winfo_rootx() + b.winfo_width(),
@@ -9375,6 +9400,7 @@ class TV(object):
             voci,
             sopra=True,
             destra=True,
+            al_chiudere=self.chiudi_menu_uscita_audio,
             chi=b
         )
 
