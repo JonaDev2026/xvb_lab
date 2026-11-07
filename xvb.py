@@ -7937,7 +7937,7 @@ class TV(object):
             self.sincronizza_uscita_audio_sistema()
             tipo = self.rileva_tipo_uscita_audio()
             self.applica_tipo_uscita_audio(tipo)
-            self.root.after(10000, self.controlla_uscita_audio)
+            self.root.after(500, self.controlla_uscita_audio)
         except tk.TclError:
             pass
 
@@ -9420,52 +9420,10 @@ class TV(object):
             return False
 
     def voci_uscita_audio(self):
-        """Mostra soltanto il nome leggibile dell'uscita predefinita."""
-        descrizione = ""
-        try:
-            risposta = subprocess.run(
-                ["wpctl", "status", "-n"],
-                capture_output=True,
-                text=True,
-                timeout=4,
-                check=True
-            )
-            in_uscite = False
-            identificativo = ""
-            for riga in risposta.stdout.splitlines():
-                testo = re.sub(r"^[│├└─\s]+", "", riga)
-                if testo.endswith("Sinks:"):
-                    in_uscite = True
-                    continue
-                if in_uscite and any(testo.endswith(voce) for voce in (
-                        "Sources:", "Filters:", "Streams:",
-                        "Video:", "Settings")):
-                    break
-                if in_uscite:
-                    voce = re.search(r"^\*\s*(\d+)\.\s+", testo)
-                    if voce:
-                        identificativo = voce.group(1)
-                        break
-            if identificativo:
-                dettagli = subprocess.run(
-                    ["wpctl", "inspect", identificativo],
-                    capture_output=True,
-                    text=True,
-                    timeout=3,
-                    check=True
-                )
-                voce = re.search(
-                    r'^\s*node\.(?:description|nick)\s*=\s*"([^"]+)"',
-                    dettagli.stdout,
-                    re.MULTILINE
-                )
-                if voce:
-                    descrizione = voce.group(1).strip()
-        except Exception:
-            pass
-        if not descrizione:
-            descrizione = _("System default output")
-        return [("*  " + descrizione, lambda: None)]
+        """Mostra tutte le uscite audio pubblicate dal sistema."""
+        uscite = self.dispositivi_uscita_audio()
+        return [(descrizione, lambda: None)
+                for _nome, descrizione in uscite if descrizione]
 
     def scegli_uscita_audio(self):
         """Finestra informativa delle uscite audio pubblicate dal sistema."""
