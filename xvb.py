@@ -9420,20 +9420,32 @@ class TV(object):
             return False
 
     def voci_uscita_audio(self):
-        """Mostra le uscite reali del sistema senza consentirne la selezione."""
-        dispositivi = self.dispositivi_uscita_audio()
+        """Mostra soltanto il nome leggibile dell'uscita predefinita."""
+        dispositivi = dict(self.dispositivi_uscita_audio())
         predefinito = self.nome_uscita_predefinita()
-        nome_predefinito = "pulse/" + predefinito if predefinito else ""
-        voci = []
-        for nome, descrizione in dispositivi:
-            prefisso = "*  " if nome == nome_predefinito else "   "
-            voci.append((prefisso + descrizione, None))
-        if not voci:
-            voci.append((_("No audio outputs found"), None))
-        return voci
-
-    def seleziona_uscita_audio(self, nome):
-        return False
+        nome = "pulse/" + predefinito if predefinito else ""
+        descrizione = dispositivi.get(nome, "")
+        if not descrizione and predefinito:
+            try:
+                dettagli = subprocess.run(
+                    ["wpctl", "inspect", "@DEFAULT_AUDIO_SINK@"],
+                    capture_output=True,
+                    text=True,
+                    timeout=3,
+                    check=True
+                )
+                voce = re.search(
+                    r'^\\s*node\\.(?:description|nick)\\s*=\\s*"([^"]+)"',
+                    dettagli.stdout,
+                    re.MULTILINE
+                )
+                if voce:
+                    descrizione = voce.group(1).strip()
+            except Exception:
+                pass
+        if not descrizione:
+            descrizione = _("System default output") if not predefinito else _("Active system output")
+        return [("*  " + descrizione, lambda: None)]
 
     def scegli_uscita_audio(self):
         """Finestra informativa delle uscite audio pubblicate dal sistema."""
