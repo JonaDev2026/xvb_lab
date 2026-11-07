@@ -4250,10 +4250,9 @@ class TV(object):
 
         self.b_sidebar.pack_forget()
         self.b_sidebar.pack(side="right", padx=2, pady=6, before=self.b_pieno)
-        self.gruppo_volume = tk.Frame(self.barra, bg=BARRA)
-        self.volume = Cursore(self.gruppo_volume, self.alza_volume, larga=85)
+        self.volume = Cursore(self.barra, self.alza_volume, larga=85)
         self.volume.pack(side="right", padx=0)
-        self.b_audio_menu = self.bottone(self.gruppo_volume, "", self.apri_menu_uscita_audio)
+        self.b_audio_menu = self.bottone(self.barra, "", self.apri_menu_uscita_audio)
         self.b_audio_menu.config(image=self.icone.get("aperto"), width=34, height=30,
                                  bg=BARRA, activebackground=BARRA)
         self.b_audio_menu.icona = "aperto"
@@ -4262,13 +4261,12 @@ class TV(object):
         self.b_audio_menu.bind("<Leave>", lambda e: self.hover_tk(self.b_audio_menu, False), add="+")
         self.b_audio_menu.pack(side="right", padx=0, pady=6, before=self.volume)
         self.b_audio_menu.pack_forget()
-        self.gruppo_volume.pack(side="right", padx=0)
         self.b_muto = self.tasto("volume", _("Mute"), self.muto, lato="right")
 
 
         self.volume_largo, self.volume_dopo, self.volume_animazione = 0, None, None
         self.volume.config(width=0)
-        for w in (self.b_muto, self.gruppo_volume, self.volume, self.b_audio_menu):
+        for w in (self.b_muto, self.volume, self.b_audio_menu):
             w.bind("<Enter>", lambda e: self.apri_volume(), add="+")
             w.bind("<Leave>", lambda e: self.chiudi_volume_tra_poco(), add="+")
 
