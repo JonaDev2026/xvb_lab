@@ -1986,12 +1986,11 @@ def unisci_programmi(base, altri):
         return list(altri)
     res = list(base)
     inizi = [b_[0] for b_ in res]
-    for programma in altri:
-        s_, e_ = programma[:2]
+    for s_, e_, t_ in altri:
         i = bisect.bisect_left(inizi, e_)
         if i > 0 and res[i - 1][1] > s_:
             continue
-        res.insert(i, programma)
+        res.insert(i, (s_, e_, t_))
         inizi.insert(i, s_)
     return res
 
@@ -2146,7 +2145,7 @@ def icona_programma_epg(ide, nome, programma):
     """
     if not programma:
         return None
-    inizio, _fine, titolo = programma[:3]
+    inizio, _fine, titolo = programma
     src = EPG_ICONE.get((ide or "", inizio))
     if src:
         return src
@@ -2178,10 +2177,8 @@ def leggi_epg(f):
                 if inizio is not None and fine is not None and fine >= da:
                     t = el.find("title")
                     titolo = (t.text or "").strip() if t is not None else ""
-                    d = el.find("desc")
-                    descrizione = " ".join("".join(d.itertext()).split()) if d is not None else ""
                     programmi.setdefault(el.get("channel") or "", []).append(
-                        (inizio, fine, titolo, descrizione))
+                        (inizio, fine, titolo))
                     ic = el.find("icon")
                     if ic is not None and ic.get("src"):
                         src = ic.get("src")
@@ -2465,7 +2462,7 @@ class Guida(tk.Toplevel):
             k = ide if ide and ide in app.epg else app.epg_nomi.get(nome_piatto(nome))
             if not k:
                 continue
-            prog = [(a, b, t, d) for a, b, t, d in app.epg.get(k, [])
+            prog = [(a, b, t) for a, b, t in app.epg.get(k, [])
                     if b > self.da and a < self.fino]
             if prog:
                 self.righe.append((nome, url, ide, prog))
@@ -2503,7 +2500,7 @@ class Guida(tk.Toplevel):
             fondo = PANNELLO if i % 2 else FONDO
             c.create_rectangle(0, y0, largo, y1, fill=fondo, outline="")
             colore = self.app.colore_canale(nome, url)
-            for a, b, titolo, _descrizione in prog:
+            for a, b, titolo in prog:
                 xa, xb = max(self.x_di(a), 0), self.x_di(b)
                 in_onda = a <= adesso < b
 
@@ -2849,7 +2846,6 @@ class Elenco(tk.Text):
         self.bindtags((str(self), str(self.winfo_toplevel()), "all"))
         self.voci = []
         self.posto = {}
-        self.righe = {}
         self.dati = {}
         self.scelta = None
         self.tag_configure("scelto", background=SCELTO, foreground="#ffffff")
@@ -2862,8 +2858,6 @@ class Elenco(tk.Text):
         self.tag_configure("nome", foreground="#ffffff", spacing1=self.nome_sopra, spacing3=4,
                            font=(CARATTERE, -NOME_PX, "bold"))
         self.tag_configure("sotto", spacing1=0, spacing3=14, font=(CARATTERE, -SOTTO_PX))
-        self.tag_configure("descrizione", foreground=GRIGIO, spacing1=0, spacing3=0,
-                           font=(CARATTERE, -SOTTO_PX))
         self.tag_configure("onda")
         self.tag_raise("onda")
         self.tag_raise("scelto")
@@ -2895,23 +2889,26 @@ class Elenco(tk.Text):
                               logo=logo, img=None)
         self.posto[iid] = len(self.voci)
         self.voci.append(iid)
-        self.ridisegna_tutte()
+        self.disegna(iid)
         return iid
 
     def delete(self, *iids):
         if not iids:
             return
         if set(iids) >= set(self.voci):
+            tk.Text.delete(self, "1.0", "end")
             self.voci, self.dati, self.scelta, self.posto = [], {}, None, {}
+            self.ridisegna_colonna()
         else:
             for iid in iids:
                 if iid in self.dati:
+                    r = self.riga(iid)
+                    tk.Text.delete(self, "%d.0" % r, "%d.0" % (r + 3))
                     self.voci.remove(iid)
                     del self.dati[iid]
                     if self.scelta == iid:
                         self.scelta = None
             self.posto = {v: k for k, v in enumerate(self.voci)}
-        self.ridisegna_tutte()
 
     def item(self, iid, option=None, **kw):
         d = self.dati[iid]
@@ -2921,7 +2918,7 @@ class Elenco(tk.Text):
             return dict(d)
         for k, v in kw.items():
             d[k] = tuple(v) if k == "tags" else v
-        self.ridisegna_tutte()
+        self.disegna(iid)
         return None
 
     def selection(self):
@@ -2946,44 +2943,16 @@ class Elenco(tk.Text):
 
     def see(self, iid):
         if iid in self.dati:
+            tk.Text.see(self, "%d.0" % (self.riga(iid) + 1))
             tk.Text.see(self, "%d.0" % self.riga(iid))
 
 
-    def _ha_descrizione(self, iid):
-        resto = (self.dati[iid].get("text") or "").partition("\\n")[2]
-        return bool(resto.partition("\\n")[2])
-
-    def _righe_voce(self, iid):
-        return 4 if self._ha_descrizione(iid) else 3
-
-    def _aggiorna_righe(self):
-        r = 1
-        self.righe = {}
-        for iid in self.voci:
-            self.righe[iid] = r
-            r += self._righe_voce(iid)
-
-    def _indice_riga(self, riga):
-        for i, iid in enumerate(self.voci):
-            inizio = self.righe[iid]
-            if inizio <= riga < inizio + self._righe_voce(iid):
-                return i
-        return -1
-
-    def ridisegna_tutte(self):
-        tk.Text.delete(self, "1.0", "end")
-        self._aggiorna_righe()
-        for iid in self.voci:
-            self.dati[iid]["img"] = None
-            self.disegna(iid)
-
     def riga(self, iid):
-        return self.righe[iid]
+        return 3 * self.posto[iid] + 1
 
     def spanne(self, iid):
         r = self.riga(iid)
-        return ("%d.0" % r, "%d.0" % (r + self._righe_voce(iid) - 1))
-
+        return ("%d.0" % r, "%d.0" % (r + 2))
 
     def corto(self, img):
         """Il pallino senza la trasparenza sopra e sotto (alto 14 px invece
@@ -3003,8 +2972,12 @@ class Elenco(tk.Text):
         d = self.dati[iid]
         r = self.riga(iid)
         testo = d["text"] or ""
-        nome, _sep, resto = testo.partition("\n")
-        sotto, _sep, descrizione = resto.partition("\n")
+        nome, _sep, sotto = testo.partition("\n")
+        if d["img"] is not None:
+
+            tk.Text.delete(self, "%d.0" % r, "%d.0" % (r + 3))
+
+
         colore = d["colore"] or GRIGIO
         tinta = "c" + colore
         if tinta not in self.tinte:
@@ -3016,7 +2989,7 @@ class Elenco(tk.Text):
                                    lmargincolor=colore)
             elif self.segno == "logo":
                 self.tag_configure(tinta, foreground=colore, lmargin1=COLONNA,
-                                   lmargin2=COLONNA, lmargincolor=ZEBRA)
+                                   lmargin2=COLONNA, lmargincolor=PANNELLO)
             else:
                 self.tag_configure(tinta, foreground=colore, lmargin1=0, lmargin2=0)
             self.tag_lower(tinta, "zebra")
@@ -3028,8 +3001,7 @@ class Elenco(tk.Text):
         if self.segno == "logo":
 
             nome, sotto = nome.lstrip(" "), sotto.lstrip(" ")
-            tag_sotto = "sotto_descrizione" if descrizione else "sotto"
-            tk.Text.insert(self, "%d.0" % r, (sotto or " ") + "\n", (tinta, tag_sotto) + zebra + extra)
+            tk.Text.insert(self, "%d.0" % r, (sotto or " ") + "\n", (tinta, "sotto") + zebra + extra)
             tk.Text.insert(self, "%d.0" % r, nome + "\n", (tinta, "nome") + zebra + extra)
         else:
             tk.Text.insert(self, "%d.0" % r, " " + (sotto or " ") + "\n", (tinta, "sotto") + zebra + extra)
@@ -3048,18 +3020,10 @@ class Elenco(tk.Text):
             self.tag_add("pronda", "%d.0" % r)
         self.image_create("%d.0" % (r + 1), image=sotto_img)
         self.tag_add(tinta, "%d.0" % (r + 1)); self.tag_add("sotto", "%d.0" % (r + 1))
-        if descrizione:
-            tk.Text.insert(self, "%d.0" % (r + 2), descrizione + "\\n", ("descrizione",) + zebra + extra)
-            self.image_create("%d.0" % (r + 3), image=self.stacco)
-            self.tag_add("stacco", "%d.0" % (r + 3))
-        else:
-            self.image_create("%d.0" % (r + 2), image=self.stacco)
-            self.tag_add("stacco", "%d.0" % (r + 2))
+        self.image_create("%d.0" % (r + 2), image=self.stacco)
+        self.tag_add("stacco", "%d.0" % (r + 2))
         for t in zebra + extra:
             self.tag_add(t, "%d.0" % r); self.tag_add(t, "%d.0" % (r + 1))
-            self.tag_add(t, "%d.0" % (r + 2))
-            if descrizione:
-                self.tag_add(t, "%d.0" % (r + 3))
         d["img"] = True
         self.ridisegna_colonna()
 
@@ -6447,12 +6411,7 @@ class TV(object):
             p = self.programma_di(ide, nome)
             sotto = p[2] if p else ""
             nome = self.cfg.get("nomi_canali", {}).get(url) or nome
-        descrizione = ""
-        if (not self.file_in_onda and not self.media_in_uso and not self.reg_in_uso
-                and url == self.cfg.get("canale") and getattr(self, "fermato", None) is None
-                and p and len(p) > 3):
-            descrizione = p[3]
-        return " " + nome + ("\n " + sotto if sotto else "") + ("\n" + descrizione if descrizione else "")
+        return " " + nome + ("\n " + sotto if sotto else "")
 
     def poster_attivo(self):
         if not self.cfg.get("poster_epg", False) or self.reg_in_uso:
@@ -6997,7 +6956,7 @@ class TV(object):
         su comandi, riga di stato e linea di avanzamento. Quella di prima
         torna normale."""
         self.applica_poster()
-        for i, (nome, u, ide) in enumerate(self.visti):
+        for i, (nome, u, _l) in enumerate(self.visti):
             if not self.elenco.exists(str(i)):
                 continue
             if u == url:
@@ -7013,13 +6972,11 @@ class TV(object):
                 self.elenco.tag_configure("onda", background=colore, foreground=testo)
                 if testo not in self.pallini:
                     self.pallini[testo] = pallino(testo) or self.vuoto
-                self.elenco.item(str(i), tags=("onda",), image=self.pallini[testo],
-                                 text=self.testo_riga(nome, u, ide))
+                self.elenco.item(str(i), tags=("onda",), image=self.pallini[testo])
             elif "onda" in self.elenco.item(str(i), "tags"):
 
 
-                self.elenco.item(str(i), tags=(), image=self.pallino_di(nome, u),
-                                 text=self.testo_riga(nome, u, ide))
+                self.elenco.item(str(i), tags=(), image=self.pallino_di(nome, u))
         self.non_sul_verde(self.elenco, "onda")
 
     def salta(self, dove):
@@ -7480,7 +7437,7 @@ class TV(object):
 
             return (self.nome_canale(), "", _("not in the guide") if self.epg and self.nome
                     else "")
-        inizio, fine, titolo = p[:3]
+        inizio, fine, titolo = p
         mancanti = max(0, int((fine - time.time()) / 60))
 
         restano = {
@@ -9990,9 +9947,9 @@ class TV(object):
         if not ide or ide not in self.epg:
             ide = self.epg_nomi.get(nome_piatto(nome))
         adesso = time.time()
-        for inizio, fine, titolo, descrizione in self.epg.get(ide or "", []):
+        for inizio, fine, titolo in self.epg.get(ide or "", []):
             if inizio <= adesso < fine:
-                return inizio, fine, titolo, descrizione
+                return inizio, fine, titolo
             if inizio > adesso:
                 break
         return None
@@ -10069,7 +10026,7 @@ class TV(object):
             if p:
 
 
-                inizio, fine, _t = p[:3]
+                inizio, fine, _t = p
                 senza_ora = True
                 parte = (time.time() - inizio) / max(1.0, fine - inizio)
                 parte = max(0.0, min(1.0, parte))
@@ -11724,7 +11681,7 @@ class TV(object):
             if not ide or ide not in self.epg:
                 ide = self.epg_nomi.get(nome_piatto(self.nome_in_onda))
             adesso = time.time()
-            for _inizio, _fine, _titolo, _descrizione in self.epg.get(ide or "", []):
+            for _inizio, _fine, _titolo in self.epg.get(ide or "", []):
                 if _inizio > adesso:
                     prossimo = _titolo or ""
                     break
