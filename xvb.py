@@ -3260,7 +3260,7 @@ class Elenco(tk.Text):
             r = int(self.index("@%d,%d" % (ev.x, ev.y)).split(".")[0])
         except (tk.TclError, ValueError):
             return "break"
-        i = (r - 1) // 3
+        i = self._indice_riga(r)
         if 0 <= i < len(self.voci):
             self.selection_set(self.voci[i])
             if self.singolo:
