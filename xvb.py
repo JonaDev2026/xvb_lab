@@ -357,7 +357,7 @@ def avvia_mpris(app):
     threading.Thread(target=GLib.MainLoop().run, daemon=True).start()
     return m
 
-VERSIONE = "4.4.6"
+VERSIONE = "4.4.7"
 AUTORE = "Jonathan Sanfilippo"
 ANNO = "2026"
 REPO = "JonaDev2026/xvb"
@@ -9093,9 +9093,12 @@ class TV(object):
     def dispositivi_uscita_audio(self):
         """Elenco dei dispositivi audio disponibili."""
         try:
-            elenco = self.mpv["audio-device-list"] or []
+            elenco = self.mpv.get_property_native("audio-device-list") or []
         except Exception:
-            elenco = []
+            try:
+                elenco = self.mpv["audio-device-list"] or []
+            except Exception:
+                elenco = []
 
         risultati = []
 
