@@ -9264,7 +9264,7 @@ class TV(object):
 
 
     def dispositivi_uscita_audio(self):
-        """Elenco delle sole uscite esposte dal sistema audio."""
+        """Elenco delle uscite audio pubblicate dal sistema."""
         risultati = []
         try:
             risposta = subprocess.run(
@@ -9274,8 +9274,7 @@ class TV(object):
                 timeout=3,
                 check=True
             )
-            uscite = json.loads(risposta.stdout)
-            for uscita in uscite:
+            for uscita in json.loads(risposta.stdout):
                 nome = str(uscita.get("name") or "").strip()
                 if not nome:
                     continue
@@ -9297,11 +9296,67 @@ class TV(object):
                 )
                 for riga in risposta.stdout.splitlines():
                     campi = riga.split()
-                    if len(campi) < 2:
+                    if len(campi) >= 2:
+                        nome = campi[1].strip()
+                        if nome:
+                            risultati.append(("pulse/" + nome, nome))
+            except Exception:
+                pass
+
+        if not risultati:
+            try:
+                risposta = subprocess.run(
+                    ["wpctl", "status", "-n"],
+                    capture_output=True,
+                    text=True,
+                    timeout=4,
+                    check=True
+                )
+                in_uscite = False
+                nodi = []
+                for riga in risposta.stdout.splitlines():
+                    testo = riga.strip()
+                    if testo == "Sinks:":
+                        in_uscite = True
                         continue
-                    nome = campi[1].strip()
+                    if in_uscite and testo in (
+                            "Sources:", "Filters:", "Streams:",
+                            "Video:", "Settings"):
+                        break
+                    if not in_uscite:
+                        continue
+                    voce = re.search(r"^(\\*)?\\s*(\\d+)\\.\\s+(\\S+)", testo)
+                    if voce:
+                        nodi.append((voce.group(2), voce.group(3)))
+
+                for identificativo, nome in nodi:
+                    descrizione = nome
+                    try:
+                        dettagli = subprocess.run(
+                            ["wpctl", "inspect", identificativo],
+                            capture_output=True,
+                            text=True,
+                            timeout=3,
+                            check=True
+                        )
+                        voce = re.search(
+                            r'^\\s*node\\.description\\s*=\\s*"([^"]+)"',
+                            dettagli.stdout,
+                            re.MULTILINE
+                        )
+                        if voce:
+                            descrizione = voce.group(1).strip()
+                        voce_nome = re.search(
+                            r'^\\s*node\\.name\\s*=\\s*"([^"]+)"',
+                            dettagli.stdout,
+                            re.MULTILINE
+                        )
+                        if voce_nome:
+                            nome = voce_nome.group(1).strip()
+                    except Exception:
+                        pass
                     if nome:
-                        risultati.append(("pulse/" + nome, nome))
+                        risultati.append(("pulse/" + nome, descrizione))
             except Exception:
                 pass
 
@@ -9322,9 +9377,30 @@ class TV(object):
                 timeout=2,
                 check=True
             )
-            return risposta.stdout.strip()
+            nome = risposta.stdout.strip()
+            if nome:
+                return nome
         except Exception:
-            return ""
+            pass
+
+        try:
+            risposta = subprocess.run(
+                ["wpctl", "inspect", "@DEFAULT_AUDIO_SINK@"],
+                capture_output=True,
+                text=True,
+                timeout=3,
+                check=True
+            )
+            voce = re.search(
+                r'^\\s*node\\.name\\s*=\\s*"([^"]+)"',
+                risposta.stdout,
+                re.MULTILINE
+            )
+            if voce:
+                return voce.group(1).strip()
+        except Exception:
+            pass
+        return ""
 
     def applica_uscita_audio(self, nome=None, silenzioso=False):
         """Imposta l'uscita scelta o quella predefinita del sistema."""
