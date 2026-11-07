@@ -9325,7 +9325,7 @@ class TV(object):
                         break
                     if not in_uscite:
                         continue
-                    voce = re.search(r"^(\\*)?\\s*(\\d+)\\.\\s+(\\S+)", testo)
+                    voce = re.search(r"^(\*)?\s*(\d+)\.\s+(\S+)", testo)
                     if voce:
                         nodi.append((voce.group(2), voce.group(3)))
 
@@ -9340,14 +9340,14 @@ class TV(object):
                             check=True
                         )
                         voce = re.search(
-                            r'^\\s*node\\.description\\s*=\\s*"([^"]+)"',
+                            r'^\s*node\.description\s*=\s*"([^"]+)"',
                             dettagli.stdout,
                             re.MULTILINE
                         )
                         if voce:
                             descrizione = voce.group(1).strip()
                         voce_nome = re.search(
-                            r'^\\s*node\\.name\\s*=\\s*"([^"]+)"',
+                            r'^\s*node\.name\s*=\s*"([^"]+)"',
                             dettagli.stdout,
                             re.MULTILINE
                         )
@@ -9392,7 +9392,7 @@ class TV(object):
                 check=True
             )
             voce = re.search(
-                r'^\\s*node\\.name\\s*=\\s*"([^"]+)"',
+                r'^\s*node\.name\s*=\s*"([^"]+)"',
                 risposta.stdout,
                 re.MULTILINE
             )
