@@ -9091,7 +9091,7 @@ class TV(object):
 
 
     def dispositivi_uscita_audio(self):
-        """Elenco dei dispositivi esposti da mpv."""
+        """Elenco dei dispositivi audio disponibili."""
         try:
             elenco = self.mpv["audio-device-list"] or []
         except Exception:
@@ -9109,7 +9109,55 @@ class TV(object):
             if nome and str(nome) != "auto":
                 risultati.append((str(nome), str(descrizione)))
 
-        return risultati
+        if not risultati:
+            try:
+                risposta = subprocess.run(
+                    ["pactl", "-f", "json", "list", "sinks"],
+                    capture_output=True,
+                    text=True,
+                    timeout=3,
+                    check=True
+                )
+                uscite = json.loads(risposta.stdout)
+                for uscita in uscite:
+                    nome = uscita.get("name")
+                    proprieta = uscita.get("properties") or {}
+                    descrizione = (
+                        uscita.get("description")
+                        or proprieta.get("device.description")
+                        or nome
+                    )
+                    if nome:
+                        risultati.append(
+                            ("pulse/" + str(nome), str(descrizione))
+                        )
+            except Exception:
+                try:
+                    risposta = subprocess.run(
+                        ["pactl", "list", "short", "sinks"],
+                        capture_output=True,
+                        text=True,
+                        timeout=3,
+                        check=True
+                    )
+                    for riga in risposta.stdout.splitlines():
+                        campi = riga.split("\\t")
+                        if len(campi) >= 2 and campi[1]:
+                            nome = campi[1].strip()
+                            risultati.append(
+                                ("pulse/" + nome, nome)
+                            )
+                except Exception:
+                    pass
+
+        visti = set()
+        unici = []
+        for nome, descrizione in risultati:
+            if nome not in visti:
+                visti.add(nome)
+                unici.append((nome, descrizione))
+
+        return unici
 
     def applica_uscita_audio(self, nome=None, silenzioso=False):
         """Imposta il dispositivo scelto."""
