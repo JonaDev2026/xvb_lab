@@ -9303,54 +9303,56 @@ class TV(object):
         except Exception:
             try:
                 risposta = subprocess.run(
-                    ["wpctl", "status", "-n"], capture_output=True,
+                    ["wpctl", "status"], capture_output=True,
                     text=True, timeout=4, check=True
                 )
                 in_uscite = False
                 nodi = []
                 for riga in risposta.stdout.splitlines():
-                    testo = re.sub(r"^[│├└─\s]+", "", riga)
-                    if testo.endswith("Sinks:"):
+                    testo = re.sub(r"^[│├└─\s]+", "", riga).strip()
+                    if testo == "Sinks:":
                         in_uscite = True
                         continue
-                    if in_uscite and any(testo.endswith(voce) for voce in (
-                            "Sources:", "Filters:", "Streams:", "Video:", "Settings")):
+                    if in_uscite and testo.endswith(":"):
                         break
                     if not in_uscite:
                         continue
-                    voce = re.search(r"^(\*)?\s*(\d+)\.\s+(\S+)", testo)
+                    voce = re.search(r"^(\*)?\s*(\d+)\.\s+(.+?)(?:\s+\[vol:.*)?$", testo)
                     if voce:
-                        nodi.append((voce.group(2), voce.group(3), bool(voce.group(1))))
-                for indice, (identificativo, nome_tecnico, attiva) in enumerate(nodi, 1):
-                    dettagli = ""
-                    proprieta = {}
+                        descrizione = voce.group(3).strip()
+                        nodi.append((voce.group(2), descrizione, bool(voce.group(1))))
+                for identificativo, descrizione, attiva in nodi:
+                    nome_pipewire = ""
                     try:
                         info = subprocess.run(
                             ["wpctl", "inspect", identificativo],
                             capture_output=True, text=True, timeout=3, check=True
                         ).stdout
-                        for chiave in (
-                            "node.description", "device.description", "device.nick",
-                            "device.product.name", "api.bluez5.alias"
-                        ):
-                            voce = re.search(
-                                r'^\s*' + re.escape(chiave) + r'\s*=\s*"([^"]+)"',
-                                info, re.MULTILINE
-                            )
-                            if voce and voce.group(1).strip():
-                                dettagli = voce.group(1).strip()
-                                break
                         voce = re.search(
                             r'^\s*node.name\s*=\s*"([^"]+)"',
                             info, re.MULTILINE
                         )
-                        nome_pipewire = voce.group(1).strip() if voce else nome_tecnico
+                        nome_pipewire = voce.group(1).strip() if voce else ""
+                        if not descrizione:
+                            for chiave in (
+                                "node.description", "device.description", "device.nick",
+                                "device.product.name", "api.bluez5.alias"
+                            ):
+                                voce = re.search(
+                                    r'^\s*' + re.escape(chiave) + r'\s*=\s*"([^"]+)"',
+                                    info, re.MULTILINE
+                                )
+                                if voce and voce.group(1).strip():
+                                    descrizione = voce.group(1).strip()
+                                    break
                     except Exception:
-                        nome_pipewire = nome_tecnico
-                    if not dettagli:
-                        dettagli = "Audio output %d" % indice
+                        pass
+                    if not nome_pipewire:
+                        continue
+                    if not descrizione:
+                        descrizione = nome_pipewire.replace("alsa_output.", "").replace("bluez_output.", "").replace("_", " ").replace(".", " ").strip()
                     risultati.append((
-                        "pulse/" + nome_pipewire, dettagli,
+                        "pulse/" + nome_pipewire, descrizione,
                         attiva or nome_pipewire == predefinito
                     ))
             except Exception:
