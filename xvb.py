@@ -4268,7 +4268,7 @@ class TV(object):
 
         self.volume_largo, self.volume_dopo, self.volume_animazione = 0, None, None
         self.volume.config(width=0)
-        for w in (self.b_muto, self.volume, self.b_audio_menu):
+        for w in (self.b_muto, self.gruppo_volume, self.volume, self.b_audio_menu):
             w.bind("<Enter>", lambda e: self.apri_volume(), add="+")
             w.bind("<Leave>", lambda e: self.chiudi_volume_tra_poco(), add="+")
 
