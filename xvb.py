@@ -7489,7 +7489,7 @@ class TV(object):
         b = self.b_qualita
         if len(self.varianti or []) > 1:
             if not b.winfo_ismapped():
-                b.pack(side="right", padx=2, pady=6, before=self.volume)
+                b.pack(side="right", padx=2, pady=6, before=self.b_audio_menu)
                 self.root.after_idle(lambda: self.vesti(b))
         else:
             if self.tendina.aperta() and self.tendina.chi is b:
