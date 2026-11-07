@@ -9269,15 +9269,24 @@ class TV(object):
                 check=True
             )
             for uscita in json.loads(risposta.stdout):
-                nome = uscita.get("name")
+                nome = str(uscita.get("name") or "")
                 proprieta = uscita.get("properties") or {}
+                classe = str(proprieta.get("device.class") or "").lower()
+                media = str(proprieta.get("media.class") or "").lower()
+                if (not nome or nome.endswith(".monitor")
+                        or any(x in nome.lower() for x in
+                               ("auto_null", "null-sink", "loopback", "combined", "remap", "virtual"))):
+                    continue
+                if classe and classe != "sound":
+                    continue
+                if media and media != "audio/sink":
+                    continue
                 descrizione = (
                     uscita.get("description")
                     or proprieta.get("device.description")
                     or nome
                 )
-                if nome:
-                    risultati.append(("pulse/" + str(nome), str(descrizione)))
+                risultati.append(("pulse/" + nome, str(descrizione)))
         except Exception:
             try:
                 risposta = subprocess.run(
@@ -9291,6 +9300,10 @@ class TV(object):
                     campi = riga.split("\t")
                     if len(campi) >= 2 and campi[1]:
                         nome = campi[1].strip()
+                        if (nome.endswith(".monitor")
+                                or any(x in nome.lower() for
+                                       x in ("auto_null", "null-sink", "loopback", "combined", "remap", "virtual"))):
+                            continue
                         risultati.append(("pulse/" + nome, nome))
             except Exception:
                 pass
