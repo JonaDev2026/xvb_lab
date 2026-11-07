@@ -9421,30 +9421,31 @@ class TV(object):
 
     def voci_uscita_audio(self):
         """Mostra soltanto il nome leggibile dell'uscita predefinita."""
-        dispositivi = dict(self.dispositivi_uscita_audio())
-        predefinito = self.nome_uscita_predefinita()
-        nome = "pulse/" + predefinito if predefinito else ""
-        descrizione = dispositivi.get(nome, "")
-        if not descrizione and predefinito:
-            try:
-                dettagli = subprocess.run(
-                    ["wpctl", "inspect", "@DEFAULT_AUDIO_SINK@"],
-                    capture_output=True,
-                    text=True,
-                    timeout=3,
-                    check=True
-                )
-                voce = re.search(
-                    r'^\s*node\.(?:description|nick)\s*=\s*"([^"]+)"',
-                    dettagli.stdout,
-                    re.MULTILINE
-                )
-                if voce:
-                    descrizione = voce.group(1).strip()
-            except Exception:
-                pass
+        descrizione = ""
+        try:
+            dettagli = subprocess.run(
+                ["wpctl", "inspect", "@DEFAULT_AUDIO_SINK@"],
+                capture_output=True,
+                text=True,
+                timeout=3,
+                check=True
+            )
+            voce = re.search(
+                r'^\s*node\.(?:description|nick)\s*=\s*"?([^"\n]+)"?\s*$',
+                dettagli.stdout,
+                re.MULTILINE
+            )
+            if voce:
+                descrizione = voce.group(1).strip()
+        except Exception:
+            pass
         if not descrizione:
-            descrizione = _("System default output") if not predefinito else _("Active system output")
+            dispositivi = dict(self.dispositivi_uscita_audio())
+            predefinito = self.nome_uscita_predefinita()
+            nome = "pulse/" + predefinito if predefinito else ""
+            descrizione = dispositivi.get(nome, "")
+        if not descrizione:
+            descrizione = _("System default output")
         return [("*  " + descrizione, lambda: None)]
 
     def scegli_uscita_audio(self):
