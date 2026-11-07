@@ -2145,7 +2145,7 @@ def icona_programma_epg(ide, nome, programma):
     """
     if not programma:
         return None
-    inizio, _fine, titolo = programma
+    inizio, _fine, titolo = programma[:3]
     src = EPG_ICONE.get((ide or "", inizio))
     if src:
         return src
