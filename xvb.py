@@ -3026,6 +3026,7 @@ class Elenco(tk.Text):
         self.image_create("%d.0" % (r + 1), image=sotto_img)
         self.tag_add(tinta, "%d.0" % (r + 1)); self.tag_add("sotto", "%d.0" % (r + 1))
         if descrizione:
+            self.image_create("%d.0" % (r + 2), image=sotto_img)
             tk.Text.insert(self, "%d.0" % (r + 2), descrizione + "\n", ("descrizione",) + zebra + extra)
         else:
             self.image_create("%d.0" % (r + 2), image=self.stacco)
