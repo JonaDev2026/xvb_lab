@@ -9316,12 +9316,12 @@ class TV(object):
                 nodi = []
                 for riga in risposta.stdout.splitlines():
                     testo = riga.strip()
-                    if testo == "Sinks:":
+                    if testo.endswith("Sinks:"):
                         in_uscite = True
                         continue
-                    if in_uscite and testo in (
+                    if in_uscite and any(testo.endswith(voce) for voce in (
                             "Sources:", "Filters:", "Streams:",
-                            "Video:", "Settings"):
+                            "Video:", "Settings")):
                         break
                     if not in_uscite:
                         continue
