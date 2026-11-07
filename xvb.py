@@ -9053,8 +9053,9 @@ class TV(object):
                 return True
 
             z = self.zona_ov()
+            ancora = getattr(self, "ov_menu_bottone", None)
             self.chiudi_menu_ov()
-            if z and z[0][5] is getattr(self, "ov_menu_bottone", None):
+            if z and z[0][5] is ancora:
                 return True
         z = self.zona_ov()
         if z is None:
