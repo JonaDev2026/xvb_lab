@@ -9093,12 +9093,9 @@ class TV(object):
     def dispositivi_uscita_audio(self):
         """Elenco dei dispositivi audio disponibili."""
         try:
-            elenco = self.mpv.get_property_native("audio-device-list") or []
+            elenco = self.mpv._get_property("audio-device-list") or []
         except Exception:
-            try:
-                elenco = self.mpv["audio-device-list"] or []
-            except Exception:
-                elenco = []
+
 
         risultati = []
 
