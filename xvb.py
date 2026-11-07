@@ -2177,8 +2177,10 @@ def leggi_epg(f):
                 if inizio is not None and fine is not None and fine >= da:
                     t = el.find("title")
                     titolo = (t.text or "").strip() if t is not None else ""
+                    d = el.find("desc")
+                    descrizione = " ".join("".join(d.itertext()).split()) if d is not None else ""
                     programmi.setdefault(el.get("channel") or "", []).append(
-                        (inizio, fine, titolo))
+                        (inizio, fine, titolo, descrizione))
                     ic = el.find("icon")
                     if ic is not None and ic.get("src"):
                         src = ic.get("src")
@@ -2858,6 +2860,8 @@ class Elenco(tk.Text):
         self.tag_configure("nome", foreground="#ffffff", spacing1=self.nome_sopra, spacing3=4,
                            font=(CARATTERE, -NOME_PX, "bold"))
         self.tag_configure("sotto", spacing1=0, spacing3=14, font=(CARATTERE, -SOTTO_PX))
+        self.tag_configure("descrizione", foreground=GRIGIO, spacing1=0, spacing3=14,
+                           font=(CARATTERE, -SOTTO_PX))
         self.tag_configure("onda")
         self.tag_raise("onda")
         self.tag_raise("scelto")
@@ -2972,7 +2976,8 @@ class Elenco(tk.Text):
         d = self.dati[iid]
         r = self.riga(iid)
         testo = d["text"] or ""
-        nome, _sep, sotto = testo.partition("\n")
+        nome, _sep, resto = testo.partition("\n")
+        sotto, _sep, descrizione = resto.partition("\n")
         if d["img"] is not None:
 
             tk.Text.delete(self, "%d.0" % r, "%d.0" % (r + 3))
@@ -3020,8 +3025,11 @@ class Elenco(tk.Text):
             self.tag_add("pronda", "%d.0" % r)
         self.image_create("%d.0" % (r + 1), image=sotto_img)
         self.tag_add(tinta, "%d.0" % (r + 1)); self.tag_add("sotto", "%d.0" % (r + 1))
-        self.image_create("%d.0" % (r + 2), image=self.stacco)
-        self.tag_add("stacco", "%d.0" % (r + 2))
+        if descrizione:
+            tk.Text.insert(self, "%d.0" % (r + 2), descrizione + "\n", ("descrizione",) + zebra + extra)
+        else:
+            self.image_create("%d.0" % (r + 2), image=self.stacco)
+            self.tag_add("stacco", "%d.0" % (r + 2))
         for t in zebra + extra:
             self.tag_add(t, "%d.0" % r); self.tag_add(t, "%d.0" % (r + 1))
         d["img"] = True
@@ -6411,7 +6419,12 @@ class TV(object):
             p = self.programma_di(ide, nome)
             sotto = p[2] if p else ""
             nome = self.cfg.get("nomi_canali", {}).get(url) or nome
-        return " " + nome + ("\n " + sotto if sotto else "")
+        descrizione = ""
+        if (not self.file_in_onda and not self.media_in_uso and not self.reg_in_uso
+                and url == self.cfg.get("canale") and getattr(self, "fermato", None) is None
+                and p and len(p) > 3):
+            descrizione = p[3]
+        return " " + nome + ("\n " + sotto if sotto else "") + ("\n" + descrizione if descrizione else "")
 
     def poster_attivo(self):
         if not self.cfg.get("poster_epg", False) or self.reg_in_uso:
@@ -9947,9 +9960,9 @@ class TV(object):
         if not ide or ide not in self.epg:
             ide = self.epg_nomi.get(nome_piatto(nome))
         adesso = time.time()
-        for inizio, fine, titolo in self.epg.get(ide or "", []):
+        for inizio, fine, titolo, descrizione in self.epg.get(ide or "", []):
             if inizio <= adesso < fine:
-                return inizio, fine, titolo
+                return inizio, fine, titolo, descrizione
             if inizio > adesso:
                 break
         return None
@@ -11681,7 +11694,7 @@ class TV(object):
             if not ide or ide not in self.epg:
                 ide = self.epg_nomi.get(nome_piatto(self.nome_in_onda))
             adesso = time.time()
-            for _inizio, _fine, _titolo in self.epg.get(ide or "", []):
+            for _inizio, _fine, _titolo, _descrizione in self.epg.get(ide or "", []):
                 if _inizio > adesso:
                     prossimo = _titolo or ""
                     break
