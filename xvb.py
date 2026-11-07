@@ -7916,6 +7916,9 @@ class TV(object):
                         tipo = self.rileva_tipo_uscita_audio()
                         try:
                             self.root.after(
+                                0, self.sincronizza_uscita_audio_sistema
+                            )
+                            self.root.after(
                                 0, lambda t=tipo: self.applica_tipo_uscita_audio(t)
                             )
                         except tk.TclError:
@@ -7930,6 +7933,7 @@ class TV(object):
 
     def controlla_uscita_audio(self):
         try:
+            self.sincronizza_uscita_audio_sistema()
             tipo = self.rileva_tipo_uscita_audio()
             self.applica_tipo_uscita_audio(tipo)
             self.root.after(10000, self.controlla_uscita_audio)
@@ -9315,29 +9319,40 @@ class TV(object):
                 unici.append((nome, descrizione))
         return unici
 
-    def applica_uscita_audio(self, nome=None, silenzioso=False):
-        """Imposta il dispositivo scelto."""
-        if nome is None:
-            nome = self.cfg.get("audio_device", "auto")
+    def nome_uscita_predefinita(self):
+        try:
+            risposta = subprocess.run(
+                ["pactl", "get-default-sink"],
+                capture_output=True,
+                text=True,
+                timeout=2,
+                check=True
+            )
+            return risposta.stdout.strip()
+        except Exception:
+            return ""
 
-        nome = str(nome or "auto")
+    def applica_uscita_audio(self, nome=None, silenzioso=False):
+        """Imposta l'uscita scelta o quella predefinita del sistema."""
+        if nome is None:
+            nome = self.cfg.get("audio_device", "system")
+
+        nome = str(nome or "system")
+        dispositivo = nome
+        if nome in ("system", "auto"):
+            predefinito = self.nome_uscita_predefinita()
+            dispositivo = "pulse/" + predefinito if predefinito else "auto"
 
         try:
-            self.mpv["audio-device"] = nome
+            self.mpv["audio-device"] = dispositivo
             attuale = self.mpv["audio-device"]
 
-            if nome != "auto" and attuale and str(attuale) != nome:
+            if dispositivo != "auto" and attuale and str(attuale) != dispositivo:
                 raise RuntimeError(str(attuale))
 
             return True
 
         except Exception as errore:
-            if nome != "auto":
-                try:
-                    self.mpv["audio-device"] = "auto"
-                except Exception:
-                    pass
-
             if not silenzioso:
                 self.scrivi(
                     _("cannot set audio output: %s") % errore,
@@ -9347,14 +9362,33 @@ class TV(object):
             return False
 
     def voci_uscita_audio(self):
-        dispositivi = [("auto", _("Auto (system default)"))]
-        dispositivi.extend(self.dispositivi_uscita_audio())
-        corrente = str(self.cfg.get("audio_device", "auto"))
-        voci = []
+        dispositivi = self.dispositivi_uscita_audio()
+        mappa = dict(dispositivi)
+        predefinito = self.nome_uscita_predefinita()
+        nome_predefinito = "pulse/" + predefinito if predefinito else ""
+        descrizione_predefinita = mappa.get(
+            nome_predefinito, predefinito or _("System output unavailable")
+        )
+        corrente = str(self.cfg.get("audio_device", "system"))
+        if corrente == "auto":
+            corrente = "system"
+
+        voci = [(
+            ("*  " if corrente == "system" else "   ")
+            + _("System: %s") % descrizione_predefinita,
+            lambda: self.seleziona_uscita_audio("system")
+        )]
+
         for nome, descrizione in dispositivi:
+            if nome == nome_predefinito:
+                continue
             segno = "*  " if nome == corrente else "   "
-            voci.append((segno + descrizione, lambda nome=nome: self.seleziona_uscita_audio(nome)))
-        if len(voci) == 1:
+            voci.append((
+                segno + descrizione,
+                lambda nome=nome: self.seleziona_uscita_audio(nome)
+            ))
+
+        if not dispositivi:
             voci.append((_("No audio outputs found"), None))
         return voci
 
@@ -9363,10 +9397,28 @@ class TV(object):
             return
         self.cfg["audio_device"] = nome
         scrivi_config(self.cfg)
-        descrizione = dict(self.dispositivi_uscita_audio()).get(nome, _("Auto (system default)"))
-        if nome == "auto":
-            descrizione = _("Auto (system default)")
+        if nome == "system":
+            descrizione = dict(self.dispositivi_uscita_audio()).get(
+                "pulse/" + self.nome_uscita_predefinita(),
+                _("System output unavailable")
+            )
+        else:
+            descrizione = dict(self.dispositivi_uscita_audio()).get(nome, nome)
         self.scrivi(_("audio output: %s") % descrizione)
+
+    def sincronizza_uscita_audio_sistema(self):
+        if self.cfg.get("audio_device", "system") not in ("system", "auto"):
+            return
+        predefinito = self.nome_uscita_predefinita()
+        if not predefinito:
+            return
+        dispositivo = "pulse/" + predefinito
+        try:
+            attuale = str(self.mpv["audio-device"] or "")
+        except Exception:
+            attuale = ""
+        if attuale != dispositivo:
+            self.applica_uscita_audio("system", silenzioso=True)
 
     def freccia_audio(self, su):
         icona = "aperto_su" if su else "aperto"
