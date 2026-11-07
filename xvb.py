@@ -6970,7 +6970,7 @@ class TV(object):
         su comandi, riga di stato e linea di avanzamento. Quella di prima
         torna normale."""
         self.applica_poster()
-        for i, (nome, u, _l) in enumerate(self.visti):
+        for i, (nome, u, ide) in enumerate(self.visti):
             if not self.elenco.exists(str(i)):
                 continue
             if u == url:
@@ -6986,11 +6986,13 @@ class TV(object):
                 self.elenco.tag_configure("onda", background=colore, foreground=testo)
                 if testo not in self.pallini:
                     self.pallini[testo] = pallino(testo) or self.vuoto
-                self.elenco.item(str(i), tags=("onda",), image=self.pallini[testo])
+                self.elenco.item(str(i), tags=("onda",), image=self.pallini[testo],
+                                 text=self.testo_riga(nome, u, ide))
             elif "onda" in self.elenco.item(str(i), "tags"):
 
 
-                self.elenco.item(str(i), tags=(), image=self.pallino_di(nome, u))
+                self.elenco.item(str(i), tags=(), image=self.pallino_di(nome, u),
+                                 text=self.testo_riga(nome, u, ide))
         self.non_sul_verde(self.elenco, "onda")
 
     def salta(self, dove):
