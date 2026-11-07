@@ -1986,11 +1986,12 @@ def unisci_programmi(base, altri):
         return list(altri)
     res = list(base)
     inizi = [b_[0] for b_ in res]
-    for s_, e_, t_ in altri:
+    for programma in altri:
+        s_, e_ = programma[:2]
         i = bisect.bisect_left(inizi, e_)
         if i > 0 and res[i - 1][1] > s_:
             continue
-        res.insert(i, (s_, e_, t_))
+        res.insert(i, programma)
         inizi.insert(i, s_)
     return res
 
@@ -2145,7 +2146,7 @@ def icona_programma_epg(ide, nome, programma):
     """
     if not programma:
         return None
-    inizio, _fine, titolo = programma
+    inizio, _fine, titolo = programma[:3]
     src = EPG_ICONE.get((ide or "", inizio))
     if src:
         return src
@@ -2177,8 +2178,10 @@ def leggi_epg(f):
                 if inizio is not None and fine is not None and fine >= da:
                     t = el.find("title")
                     titolo = (t.text or "").strip() if t is not None else ""
+                    d = el.find("desc")
+                    descrizione = " ".join("".join(d.itertext()).split()) if d is not None else ""
                     programmi.setdefault(el.get("channel") or "", []).append(
-                        (inizio, fine, titolo))
+                        (inizio, fine, titolo, descrizione))
                     ic = el.find("icon")
                     if ic is not None and ic.get("src"):
                         src = ic.get("src")
@@ -2462,7 +2465,7 @@ class Guida(tk.Toplevel):
             k = ide if ide and ide in app.epg else app.epg_nomi.get(nome_piatto(nome))
             if not k:
                 continue
-            prog = [(a, b, t) for a, b, t in app.epg.get(k, [])
+            prog = [(a, b, t, d) for a, b, t, d in app.epg.get(k, [])
                     if b > self.da and a < self.fino]
             if prog:
                 self.righe.append((nome, url, ide, prog))
@@ -2500,7 +2503,7 @@ class Guida(tk.Toplevel):
             fondo = PANNELLO if i % 2 else FONDO
             c.create_rectangle(0, y0, largo, y1, fill=fondo, outline="")
             colore = self.app.colore_canale(nome, url)
-            for a, b, titolo in prog:
+            for a, b, titolo, _descrizione in prog:
                 xa, xb = max(self.x_di(a), 0), self.x_di(b)
                 in_onda = a <= adesso < b
 
@@ -6411,7 +6414,12 @@ class TV(object):
             p = self.programma_di(ide, nome)
             sotto = p[2] if p else ""
             nome = self.cfg.get("nomi_canali", {}).get(url) or nome
-        return " " + nome + ("\n " + sotto if sotto else "")
+        descrizione = ""
+        if (not self.file_in_onda and not self.media_in_uso and not self.reg_in_uso
+                and url == self.cfg.get("canale") and getattr(self, "fermato", None) is None
+                and p and len(p) > 3):
+            descrizione = p[3]
+        return " " + nome + ("\n " + sotto if sotto else "") + ("\n" + descrizione if descrizione else "")
 
     def poster_attivo(self):
         if not self.cfg.get("poster_epg", False) or self.reg_in_uso:
@@ -6956,7 +6964,7 @@ class TV(object):
         su comandi, riga di stato e linea di avanzamento. Quella di prima
         torna normale."""
         self.applica_poster()
-        for i, (nome, u, _l) in enumerate(self.visti):
+        for i, (nome, u, ide) in enumerate(self.visti):
             if not self.elenco.exists(str(i)):
                 continue
             if u == url:
@@ -6972,11 +6980,13 @@ class TV(object):
                 self.elenco.tag_configure("onda", background=colore, foreground=testo)
                 if testo not in self.pallini:
                     self.pallini[testo] = pallino(testo) or self.vuoto
-                self.elenco.item(str(i), tags=("onda",), image=self.pallini[testo])
+                self.elenco.item(str(i), tags=("onda",), image=self.pallini[testo],
+                                 text=self.testo_riga(nome, u, ide))
             elif "onda" in self.elenco.item(str(i), "tags"):
 
 
-                self.elenco.item(str(i), tags=(), image=self.pallino_di(nome, u))
+                self.elenco.item(str(i), tags=(), image=self.pallino_di(nome, u),
+                                 text=self.testo_riga(nome, u, ide))
         self.non_sul_verde(self.elenco, "onda")
 
     def salta(self, dove):
@@ -7437,7 +7447,7 @@ class TV(object):
 
             return (self.nome_canale(), "", _("not in the guide") if self.epg and self.nome
                     else "")
-        inizio, fine, titolo = p
+        inizio, fine, titolo = p[:3]
         mancanti = max(0, int((fine - time.time()) / 60))
 
         restano = {
@@ -9947,9 +9957,9 @@ class TV(object):
         if not ide or ide not in self.epg:
             ide = self.epg_nomi.get(nome_piatto(nome))
         adesso = time.time()
-        for inizio, fine, titolo in self.epg.get(ide or "", []):
+        for inizio, fine, titolo, descrizione in self.epg.get(ide or "", []):
             if inizio <= adesso < fine:
-                return inizio, fine, titolo
+                return inizio, fine, titolo, descrizione
             if inizio > adesso:
                 break
         return None
@@ -10026,7 +10036,7 @@ class TV(object):
             if p:
 
 
-                inizio, fine, _t = p
+                inizio, fine, _t = p[:3]
                 senza_ora = True
                 parte = (time.time() - inizio) / max(1.0, fine - inizio)
                 parte = max(0.0, min(1.0, parte))
@@ -11681,7 +11691,7 @@ class TV(object):
             if not ide or ide not in self.epg:
                 ide = self.epg_nomi.get(nome_piatto(self.nome_in_onda))
             adesso = time.time()
-            for _inizio, _fine, _titolo in self.epg.get(ide or "", []):
+            for _inizio, _fine, _titolo, _descrizione in self.epg.get(ide or "", []):
                 if _inizio > adesso:
                     prossimo = _titolo or ""
                     break
