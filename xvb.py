@@ -9265,6 +9265,7 @@ class TV(object):
 
     def dispositivi_uscita_audio(self):
         """Elenco delle sole uscite esposte dal sistema audio."""
+        risultati = []
         try:
             risposta = subprocess.run(
                 ["pactl", "-f", "json", "list", "sinks"],
@@ -9274,28 +9275,43 @@ class TV(object):
                 check=True
             )
             uscite = json.loads(risposta.stdout)
+            for uscita in uscite:
+                nome = str(uscita.get("name") or "").strip()
+                if not nome:
+                    continue
+                proprieta = uscita.get("properties") or {}
+                descrizione = str(
+                    uscita.get("description")
+                    or proprieta.get("device.description")
+                    or nome
+                ).strip()
+                risultati.append(("pulse/" + nome, descrizione))
         except Exception:
-            return []
+            try:
+                risposta = subprocess.run(
+                    ["pactl", "list", "short", "sinks"],
+                    capture_output=True,
+                    text=True,
+                    timeout=3,
+                    check=True
+                )
+                for riga in risposta.stdout.splitlines():
+                    campi = riga.split()
+                    if len(campi) < 2:
+                        continue
+                    nome = campi[1].strip()
+                    if nome:
+                        risultati.append(("pulse/" + nome, nome))
+            except Exception:
+                pass
 
-        risultati = []
         visti = set()
-
-        for uscita in uscite:
-            nome = str(uscita.get("name") or "").strip()
-            if not nome or nome in visti:
-                continue
-
-            proprieta = uscita.get("properties") or {}
-            descrizione = str(
-                uscita.get("description")
-                or proprieta.get("device.description")
-                or nome
-            ).strip()
-
-            visti.add(nome)
-            risultati.append(("pulse/" + nome, descrizione))
-
-        return risultati
+        unici = []
+        for nome, descrizione in risultati:
+            if nome not in visti:
+                visti.add(nome)
+                unici.append((nome, descrizione))
+        return unici
 
     def nome_uscita_predefinita(self):
         try:
