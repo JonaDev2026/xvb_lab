@@ -9264,47 +9264,72 @@ class TV(object):
 
 
     def dispositivi_uscita_audio(self):
-        risultati = []
+        """Elenco dei dispositivi audio disponibili."""
         try:
-            risposta = subprocess.run(
-                ["pactl", "-f", "json", "list", "sinks"],
-                capture_output=True,
-                text=True,
-                timeout=3,
-                check=True
-            )
-            for uscita in json.loads(risposta.stdout):
-                nome = uscita.get("name")
-                proprieta = uscita.get("properties") or {}
-                descrizione = (
-                    uscita.get("description")
-                    or proprieta.get("device.description")
-                    or nome
-                )
-                if nome:
-                    risultati.append(("pulse/" + str(nome), str(descrizione)))
+            elenco = self.mpv._get_property("audio-device-list") or []
         except Exception:
+            elenco = []
+
+        risultati = []
+
+        for voce in elenco:
+            if not isinstance(voce, dict):
+                continue
+
+            nome = voce.get("name")
+            descrizione = voce.get("description") or nome
+
+            if nome and str(nome) != "auto":
+                risultati.append((str(nome), str(descrizione)))
+
+        if not risultati:
             try:
                 risposta = subprocess.run(
-                    ["pactl", "list", "short", "sinks"],
+                    ["pactl", "-f", "json", "list", "sinks"],
                     capture_output=True,
                     text=True,
                     timeout=3,
                     check=True
                 )
-                for riga in risposta.stdout.splitlines():
-                    campi = riga.split("\t")
-                    if len(campi) >= 2 and campi[1]:
-                        nome = campi[1].strip()
-                        risultati.append(("pulse/" + nome, nome))
+                uscite = json.loads(risposta.stdout)
+                for uscita in uscite:
+                    nome = uscita.get("name")
+                    proprieta = uscita.get("properties") or {}
+                    descrizione = (
+                        uscita.get("description")
+                        or proprieta.get("device.description")
+                        or nome
+                    )
+                    if nome:
+                        risultati.append(
+                            ("pulse/" + str(nome), str(descrizione))
+                        )
             except Exception:
-                pass
+                try:
+                    risposta = subprocess.run(
+                        ["pactl", "list", "short", "sinks"],
+                        capture_output=True,
+                        text=True,
+                        timeout=3,
+                        check=True
+                    )
+                    for riga in risposta.stdout.splitlines():
+                        campi = riga.split("\\t")
+                        if len(campi) >= 2 and campi[1]:
+                            nome = campi[1].strip()
+                            risultati.append(
+                                ("pulse/" + nome, nome)
+                            )
+                except Exception:
+                    pass
+
         visti = set()
         unici = []
         for nome, descrizione in risultati:
             if nome not in visti:
                 visti.add(nome)
                 unici.append((nome, descrizione))
+
         return unici
 
     def nome_uscita_predefinita(self):
