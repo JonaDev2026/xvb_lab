@@ -357,7 +357,7 @@ def avvia_mpris(app):
     threading.Thread(target=GLib.MainLoop().run, daemon=True).start()
     return m
 
-VERSIONE = "4.4.5"
+VERSIONE = "4.4.6"
 AUTORE = "Jonathan Sanfilippo"
 ANNO = "2026"
 REPO = "JonaDev2026/xvb"
