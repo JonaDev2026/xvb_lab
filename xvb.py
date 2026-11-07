@@ -2597,7 +2597,14 @@ class Guida(tk.Toplevel):
 SCORRE = object()
 
 
-def _azione_informativa_audio():\n    pass\n\n\n_AZIONE_INFORMATIVA_AUDIO = _azione_informativa_audio\n\n\nclass Tendina(object):
+def _azione_informativa_audio():
+    pass
+
+
+_AZIONE_INFORMATIVA_AUDIO = _azione_informativa_audio
+
+
+class Tendina(object):
     """Il menu a tendina disegnato noi, nello stile delle finestrelle:
     scuro, bordo sottile, voci con aria, spunta lilla su quella attiva,
     separatori fra i gruppi. Si chiude scegliendo, cliccando fuori o con
@@ -2657,7 +2664,7 @@ def _azione_informativa_audio():\n    pass\n\n\n_AZIONE_INFORMATIVA_AUDIO = _azi
             segno.pack(side="left", padx=(8, 0))
             et = tk.Label(riga, text=testo, bg=PANNELLO, fg=colore, anchor="w")
             et.pack(side="left", fill="both", expand=True, padx=(4, 16))
-            if cosa:
+            if cosa and not informativa:
                 for w in (riga, segno, et):
                     w.bind("<Enter>", lambda e, r=riga, a=segno, b=et: self.accendi(r, a, b, True))
                     w.bind("<Leave>", lambda e, r=riga, a=segno, b=et: self.accendi(r, a, b, False))
@@ -9070,7 +9077,8 @@ class TV(object):
         if getattr(self, "ov_menu", None):
             i = self.riga_menu_ov()
             if i is not None:
-                if i >= 0 and self.ov_menu[i][1]:
+                if (i >= 0 and self.ov_menu[i][1]
+                        and self.ov_menu[i][1] is not _AZIONE_INFORMATIVA_AUDIO):
                     cosa = self.ov_menu[i][1]
                     self.chiudi_menu_ov()
                     self.root.after(40, cosa)
