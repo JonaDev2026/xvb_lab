@@ -2860,7 +2860,10 @@ class Elenco(tk.Text):
         self.tag_configure("nome", foreground="#ffffff", spacing1=self.nome_sopra, spacing3=4,
                            font=(CARATTERE, -NOME_PX, "bold"))
         self.tag_configure("sotto", spacing1=0, spacing3=14, font=(CARATTERE, -SOTTO_PX))
-        self.tag_configure("descrizione", foreground=GRIGIO, spacing1=0, spacing3=14,
+        self.tag_configure("descrizione", foreground=GRIGIO, spacing1=0, spacing3=0,
+                           lmargin1=COLONNA, lmargin2=COLONNA, lmargincolor=PANNELLO,
+                           font=(CARATTERE, -SOTTO_PX))
+        self.tag_configure("sotto_descrizione", spacing1=0, spacing3=0,
                            font=(CARATTERE, -SOTTO_PX))
         self.tag_configure("onda")
         self.tag_raise("onda")
@@ -3006,7 +3009,8 @@ class Elenco(tk.Text):
         if self.segno == "logo":
 
             nome, sotto = nome.lstrip(" "), sotto.lstrip(" ")
-            tk.Text.insert(self, "%d.0" % r, (sotto or " ") + "\n", (tinta, "sotto") + zebra + extra)
+            tag_sotto = "sotto_descrizione" if descrizione else "sotto"
+            tk.Text.insert(self, "%d.0" % r, (sotto or " ") + "\n", (tinta, tag_sotto) + zebra + extra)
             tk.Text.insert(self, "%d.0" % r, nome + "\n", (tinta, "nome") + zebra + extra)
         else:
             tk.Text.insert(self, "%d.0" % r, " " + (sotto or " ") + "\n", (tinta, "sotto") + zebra + extra)
