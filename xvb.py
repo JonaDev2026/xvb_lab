@@ -4258,7 +4258,7 @@ class TV(object):
         self.b_muto = self.tasto("volume", _("Mute"), self.muto, lato="right")
 
 
-        self.volume_largo, self.volume_dopo = 0, None
+        self.volume_largo, self.volume_dopo, self.volume_animazione = 0, None, None
         self.volume.config(width=0)
         for w in (self.b_muto, self.volume, self.b_audio_menu):
             w.bind("<Enter>", lambda e: self.apri_volume(), add="+")
@@ -7960,6 +7960,9 @@ class TV(object):
         if self.volume_dopo:
             self.root.after_cancel(self.volume_dopo)
             self.volume_dopo = None
+        if self.volume_animazione:
+            self.root.after_cancel(self.volume_animazione)
+            self.volume_animazione = None
         self.anima_volume(+1)
 
     def chiudi_volume_tra_poco(self):
@@ -7972,9 +7975,16 @@ class TV(object):
     def anima_volume(self, verso):
         """Il cursore si allarga (o si stringe) in cinque passi da 15 ms:
         e' lui a cambiare larghezza, l'altoparlante si sposta di conseguenza."""
+        if self.volume_animazione:
+            self.root.after_cancel(self.volume_animazione)
+            self.volume_animazione = None
         passo = self.volume.larga // 5
         largo = max(0, min(self.volume.larga, self.volume_largo + verso * passo))
         if largo == self.volume_largo:
+            if largo == 0 and self.b_audio_menu.winfo_ismapped():
+                self.b_audio_menu.pack_forget()
+                if self.barra_in_overlay():
+                    self.disegna_ov()
             return
         self.volume_largo = largo
         self.volume.config(width=largo)
@@ -7985,7 +7995,12 @@ class TV(object):
         if self.barra_in_overlay():
             self.disegna_ov()
         if 0 < largo < self.volume.larga:
-            self.root.after(15, lambda: self.anima_volume(verso))
+            self.volume_animazione = self.root.after(
+                15, lambda: self.prossimo_passo_volume(verso))
+
+    def prossimo_passo_volume(self, verso):
+        self.volume_animazione = None
+        self.anima_volume(verso)
 
     def alza_volume(self, v):
         try:
