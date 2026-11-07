@@ -2860,8 +2860,7 @@ class Elenco(tk.Text):
         self.tag_configure("nome", foreground="#ffffff", spacing1=self.nome_sopra, spacing3=4,
                            font=(CARATTERE, -NOME_PX, "bold"))
         self.tag_configure("sotto", spacing1=0, spacing3=14, font=(CARATTERE, -SOTTO_PX))
-        self.tag_configure("descrizione", foreground=GRIGIO, spacing1=0, spacing3=0,
-                           lmargin1=COLONNA, lmargin2=COLONNA, lmargincolor=PANNELLO,
+        self.tag_configure("descrizione", foreground=GRIGIO, spacing1=0, spacing3=14,
                            font=(CARATTERE, -SOTTO_PX))
         self.tag_configure("sotto_descrizione", spacing1=0, spacing3=0,
                            font=(CARATTERE, -SOTTO_PX))
@@ -3030,8 +3029,8 @@ class Elenco(tk.Text):
         self.image_create("%d.0" % (r + 1), image=sotto_img)
         self.tag_add(tinta, "%d.0" % (r + 1)); self.tag_add("sotto", "%d.0" % (r + 1))
         if descrizione:
-            self.image_create("%d.0" % (r + 2), image=sotto_img)
             tk.Text.insert(self, "%d.0" % (r + 2), descrizione + "\n", ("descrizione",) + zebra + extra)
+            self.image_create("%d.0" % (r + 2), image=sotto_img)
         else:
             self.image_create("%d.0" % (r + 2), image=self.stacco)
             self.tag_add("stacco", "%d.0" % (r + 2))
