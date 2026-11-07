@@ -9435,7 +9435,7 @@ class TV(object):
                     check=True
                 )
                 voce = re.search(
-                    r'^\\s*node\\.(?:description|nick)\\s*=\\s*"([^"]+)"',
+                    r'^\s*node\.(?:description|nick)\s*=\s*"([^"]+)"',
                     dettagli.stdout,
                     re.MULTILINE
                 )
