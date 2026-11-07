@@ -2658,7 +2658,8 @@ class Tendina(object):
             riga = tk.Frame(dove, bg=PANNELLO, height=self.ALTA, width=larga)
             riga.pack(fill="x")
             riga.pack_propagate(False)
-            informativa = cosa is _AZIONE_INFORMATIVA_AUDIO\n            colore = TESTO if cosa or informativa else GRIGIO
+            informativa = cosa is _AZIONE_INFORMATIVA_AUDIO
+            colore = TESTO if cosa or informativa else GRIGIO
             segno = tk.Label(riga, text="●" if spunta else "", bg=PANNELLO,
                              fg=ACCENTO, width=2, anchor="center")
             segno.pack(side="left", padx=(8, 0))
@@ -9020,7 +9021,10 @@ class TV(object):
         self.ov_sopra = sopra
 
 
-        riga_menu = self.riga_menu_ov() if getattr(self, "ov_menu", None) else None\n        voce_menu_attiva = (riga_menu is not None and riga_menu >= 0\n                            and self.ov_menu[riga_menu][1] is not _AZIONE_INFORMATIVA_AUDIO)\n        su_qualcosa = bool(z) or voce_menu_attiva
+        riga_menu = self.riga_menu_ov() if getattr(self, "ov_menu", None) else None
+        voce_menu_attiva = (riga_menu is not None and riga_menu >= 0
+                            and self.ov_menu[riga_menu][1] is not _AZIONE_INFORMATIVA_AUDIO)
+        su_qualcosa = bool(z) or voce_menu_attiva
         mano = "hand2" if su_qualcosa else ""
         if self.video.cget("cursor") != mano:
             self.video.config(cursor=mano)
