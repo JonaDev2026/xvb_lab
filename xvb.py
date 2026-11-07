@@ -7816,17 +7816,15 @@ class TV(object):
             pass
 
         nome_sink = ""
-        if dispositivo in ("auto", "pipewire", "pulse", "alsa", "jack", "sdl", "sndio"):
-            try:
-                risposta = subprocess.run(
-                    ["pactl", "get-default-sink"],
-                    capture_output=True, text=True, timeout=2, check=True
-                )
-                nome_sink = risposta.stdout.strip()
-            except Exception:
-                pass
-        else:
-            nome_sink = dispositivo.split("/", 1)[-1]
+        try:
+            risposta = subprocess.run(
+                ["pactl", "get-default-sink"],
+                capture_output=True, text=True, timeout=2, check=True
+            )
+            nome_sink = risposta.stdout.strip()
+        except Exception:
+            if dispositivo not in ("auto", "pipewire", "pulse", "alsa", "jack", "sdl", "sndio"):
+                nome_sink = dispositivo.split("/", 1)[-1]
 
         proprieta = {}
         if nome_sink:
