@@ -8889,7 +8889,8 @@ class TV(object):
             yy = 4 + i * R
             scelta = t.startswith("*  ")
             t = t[3:] if t[:3] in ("*  ", "   ") else t
-            if (i == getattr(self, "ov_menu_sopra", None) and cosa\n                    and cosa is not _AZIONE_INFORMATIVA_AUDIO):
+            if (i == getattr(self, "ov_menu_sopra", None) and cosa
+                    and cosa is not _AZIONE_INFORMATIVA_AUDIO):
 
                 luce = Image.new("RGBA", (mw, mh), (0, 0, 0, 0))
                 ImageDraw.Draw(luce).rounded_rectangle([4, yy + 1, mw - 5, yy + R - 2], radius=6,
