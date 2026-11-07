@@ -2956,7 +2956,7 @@ class Elenco(tk.Text):
 
     def spanne(self, iid):
         r = self.riga(iid)
-        return ("%d.0" % r, "%d.0" % (r + 2))
+        return ("%d.0" % r, "%d.0" % (r + 3))
 
     def corto(self, img):
         """Il pallino senza la trasparenza sopra e sotto (alto 14 px invece
@@ -3032,6 +3032,7 @@ class Elenco(tk.Text):
             self.tag_add("stacco", "%d.0" % (r + 2))
         for t in zebra + extra:
             self.tag_add(t, "%d.0" % r); self.tag_add(t, "%d.0" % (r + 1))
+            self.tag_add(t, "%d.0" % (r + 2))
         d["img"] = True
         self.ridisegna_colonna()
 
