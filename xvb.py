@@ -9277,84 +9277,83 @@ class TV(object):
 
 
     def dispositivi_uscita_audio(self):
-        """Elenco delle uscite audio con nomi leggibili e uscita predefinita."""
+        """Elenco delle uscite audio con descrizioni fornite da PipeWire."""
         risultati = []
         predefinito = self.nome_uscita_predefinita()
         try:
             risposta = subprocess.run(
-                ["pactl", "-f", "json", "list", "sinks"],
-                capture_output=True, text=True, timeout=3, check=True
+                ["wpctl", "status", "-n"], capture_output=True,
+                text=True, timeout=4, check=True
             )
-            for uscita in json.loads(risposta.stdout):
-                nome = str(uscita.get("name") or "").strip()
-                if not nome:
+            in_uscite = False
+            nodi = []
+            for riga in risposta.stdout.splitlines():
+                testo = re.sub(r"^[│├└─\s]+", "", riga).strip()
+                if testo == "Sinks:":
+                    in_uscite = True
                     continue
-                proprieta = uscita.get("properties") or {}
-                descrizione = str(
-                    uscita.get("description")
-                    or proprieta.get("device.description")
-                    or proprieta.get("device.nick")
-                    or proprieta.get("device.product.name")
-                    or ""
-                ).strip()
+                if in_uscite and testo.endswith(":"):
+                    break
+                if not in_uscite:
+                    continue
+                voce = re.match(r"^(\*)?\s*(\d+)\.?\s+(\S+)", testo)
+                if voce:
+                    nodi.append((voce.group(2), voce.group(3), bool(voce.group(1))))
+            for identificativo, nome_tecnico, attiva in nodi:
+                info = ""
+                try:
+                    info = subprocess.run(
+                        ["wpctl", "inspect", identificativo],
+                        capture_output=True, text=True, timeout=3, check=True
+                    ).stdout
+                except Exception:
+                    continue
+                nome_pipewire = ""
+                descrizione = ""
+                for chiave in ("node.description", "device.description",
+                               "device.nick", "device.product.name",
+                               "api.bluez5.alias", "node.nick"):
+                    voce = re.search(
+                        r'^\s*' + re.escape(chiave) + r'\s*=\s*"([^"]+)"',
+                        info, re.MULTILINE
+                    )
+                    if voce and voce.group(1).strip():
+                        descrizione = voce.group(1).strip()
+                        if chiave in ("node.description", "device.description"):
+                            break
+                voce = re.search(
+                    r'^\s*node.name\s*=\s*"([^"]+)"',
+                    info, re.MULTILINE
+                )
+                nome_pipewire = voce.group(1).strip() if voce else nome_tecnico
                 if not descrizione:
-                    descrizione = "Audio output %d" % (len(risultati) + 1)
-                risultati.append(("pulse/" + nome, descrizione, nome == predefinito))
+                    descrizione = nome_pipewire
+                    for prefisso in ("alsa_output.", "bluez_output.", "alsa_input.", "bluez_input."):
+                        descrizione = descrizione.removeprefix(prefisso)
+                    descrizione = descrizione.replace("_", " ").replace(".", " ").strip()
+                risultati.append((
+                    "pulse/" + nome_pipewire, descrizione,
+                    attiva or nome_pipewire == predefinito
+                ))
         except Exception:
             try:
                 risposta = subprocess.run(
-                    ["wpctl", "status"], capture_output=True,
-                    text=True, timeout=4, check=True
+                    ["pactl", "-f", "json", "list", "sinks"],
+                    capture_output=True, text=True, timeout=3, check=True
                 )
-                in_uscite = False
-                nodi = []
-                for riga in risposta.stdout.splitlines():
-                    testo = re.sub(r"^[│├└─\s]+", "", riga).strip()
-                    if testo == "Sinks:":
-                        in_uscite = True
+                for uscita in json.loads(risposta.stdout):
+                    nome = str(uscita.get("name") or "").strip()
+                    if not nome:
                         continue
-                    if in_uscite and testo.endswith(":"):
-                        break
-                    if not in_uscite:
-                        continue
-                    voce = re.search(r"^(\*)?\s*(\d+)\.\s+(.+?)(?:\s+\[vol:.*)?$", testo)
-                    if voce:
-                        descrizione = voce.group(3).strip()
-                        nodi.append((voce.group(2), descrizione, bool(voce.group(1))))
-                for identificativo, descrizione, attiva in nodi:
-                    nome_pipewire = ""
-                    try:
-                        info = subprocess.run(
-                            ["wpctl", "inspect", identificativo],
-                            capture_output=True, text=True, timeout=3, check=True
-                        ).stdout
-                        voce = re.search(
-                            r'^\s*node.name\s*=\s*"([^"]+)"',
-                            info, re.MULTILINE
-                        )
-                        nome_pipewire = voce.group(1).strip() if voce else ""
-                        if not descrizione:
-                            for chiave in (
-                                "node.description", "device.description", "device.nick",
-                                "device.product.name", "api.bluez5.alias"
-                            ):
-                                voce = re.search(
-                                    r'^\s*' + re.escape(chiave) + r'\s*=\s*"([^"]+)"',
-                                    info, re.MULTILINE
-                                )
-                                if voce and voce.group(1).strip():
-                                    descrizione = voce.group(1).strip()
-                                    break
-                    except Exception:
-                        pass
-                    if not nome_pipewire:
-                        continue
-                    if not descrizione:
-                        descrizione = nome_pipewire.replace("alsa_output.", "").replace("bluez_output.", "").replace("_", " ").replace(".", " ").strip()
-                    risultati.append((
-                        "pulse/" + nome_pipewire, descrizione,
-                        attiva or nome_pipewire == predefinito
-                    ))
+                    proprieta = uscita.get("properties") or {}
+                    descrizione = str(
+                        uscita.get("description")
+                        or proprieta.get("device.description")
+                        or proprieta.get("device.nick")
+                        or proprieta.get("device.product.name")
+                        or nome.replace("_", " ").replace(".", " ")
+                    ).strip()
+                    risultati.append(("pulse/" + nome, descrizione, nome == predefinito))
             except Exception:
                 pass
         unici = []
