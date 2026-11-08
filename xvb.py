@@ -1,4 +1,4 @@
-4.import gzip
+import gzip
 import hashlib
 import json
 import math
