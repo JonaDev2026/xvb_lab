@@ -357,7 +357,7 @@ def avvia_mpris(app):
     threading.Thread(target=GLib.MainLoop().run, daemon=True).start()
     return m
 
-VERSIONE = "4.5.1"
+VERSIONE = "4.5.2"
 AUTORE = "Jonathan Sanfilippo"
 ANNO = "2026"
 REPO = "JonaDev2026/xvb"
@@ -9732,7 +9732,7 @@ class TV(object):
         finestra.grab_set()
         tk.Label(
             finestra,
-            text=_("*  System default output") + "\n" + _("GNOME manages audio routing."),
+            text=_("*  System default output") + "\n" + _("manages audio routing."),
             bg=PANNELLO,
             fg=TESTO,
             justify="left",
